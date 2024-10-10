@@ -1,5 +1,6 @@
 class dial {
 
+
     constructor(SVGcontainer, id, items){
         this.SVGcontainer = SVGcontainer
         this.id = id
@@ -14,6 +15,30 @@ class dial {
             .append('g')
             .attr('class', 'dial')
             .attr('id', this.id)
+            .on('click', this.onClick)
+    }
+
+    setPosition(x, y){
+        this.g.attr("transform", getTranslateString(x, y))
+    }
+
+    alignRight(){
+        this.g.selectAll('text')
+            .attr('x', this.getWidestPoint() + 3)
+            .attr("text-anchor", "end") 
+    }
+
+    getWidestPoint(){
+        const textElements = this.g.selectAll('text')
+        const widths = []         
+
+        textElements.each(function() {
+            const rawWidth = d3.select(this).node().getBBox().width
+            const cleanWidth = parseInt(Math.round(rawWidth))
+            widths.push(cleanWidth)
+        });
+
+        return d3.max(widths)
     }
 
     getSelectedItemIndex(){
@@ -67,7 +92,6 @@ class dial {
         function enterElements(selection){
             selection.attr("id", d => d.title)
                 .attr("transform", calculatePosition)
-                .on('click', this.onClick())
 
             selection.append('text')
                 .text(d => d.title)
@@ -78,15 +102,22 @@ class dial {
         }
 
         function updateElements(selection){
-            selection.attr("transform", calculatePosition)
-            selection.selectAll('text').style('font-weight', calculateFontWeight)
+
+            selection.transition()
+                .duration(750)
+                    .attr("transform", calculatePosition)
+
+            selection.selectAll('text')
+                .transition()
+                .duration(750)
+                    .style('font-weight', calculateFontWeight)
         }
         
         this.g.selectAll('g.' + this.id)
             .data(this.items)
             .join(
                 enter => enter.append('g').call(enterElements),
-                update => update.attr('transform', calculatePosition),
+                update => update.call(updateElements),
                 exit => exit.remove()
             )
             
@@ -116,7 +147,6 @@ class dial {
         } while (currentSelectedIndex === randomIndex);
         
 
-        
         this.selectItem(this.items[randomIndex].title)
     }
 

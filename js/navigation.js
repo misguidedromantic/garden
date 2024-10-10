@@ -1,104 +1,71 @@
+let personaDial = {}
+let domainDial = {}
 
-let personaData = []
-let domainData = []
+window.onload = function (){setupPage()}
 
-window.onload = function (){
+function setupPage(){
+    createNavigationDials()
+}
 
-    function createMenu(){
+function createNavigationDials(){
 
-        const menuPosition = {x: "5px", y: "5px"}
-        const menuDimensions = {width: (window.innerWidth - 10) + "px", height: "80px"}
+    const data = getDataForDials()
+    const dialSVG = createDialContainer()
 
-        function createMenuDiv(){
-            return d3.select('body')
-                .append('div')
-                .attr('id','menu')
-                .style('position', 'absolute')
-                .style('left', menuPosition.x)
-                .style('top', menuPosition.y)
-                .style('width', menuDimensions.width)
-                .style('height', menuDimensions.height)
-        }
-
-        function createMenuSVG(){
-            return menuDiv.append('svg')
-                .attr('id', "menuCanvas")
-                .attr('width', menuDimensions.width)
-                .attr('height', menuDimensions.height)
-
-        }
-
-        const menuDiv = createMenuDiv()
-        const menuSVG = createMenuSVG()
-
-        
-        function createPersonaCarosuel(){
-            
-            function getPersonaData(){
-                return [
-                    new persona ("aimless analyst"),
-                    new persona ("misguided romantic"),
-                    new persona ("james parry"),
-                    new persona ("dynastic observer")
-                ]
-            }
-
-            personaData = getPersonaData()
-            return new dial (menuSVG, 'persona', personaData)
-        }
-
-        function createDomainCarosuel(){
-            
-            function getDomainData(){
-                return [
-                    new domain ("garden"),
-                    new domain ("songs"),
-                    new domain ("journeys")
-                ]
-            }
-
-            domainData = getDomainData()
-            return new dial (menuSVG, 'domain', domainData)
-        }
-
-        let personaCarosuel = createPersonaCarosuel()
-        let domainCarosuel = createDomainCarosuel()
-
-        function getCarosuelWidestPoint(carosuel){
-            
-            const widths = []        
-
-            carosuel.selectAll('text').each(function(d, i) {
-                const width = parseInt(Math.round(d3.select(this).node().getBBox().width))
-                widths.push(width)
-            });
-
-            return d3.max(widths)
-        }
-
-        function setDomainCarosuelPosition(){
-            let x = getCarosuelWidestPoint(personaCarosuel) + 3
-            let y = 0
-
-            domainCarosuel.attr('transform', getTranslateString(x, y))
-        }
-
-        function setPersonaCarosuelPosition(){
-
-            let widestPoint = getCarosuelWidestPoint(personaCarosuel)
-
-            personaCarosuel.selectAll('text')
-                .attr('x', widestPoint)
-                .attr("text-anchor", "end") // Right-align
-
-        }
-        
-        setPersonaCarosuelPosition()
-        setDomainCarosuelPosition()
-
+    function setupPersonaDial(){
+        personaDial = new dial (dialSVG, 'persona', data.persona)
+        personaDial.alignRight()
     }
     
-    createMenu()
+    function setupDomainDial(){
+        domainDial = new dial (dialSVG, 'domain', data.domain)
+        domainDial.setPosition(personaDial.getWidestPoint() + 3)
+    }
+
+    setupPersonaDial()
+    setupDomainDial()
+    
+}
+
+
+function getDataForDials(){
+
+    function getPersonaData(){
+        return [
+            new persona ("aimless analyst"),
+            new persona ("misguided romantic"),
+            new persona ("james parry"),
+            new persona ("dynastic observer")
+        ]
+    }
+
+    function getDomainData(){
+        return [
+            new domain ("garden"),
+            new domain ("songs"),
+            new domain ("journeys")
+        ]
+    }
+
+    return {
+        persona: getPersonaData(),
+        domain: getDomainData()
+    }
+
+}
+
+function createDialContainer(){
+
+    const dialDiv = d3.select('body')
+        .append('div')
+        .attr('id', "dials-HTMLContainer")
+        .style('position', 'absolute')
+        .style('left', "5px")
+        .style('top', "5px")
+        .style('width', (window.innerWidth - 10) + "px")
+        .style('height', "80px")
+
+    return new SVGcanvas ('dials-SVGCanvas', dialDiv)
 
 }
 

@@ -45,12 +45,12 @@ class dial {
         function calculatePosition(d, i){
 
             let x = 0
-            let y = 0
+            let y = 15
 
             if(i > selectedIndex){
-                y = (i - selectedIndex) * 20
+                y = y + (i - selectedIndex) * 20
             } else if(i < selectedIndex){
-                y = (selectedIndex - i) * -20
+                y = y + (selectedIndex - i) * -20
             }
 
             return getTranslateString(x, y)
@@ -67,6 +67,7 @@ class dial {
         function enterElements(selection){
             selection.attr("id", d => d.title)
                 .attr("transform", calculatePosition)
+                .on('click', this.onClick())
 
             selection.append('text')
                 .text(d => d.title)
@@ -105,5 +106,20 @@ class dial {
 
     }
 
+    onClick(){
+
+        const currentSelectedIndex = this.getSelectedItemIndex()
+        let randomIndex = currentSelectedIndex
+        
+        do{
+            randomIndex = Math.floor(Math.random() * this.items.length)
+        } while (currentSelectedIndex === randomIndex);
+        
+
+        
+        this.selectItem(this.items[randomIndex].title)
+    }
+
 
 }
+

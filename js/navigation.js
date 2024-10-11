@@ -19,7 +19,7 @@ function createNavigationDials(){
     
     function setupDomainDial(){
         domainDial = new dial (dialSVG, 'domain', data.domain)
-        domainDial.setPosition(personaDial.getWidestPoint() + 3, 0)
+        domainDial.setPosition(personaDial.getWidestPoint() + 5, 0)
     }
 
     setupPersonaDial()

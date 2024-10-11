@@ -14,7 +14,7 @@ class dial {
             .append('g')
             .attr('class', 'dial')
             .attr('id', this.id)
-            .on('click', this.onClick)
+            .on('click', this.onClick())
     }
 
     setPosition(x, y){

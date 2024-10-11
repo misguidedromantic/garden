@@ -6,7 +6,7 @@ class dial {
         this.items = items
         this.#createG()
         this.#renderItems()
-
+        this.#addGClickEvent()
     }
 
     #createG(){
@@ -14,7 +14,10 @@ class dial {
             .append('g')
             .attr('class', 'dial')
             .attr('id', this.id)
-            .on('click', this.onClick())
+    }
+
+    #addGClickEvent(){
+        this.g.on('click', this.onClick())
     }
 
     setPosition(x, y){
@@ -94,6 +97,8 @@ class dial {
                 .duration(750)
                     .style('font-weight', calculateFontWeight)
         }
+
+
         
         this.g.selectAll('g.' + this.id)
             .data(this.items)
@@ -102,6 +107,8 @@ class dial {
                 update => update.call(updateElements),
                 exit => exit.remove()
             )
+
+
             
     }
 

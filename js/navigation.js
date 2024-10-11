@@ -3,38 +3,33 @@ let domainDial = {}
 const arrivalPersona = 'misguided romantic'
 const arrivalDomain = 'garden'
 
+function setupNavMenu(){
 
-window.onload = function (){setupPage()}
+    const dialCanvas = createSVGCanvas ('dials-SVGCanvas', divs.navMenu)
+    setupDials(dialCanvas)
 
-function setupPage(){
-
-    createNavigationDials()
 }
 
-function createNavigationDials(){
+function setupDials(dialCanvas){
 
     const data = getDataForDials()
-    const dialSVG = createDialContainer()
-
+    
+    
     function setupPersonaDial(){
-        personaDial = new dial (dialSVG, 'persona', data.persona)
+        personaDial = new dial (dialCanvas, 'persona', data.persona)
         personaDial.alignRight()
     }
     
     function setupDomainDial(){
-        domainDial = new dial (dialSVG, 'domain', data.domain)
+        domainDial = new dial (dialCanvas, 'domain', data.domain)
         domainDial.setPosition(personaDial.getWidestPoint() + 5, 0)
     }
 
     setupPersonaDial()
     setupDomainDial()
-    
 }
 
-
 function getDataForDials(){
-
-    
 
     function getPersonaData(){
         return [
@@ -57,22 +52,6 @@ function getDataForDials(){
         persona: getPersonaData(),
         domain: getDomainData()
     }
-
-}
-
-function createDialContainer(){
-
-    const dialDiv = d3.select('body')
-        .append('div')
-        .attr('id', "dials-HTMLContainer")
-        .style('position', 'absolute')
-        .style('left', "5px")
-        .style('top', "5px")
-        .style('width', (window.innerWidth - 10) + "px")
-        .style('height', "800px")
-
-    
-    return createSVGCanvas ('dials-SVGCanvas', dialDiv)
 
 }
 

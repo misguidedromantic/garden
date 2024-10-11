@@ -122,11 +122,11 @@ class dial {
 
     getRandomItemTitle(){
         const selectedIndex = this.getSelectedItemIndex();
-        let randomIndex = currentSelectedIndex
+        let randomIndex = selectedIndex
         
         do{
             randomIndex = Math.floor(Math.random() * this.items.length)
-        } while (currentSelectedIndex === randomIndex);
+        } while (selectedIndex === randomIndex);
 
         return this.items[randomIndex].title
     }

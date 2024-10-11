@@ -7,6 +7,7 @@ const arrivalDomain = 'garden'
 window.onload = function (){setupPage()}
 
 function setupPage(){
+
     createNavigationDials()
 }
 
@@ -68,7 +69,7 @@ function createDialContainer(){
         .style('left', "5px")
         .style('top', "5px")
         .style('width', (window.innerWidth - 10) + "px")
-        .style('height', "80px")
+        .style('height', "800px")
 
     
     return createSVGCanvas ('dials-SVGCanvas', dialDiv)

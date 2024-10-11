@@ -1,8 +1,6 @@
 function convertDivDimension(str){
     const index = str.indexOf("px");
     const number = parseInt(str.slice(0, index))
-    console.log(str)
-    console.log(number)
     return number
 }
 

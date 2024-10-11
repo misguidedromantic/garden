@@ -83,7 +83,7 @@ class navConcept {
     }
 
     #markSelected(arrivalValue){
-        if (title === arrivalValue){
+        if (this.title === arrivalValue){
             this.selected = true
         } else {
             this.selected = false

@@ -1,5 +1,8 @@
 let personaDial = {}
 let domainDial = {}
+const arrivalPersona = 'misguided romantic'
+const arrivalDomain = 'garden'
+
 
 window.onload = function (){setupPage()}
 
@@ -29,6 +32,8 @@ function createNavigationDials(){
 
 
 function getDataForDials(){
+
+    
 
     function getPersonaData(){
         return [
@@ -70,20 +75,36 @@ function createDialContainer(){
 
 }
 
-class persona {
+class navigationConcept {
+
+    constructor(title, arrivalValue){
+        this.title = title
+        this.#markSelected
+    }
+
+    #markSelected(){
+        if (title === arrivalValue){
+            this.selected = true
+        } else {
+            this.selected = false
+        }
+    }
+
+}
+
+class persona extends navigationConcept {
 
     constructor(title){
-        this.title = title
-        this.selected = false
+        super(title, arrivalPersona)
     }
+    
 
 }
 
 class domain {
 
     constructor(title){
-        this.title = title
-        this.selected = false
+        super(title, arrivalDomain)
     }
 
 }

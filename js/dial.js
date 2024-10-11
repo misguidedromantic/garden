@@ -40,6 +40,7 @@ class dial {
         return d3.max(widths)
     }
 
+
     getSelectedItemIndex(){
         
         const index = this.items.findIndex(item => item.selected === true);
@@ -65,6 +66,9 @@ class dial {
             this.selectItem(firstTitle)
             return
         }
+
+        //get selection
+        //if selection = -1 then exit function, select a random item
         
         function calculatePosition(d, i){
 
@@ -122,6 +126,7 @@ class dial {
             
     }
 
+    
     selectItem(title){
         
         this.items.forEach(item => {
@@ -133,6 +138,13 @@ class dial {
           });
 
         this.#renderItems()
+
+    }
+
+    selectRandomItem(){
+
+        let currentIndex = checkCurrentSelection()
+
 
     }
 

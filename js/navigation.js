@@ -65,7 +65,8 @@ function createDialContainer(){
         .style('width', (window.innerWidth - 10) + "px")
         .style('height', "80px")
 
-    return new SVGcanvas ('dials-SVGCanvas', dialDiv)
+    
+    return createSVGCanvas ('dials-SVGCanvas', dialDiv)
 
 }
 

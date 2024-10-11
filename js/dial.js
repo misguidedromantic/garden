@@ -1,6 +1,5 @@
 class dial {
 
-
     constructor(SVGcontainer, id, items){
         this.SVGcontainer = SVGcontainer
         this.id = id

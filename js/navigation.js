@@ -75,14 +75,14 @@ function createDialContainer(){
 
 }
 
-class navigationConcept {
+class navConcept {
 
     constructor(title, arrivalValue){
         this.title = title
-        this.#markSelected
+        this.#markSelected(arrivalValue)
     }
 
-    #markSelected(){
+    #markSelected(arrivalValue){
         if (title === arrivalValue){
             this.selected = true
         } else {
@@ -92,7 +92,7 @@ class navigationConcept {
 
 }
 
-class persona extends navigationConcept {
+class persona extends navConcept {
 
     constructor(title){
         super(title, arrivalPersona)
@@ -101,7 +101,7 @@ class persona extends navigationConcept {
 
 }
 
-class domain {
+class domain extends navConcept {
 
     constructor(title){
         super(title, arrivalDomain)

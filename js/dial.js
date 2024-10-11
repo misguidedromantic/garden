@@ -42,33 +42,12 @@ class dial {
 
 
     getSelectedItemIndex(){
-        
-        const index = this.items.findIndex(item => item.selected === true);
-
-        console.log(index)
-
-        if(index === -1){
-            throw new error
-        }
-
-        return index
+        return this.items.findIndex(item => item.selected === true);
     }
 
     #renderItems(){
 
-        let selectedIndex = undefined
-        
-        try {
-            selectedIndex = this.getSelectedItemIndex();
-        
-        } catch {
-            const firstTitle = this.items[0].title
-            this.selectItem(firstTitle)
-            return
-        }
-
-        //get selection
-        //if selection = -1 then exit function, select a random item
+        const selectedIndex = this.getSelectedItemIndex();
         
         function calculatePosition(d, i){
 
@@ -141,24 +120,20 @@ class dial {
 
     }
 
-    selectRandomItem(){
-
-        let currentIndex = checkCurrentSelection()
-
-
-    }
-
-    onClick(){
-
-        const currentSelectedIndex = this.getSelectedItemIndex()
+    getRandomItemTitle(){
+        const selectedIndex = this.getSelectedItemIndex();
         let randomIndex = currentSelectedIndex
         
         do{
             randomIndex = Math.floor(Math.random() * this.items.length)
         } while (currentSelectedIndex === randomIndex);
-        
 
-        this.selectItem(this.items[randomIndex].title)
+        return this.items[randomIndex].title
+    }
+
+    onClick(){
+        const randomItemTitle = this.getRandomItemTitle()
+        this.selectItem(randomItemTitle)
     }
 
 

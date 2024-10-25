@@ -1,8 +1,9 @@
 let menu = {}
 let planWindow = {}
+let plans = []
 
 
-window.onload = function (){setupPage()}
+window.onload = function (){setupNavigator()}
 
 function setupPage(){
 
@@ -76,6 +77,15 @@ function createPlanWindow(){
 
 }
 
+function createPlans (){
+
+    plans.push(new plan ('my digital garden'))
+    plans.push(new plan ('wooden blocks'))
+    plans.push(new plan ('misguided romantic map'))
+    plans.push(new plan ('emotional territory'))
+
+}
+
 
 async function loadPlan(planName) {
 
@@ -144,4 +154,9 @@ function createSVGCanvas(id, div){
 function insertString(mainString, insertString, position) {
     return mainString.slice(0, position) + insertString + mainString.slice(position);
   }
+
+
+  function getTranslateString(x, y){
+    return 'translate(' + x + ',' + y + ')'
+}
 

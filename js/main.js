@@ -5,14 +5,6 @@ let plans = []
 
 window.onload = function (){setupNavigator()}
 
-function setupPage(){
-
-    createMenu()
-    createPlanWindow()
-
-
-}
-
 function createMenu(){
 
     function createMenuDiv(){

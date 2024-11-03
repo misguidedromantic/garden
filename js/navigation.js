@@ -1,17 +1,4 @@
 let mainNavigator = {}
-let domains = []
-
-class domain {
-
-    constructor(title){
-        this.title = title
-    }
-
-    setSubDomains(subDomains){
-        this.subDomains = subDomains
-    }
-}
-
 
 class container {
 
@@ -31,7 +18,6 @@ class container {
 
     createSVG(){
         this.svg = this.div.append('svg')
-            .attr('transform', getTranslateString(20, 20))
     }
 
     resize (width, height, delay, duration){
@@ -56,21 +42,14 @@ class container {
 
 class navigator extends container {
 
-    constructor(id, items){
+    constructor(id){
         super(id)
-        this.items = items
-        this.width = window.innerWidth / 4
-        this.height = items.length * 20 + 40
-        this.left = (window.innerWidth / 2) - (this.width / 2)
-        this.top = 50
         this.createDiv()
         this.createSVG()
-        this.renderInitialPosition()
-        this.renderInitialSize()
     }
 
-    setSubItems(subItems){  
-        this.subItems = subItems
+    getData(){
+        return d3.selectAll('g.item').data()
     }
 
     renderInitialSize(){
@@ -80,6 +59,7 @@ class navigator extends container {
     renderInitialPosition(){
         this.reposition(this.left, this.top, 0, 0)
     }
+
 
     renderItems(classText, data){
 
@@ -113,7 +93,7 @@ class navigator extends container {
                     .attr("id", d => d.title)
                     .attr("class", classText)
                     .attr("transform", (d, i) => {return calculateTransformTranslate(d, i)})
-                    .on("click", selectDomain)
+                    .on("click", selectItem)
                 
                 groups.append('text')
                     .text(d => d.title)
@@ -176,143 +156,56 @@ class navigator extends container {
 
     }
 
-    renderSelectedItem(selection){
-        
+    renderSelectedItem(selection){ 
         const id = selection.attr('id')
-        const filtered = this.items.filter(item => item.title === id)
+        const items = mainNavigator.getData()
+        const filtered = items.filter(item => item.title === id)
+        const plans = getPlans()
+        console.log(plans)
         this.renderItems('item', filtered)
-        this.renderItems('subItem', this.subItems)
+        this.renderItems('subItem', plans)
 
         const width = (selection.select('text').node().getBBox().width + 40)
         const left = 50
 
         mainNavigator.resize(width, this.height, 300, 600)
         mainNavigator.reposition(left, this.top, 300, 600)
-
     }
-
-
 }
 
+class menuItem {
+    constructor(title){
+        this.title = title
+    }
+}
 
 function setupNavigator (){
 
-    function getPlans(){
-        return[
-            {title: 'my digital garden'},
-            {title: 'wooden blocks'},
-            {title: 'misguided romantic map'},
-            {title: 'emotional territory'}
-        ]
+
+    const views = getViews()
+
+    function sizeNavigator(){
+        mainNavigator.width = window.innerWidth / 4
+        mainNavigator.height = views.length * 20 + 40
+        mainNavigator.renderInitialSize()
     }
 
-    domains.push(new domain('plans'))
-    domains.push(new domain('concepts'))
-    domains.push(new domain('home'))
+    function positionNavigator(){
+        mainNavigator.left = (window.innerWidth / 2) - (mainNavigator.width / 2)
+        mainNavigator.top = 50
+        mainNavigator.renderInitialPosition()
+    }
 
-    domains[1].selected = true
-    mainNavigator = new navigator ('mainNavigator', domains)
-    mainNavigator.setSubItems(getPlans())
-    mainNavigator.renderItems('item', domains)
-    
-    //renderDomains(mainNavigator.svg, domains)    
-
+    mainNavigator = new navigator ('mainNavigator')
+    sizeNavigator()
+    positionNavigator()
+    mainNavigator.renderItems('item', views) 
 }
 
-function selectDomain(){   
+
+
+function selectItem(){   
     mainNavigator.renderSelectedItem(d3.select(this))
-}
-
-
-function renderDomains (svg, domains){
-
-    const selectedIndex = 1 //domains.findIndex(item => item.selected === true);
-    const middleIndex = domains.length / 2
-
-/*     function getDistanceFromSelected(d, i){
-
-        const gap = 20
-
-        if (i > selectedIndex){
-            return (i - selectedIndex) * gap
-        } else if(i < selectedIndex){
-            return (selectedIndex - i) * - gap
-        } else {
-            return 0
-        }
-    } */
-
-
-    function calculatePosition(d, i){
-        const x = mainNavigator.width / 2
-        const y = 20 + 20 * (i + 1)
-        return getTranslateString(x, y)
-    }
-
-    function enterElements(){
-
-        return function(enter){
-            let groups = enter.append('g')
-                    .attr("id", d => d.title)
-                    .attr("class", 'domainPointer')
-                    .attr("transform", (d, i) => {return getTranslateString(mainNavigator.width / 2, 20 + 20 * (i + 1))})
-                    .on("click", selectDomain)
-                
-                groups.append('text')
-                    .text(d => d.title)
-                    .style('font-family', 'tahoma')
-                    .style('font-size', 14)
-                    .style('text-anchor', 'middle')
-                    .attr('fill', 'black')
-                    .attr('y', - (14 / 2))
-        }
-    }
-
-    function updateElements(){
-
-        return function(update){
-
-            if(update.empty()){
-                return
-            }
-
-            let text = update.select('text')
-            let width = text.node().getBBox().width
-
-            update.transition()
-                .delay(300)
-                .duration(600)
-                    .attr("transform", (d, i) => {return getTranslateString(width / 2 + 20, 20 + 20 * (i + 1))})
-        }
-    }
-
-    function exitElements(){
-
-        return function(exit){
-            
-            exit.selectAll('text').each(function(){
-                let text = d3.select(this)
-                text.transition()
-                    .duration(100)
-                    .style('fill', 'grey')
-                    .on("end", function() {
-                        tweenTextRemovalAndColour(text, 200)
-                    })
-                
-            })
-
-            exit.transition().delay(400).remove()
-        }
-
-    }
-
-    svg.selectAll('g')
-            .data(domains, d => d.title)
-            .join(
-                enterElements(),
-                updateElements(),
-                exitElements()
-            )
 }
 
 

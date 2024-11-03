@@ -16,6 +16,8 @@ function createMenu(){
             .style('top', '5px')
             .style('width', '800px')
             .style('height', '160px')
+        
+            
     }
 
     function createItemPlans(){
@@ -66,15 +68,6 @@ function createPlanWindow(){
 
     planWindow.div = createPlanDiv()
 
-
-}
-
-function createPlans (){
-
-    plans.push(new plan ('my digital garden'))
-    plans.push(new plan ('wooden blocks'))
-    plans.push(new plan ('misguided romantic map'))
-    plans.push(new plan ('emotional territory'))
 
 }
 

@@ -14,12 +14,15 @@ class container {
             .style('background-color', 'white')
             .style('border-radius', '20px')
             .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
+            //.style('overflow-y', 'auto')
             .style('z-index', getDivCount() + 1)
+            //.style('scrollbar-width', 'none')
 
     }
 
     createSVG(){
-        this.svg = this.div.append('svg')
+        this.svg = this.div.append('svg').attr('id', this.id + 'svg')
+        //.attr('height', 200).attr('width', 200)
     }
 
     resize (width, height, delay, duration){
@@ -46,6 +49,23 @@ class container {
             .style('top', this.top + 'px')
     }
 
+    seepInToBackgound(){
+        this.div.transition("tSeep").delay(600).duration(800)
+            .style('background-color', 'lightyellow')
+            .style('border-radius', '0px')
+            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
+
+    }
+
+}
+
+class subList extends container {
+
+    constructor(id, parentDiv){
+        super(id)
+        this.parentContainer = parentDiv
+    }
+
 }
 
 class navigator extends container {
@@ -65,6 +85,7 @@ class navigator extends container {
         this.renderSize(delay, duration)
         this.renderPosition(delay, duration)
     }
+
 
     getItemGs(){
         return this.svg.selectAll('g.item')   
@@ -176,7 +197,7 @@ class navigator extends container {
 }
 
 
-function renderMainNavigator(items = getViews()){
+function renderMainNavigator(items = getViews(), delay = 0, duration = 0){
 
     try {
         mainNavigator.renderItems('item', items)
@@ -187,7 +208,7 @@ function renderMainNavigator(items = getViews()){
     }
 
     finally{
-        mainNavigator.fitToItems(0, 0)
+        mainNavigator.fitToItems(delay, duration)
     }
 
 }
@@ -205,8 +226,12 @@ function selectItem(){
     let data = mainNavigator.getData().filter(item => item.title === id)
     if(data[0].constructor.name === 'view'){
         data = [...data, ...getPlans()]
-        renderMainNavigator(data)
+        mainNavigator.top = 15
+        mainNavigator.left = 15
+        renderMainNavigator(data, 700, 300)
+        mainNavigator.seepInToBackgound()
     } else {
+
         loadPlan('myDigitalGarden')
     }
 

@@ -3,7 +3,7 @@ let planWindow = {}
 let plans = []
 
 
-window.onload = function (){setupNavigator()}
+window.onload = function (){renderMainNavigator()}
 
 function createMenu(){
 
@@ -64,6 +64,7 @@ function createPlanWindow(){
             .style('height', '800px')
             .style('padding', '10px')
             .attr('font-family', 'arial')
+            .style('z-index', '1')
     }
 
     planWindow.div = createPlanDiv()
@@ -78,7 +79,15 @@ async function loadPlan(planName) {
     const header = d3.select(planFile.body).select('h1')
     const paras = d3.select(planFile.body).selectAll('p')
 
-    planWindow.div.append('h1').html(header.html())
+    try{
+        planWindow.div.append('h1').html(header.html())
+    }
+
+    catch{
+        createPlanWindow()
+        planWindow.div.append('h1').html(header.html())
+    }
+    
     
     paras.each(function(){
         const p = d3.select(this)
@@ -145,3 +154,7 @@ function insertString(mainString, insertString, position) {
     return 'translate(' + x + ',' + y + ')'
 }
 
+
+function getDivCount(){
+    return d3.selectAll('div').size()
+}

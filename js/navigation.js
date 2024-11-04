@@ -14,6 +14,8 @@ class container {
             .style('background-color', 'white')
             .style('border-radius', '20px')
             .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
+            .style('z-index', getDivCount() + 1)
+
     }
 
     createSVG(){
@@ -21,21 +23,27 @@ class container {
     }
 
     resize (width, height, delay, duration){
-        this.width = width
-        this.height = height
-
         this.div.transition("tSize").delay(delay).duration(duration)
             .style('width', width + 'px')
             .style('height', height + 'px')
     }
 
     reposition (left, top, delay, duration) {
-        this.left = left
-        this.top = top
-
         this.div.transition("tPosition").delay(delay).duration(duration)
             .style('left', left + 'px')
             .style('top', top + 'px')
+    }
+
+    renderSize(delay, duration){
+        this.div.transition("tSize").delay(delay).duration(duration)
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+    }
+
+    renderPosition(delay, duration){
+        this.div.transition("tPosition").delay(delay).duration(duration)
+            .style('left', this.left + 'px')
+            .style('top', this.top + 'px')
     }
 
 }
@@ -44,48 +52,45 @@ class navigator extends container {
 
     constructor(id){
         super(id)
+        this.width = window.innerWidth / 4
+        this.height = 60
+        this.left = (window.innerWidth / 2) - (this.width / 2)
+        this.top = 50
         this.createDiv()
         this.createSVG()
     }
 
+    fitToItems(delay, duration){
+        this.height = this.getData().length * 20 + 40
+        this.renderSize(delay, duration)
+        this.renderPosition(delay, duration)
+    }
+
+    getItemGs(){
+        return this.svg.selectAll('g.item')   
+    }
+
     getData(){
-        return d3.selectAll('g.item').data()
+        return this.getItemGs().data()
     }
-
-    renderInitialSize(){
-        this.resize(this.width, this.height, 0, 0)
-    }
-
-    renderInitialPosition(){
-        this.reposition(this.left, this.top, 0, 0)
-    }
-
 
     renderItems(classText, data){
 
-        function calculateTransformTranslate(d, i){
-            const x = mainNavigator.width / 2
-            let y = 20 * (i + 1)
-            
-            if(classText === 'item'){
-                y = y + 20
-            } else if (classText === 'subItem'){
-                y = y + 40
-            }
+        const gap = 20
+        let x = this.width / 2
 
+
+
+        function calculateTransformTranslate(d, i){
+
+            if(!d.header){
+                x = gap
+            }
+            const y = gap * (i + 1) + gap
             return getTranslateString(x, y)
             
         }
 
-        function calculateTextAnchor(){
-            if(classText === 'item'){
-                return 'middle'
-            }
-            else if(classText === 'subItem'){
-                return 'left'
-            }
-        }
-        
         function enterElements(){
 
             return function(enter){
@@ -99,12 +104,18 @@ class navigator extends container {
                     .text(d => d.title)
                     .style('font-family', 'tahoma')
                     .style('font-size', 14)
-                    .style('text-anchor', calculateTextAnchor)
+                    .style('text-anchor', d => {
+                        if(d.header){return 'middle'}
+                        else{return 'left'}
+                        })
+                    .attr('fill', 'white')
+                    .attr('dy', '-.4em')
+                    .transition('tEnterText')
+                    .delay((d, i) => {return i * 150 + 250})
+                    .duration(500)
                     .attr('fill', 'black')
-                    .attr('y', - (14 / 2))
             }
         }
-
 
         function updateElements(){
 
@@ -117,10 +128,18 @@ class navigator extends container {
                 let text = update.select('text')
                 let width = text.node().getBBox().width
     
-                update.transition()
-                    .delay(300)
+                update.transition('tUpdateG')
+                    .delay(100)
+                    .duration(400)
+                        .attr("transform", (d, i) => {return getTranslateString(width / 2 + 22.5, gap * (i + 1) + gap)})
+
+                text.transition('tUpdateText')
                     .duration(600)
-                        .attr("transform", (d, i) => {return getTranslateString(width / 2 + 20, 20 + 20 * (i + 1))})
+                        .attr('font-weight', d => {
+                            if(d.header){return 600}
+                            else {return 300}
+                        })
+
             }
         }
     
@@ -130,7 +149,7 @@ class navigator extends container {
                 
                 exit.selectAll('text').each(function(){
                     let text = d3.select(this)
-                    text.transition()
+                    text.transition('tExitText')
                         .duration(100)
                         .style('fill', 'grey')
                         .on("end", function() {
@@ -139,7 +158,7 @@ class navigator extends container {
                     
                 })
     
-                exit.transition().delay(400).remove()
+                exit.transition('tExitG').delay(400).remove()
             }
     
         }
@@ -152,60 +171,46 @@ class navigator extends container {
                 exitElements()
             )
 
-
-
     }
 
-    renderSelectedItem(selection){ 
-        const id = selection.attr('id')
-        const items = mainNavigator.getData()
-        const filtered = items.filter(item => item.title === id)
-        const plans = getPlans()
-        console.log(plans)
-        this.renderItems('item', filtered)
-        this.renderItems('subItem', plans)
-
-        const width = (selection.select('text').node().getBBox().width + 40)
-        const left = 50
-
-        mainNavigator.resize(width, this.height, 300, 600)
-        mainNavigator.reposition(left, this.top, 300, 600)
-    }
 }
 
-class menuItem {
-    constructor(title){
-        this.title = title
+
+function renderMainNavigator(items = getViews()){
+
+    try {
+        mainNavigator.renderItems('item', items)
     }
+
+    catch{
+        setupMainNavigator(items)
+    }
+
+    finally{
+        mainNavigator.fitToItems(0, 0)
+    }
+
 }
 
-function setupNavigator (){
 
-
-    const views = getViews()
-
-    function sizeNavigator(){
-        mainNavigator.width = window.innerWidth / 4
-        mainNavigator.height = views.length * 20 + 40
-        mainNavigator.renderInitialSize()
-    }
-
-    function positionNavigator(){
-        mainNavigator.left = (window.innerWidth / 2) - (mainNavigator.width / 2)
-        mainNavigator.top = 50
-        mainNavigator.renderInitialPosition()
-    }
-
+function setupMainNavigator (items){
     mainNavigator = new navigator ('mainNavigator')
-    sizeNavigator()
-    positionNavigator()
-    mainNavigator.renderItems('item', views) 
+    mainNavigator.renderItems('item', items)
 }
 
 
 
 function selectItem(){   
-    mainNavigator.renderSelectedItem(d3.select(this))
+    const id = d3.select(this).attr('id')
+    let data = mainNavigator.getData().filter(item => item.title === id)
+    if(data[0].constructor.name === 'view'){
+        data = [...data, ...getPlans()]
+        renderMainNavigator(data)
+    } else {
+        loadPlan('myDigitalGarden')
+    }
+
+    
 }
 
 

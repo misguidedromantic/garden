@@ -1,6 +1,7 @@
 class plan {
     constructor(title){
         this.title = title
+        this.header = false
     }
 }
 

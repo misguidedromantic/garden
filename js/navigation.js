@@ -1,6 +1,40 @@
 let mainNavigator = {}
 
-class container {
+class navHandler {
+    constructor(){
+        this.destinations = []
+        this.#loadDestinations
+    }
+
+    #loadDestinations(){
+        const data = getDestinationData()
+        this.destinations = data.map(destData => new destination (destData))
+    }
+
+    getDestinationTitles(){
+        return this.destinations.map(function(dest) {return dest['title']})
+    }
+}
+
+class destination {
+    constructor(data){
+        this.title = data.title
+    }
+}
+
+function getDestinationData(){
+    return [
+        {title: 'plans'},
+        {title: 'concepts'}
+    ]
+}
+
+    
+
+
+
+
+class oldContainer {
 
     constructor(id){
         this.id = id
@@ -59,7 +93,7 @@ class container {
 
 }
 
-class subList extends container {
+class subList extends oldContainer {
 
     constructor(id, parentDiv){
         super(id)
@@ -68,7 +102,7 @@ class subList extends container {
 
 }
 
-class navigator extends container {
+class navigator extends oldContainer {
 
     constructor(id){
         super(id)

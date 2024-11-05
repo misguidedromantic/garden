@@ -1,90 +1,24 @@
 let planWindow = {}
-let plans = []
 
 
-window.onload = function (){renderMainNavigator()}
+window.onload = function (){displayPlan('my digital garden')}
 
-
-function createPlanWindow(){
-
-    function createPlanDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', "planDiv")
-            .style('position', 'absolute')
-            .style('left', '2000px')
-            .style('top', '160px')
-            .style('width', '800px')
-            .style('height', '800px')
-            .style('padding', '10px')
-            .attr('font-family', 'arial')
-            .style('z-index', '1')
-    }
-
-    planWindow.div = createPlanDiv()
-
+function displayNavigator(){
+    const nHandler = new navHandler
+    const destinations = nHandler.getDestinationTitles()
+    const dispHandler = new displayHandler
+    dispHandler.renderNavigator(destinations)
 
 }
 
 
-async function loadPlan(planName) {
-
-    const planFile = await getPlanFile(planName)
-    const header = d3.select(planFile.body).select('h1')
-    const paras = d3.select(planFile.body).selectAll('p')
-
-    try{
-        planWindow.div.append('h1').html(header.html())
-    }
-
-    catch{
-        createPlanWindow()
-        planWindow.div.append('h1').html(header.html())
-    }
-    
-    
-    paras.each(function(){
-        const p = d3.select(this)
-
-        let pContent = true
- 
-        p.selectAll('span').each(function(){
-            const spanHTML = d3.select(this).html()
-            
-            if(spanHTML === ''){
-                pContent = false
-            }  
-        })
-
-        if (pContent === true){
-            planWindow.div.append('p').html(p.html())
-        }
-        
-    })
-
-    selectPlanWindow() 
+async function displayPlan(planName) {
+    const plHandler = new planHandler
+    const dispHandler = new displayHandler
+    const planToDisplay = await plHandler.getPlanHTML(planName)
+    dispHandler.renderDocWindow(planToDisplay)
 }
 
-function selectPlanWindow() {
-
-    document.getElementById("planDiv").style.backgroundColor = 'white'
-
-    //slide into view
-    planWindow.div
-        .transition()
-        .duration(1000)
-        .style('left', '15px')
-        .style('background-color', '#F5F5DC')
-
-}
-
-
-async function getPlanFile(fileName){
-    const response = await fetch(fileName + '.html')
-    const responseText = await response.text()
-    const parser = new DOMParser()
-    return parser.parseFromString(responseText, "text/html")
-}
 
 function createSVGCanvas(id, div){
 

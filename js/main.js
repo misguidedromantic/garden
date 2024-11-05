@@ -1,55 +1,9 @@
-let menu = {}
 let planWindow = {}
 let plans = []
 
 
 window.onload = function (){renderMainNavigator()}
 
-function createMenu(){
-
-    function createMenuDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', "menuDiv")
-            .style('position', 'absolute')
-            .style('left', '5px')
-            .style('top', '5px')
-            .style('width', '800px')
-            .style('height', '160px')
-        
-            
-    }
-
-    function createItemPlans(){
-
-        const plansG = menu.svg.append('g')
-            .attr('class', 'menuItemG')
-            .attr('id', 'menuItemPlans')
-
-        plansG.append('text')
-            .text('StatementOfIntent')
-            .style('font-family', 'tahoma')
-            .style('font-size', '16')
-            .attr('fill', 'black')
-            .attr('y', 14)
-
-        plansG.on('click', function(event, d) {
-            const itemText = d3.select(this).select('text').text()
-            console.log(itemText)
-            loadPlan(itemText)
-        })
-
-        return plansG
-
-
-    }
-
-    menu.div = createMenuDiv()
-    menu.svg = createSVGCanvas('menuSVG', menu.div)
-    menu.items = []
-    menu.items.push(createItemPlans())
-    
-}
 
 function createPlanWindow(){
 

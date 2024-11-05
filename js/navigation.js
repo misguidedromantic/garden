@@ -50,7 +50,7 @@ class container {
     }
 
     seepInToBackgound(){
-        this.div.transition("tSeep").delay(600).duration(800)
+        this.div.transition("tSeep").delay(0).duration(800)
             .style('background-color', 'lightyellow')
             .style('border-radius', '0px')
             .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
@@ -132,8 +132,8 @@ class navigator extends container {
                     .attr('fill', 'white')
                     .attr('dy', '-.4em')
                     .transition('tEnterText')
-                    .delay((d, i) => {return i * 150 + 250})
-                    .duration(500)
+                    .delay((d, i) => {return i * 150})
+                    .duration(400)
                     .attr('fill', 'black')
             }
         }
@@ -150,12 +150,12 @@ class navigator extends container {
                 let width = text.node().getBBox().width
     
                 update.transition('tUpdateG')
-                    .delay(100)
+                    .delay(0)
                     .duration(400)
                         .attr("transform", (d, i) => {return getTranslateString(width / 2 + 22.5, gap * (i + 1) + gap)})
 
                 text.transition('tUpdateText')
-                    .duration(600)
+                    .duration(400)
                         .attr('font-weight', d => {
                             if(d.header){return 600}
                             else {return 300}
@@ -226,9 +226,9 @@ function selectItem(){
     let data = mainNavigator.getData().filter(item => item.title === id)
     if(data[0].constructor.name === 'view'){
         data = [...data, ...getPlans()]
-        mainNavigator.top = 15
+        mainNavigator.top = 50
         mainNavigator.left = 15
-        renderMainNavigator(data, 700, 300)
+        renderMainNavigator(data, 0, 400)
         mainNavigator.seepInToBackgound()
     } else {
 

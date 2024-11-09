@@ -3,7 +3,7 @@ let mainNavigator = {}
 class navHandler {
     constructor(){
         this.destinations = []
-        this.#loadDestinations
+        this.#loadDestinations()
     }
 
     #loadDestinations(){
@@ -12,7 +12,8 @@ class navHandler {
     }
 
     getDestinationTitles(){
-        return this.destinations.map(function(dest) {return dest['title']})
+        return this.destinations
+        //return this.destinations.map(function(dest) {return dest['title']})
     }
 }
 
@@ -255,22 +256,7 @@ function setupMainNavigator (items){
 
 
 
-function selectItem(){   
-    const id = d3.select(this).attr('id')
-    let data = mainNavigator.getData().filter(item => item.title === id)
-    if(data[0].constructor.name === 'view'){
-        data = [...data, ...getPlans()]
-        mainNavigator.top = 50
-        mainNavigator.left = 15
-        renderMainNavigator(data, 0, 400)
-        mainNavigator.seepInToBackgound()
-    } else {
 
-        loadPlan('myDigitalGarden')
-    }
-
-    
-}
 
 
 function tweenTextRemovalAndColour(selection, duration) {

@@ -1,22 +1,34 @@
-let planWindow = {}
+let dispHandler = {} 
 
-
-window.onload = function (){displayPlan('my digital garden')}
+window.onload = function (){
+    displayNavigator()
+    //displayPlan('my digital garden')
+}
 
 function displayNavigator(){
-    const nHandler = new navHandler
-    const destinations = nHandler.getDestinationTitles()
-    const dispHandler = new displayHandler
+    const dataHandler = new navHandler
+    const destinations = dataHandler.getDestinationTitles()
+    dispHandler = new displayHandler
     dispHandler.renderNavigator(destinations)
+}
 
+function displayPlansSubMenu(){
+    const dataPlansHandler = new planHandler
+    const dataNavHandler = new navHandler
+    const destinations = dataNavHandler.getDestinationTitles()
+    const selectedItem = destinations.filter(item => item.title === "plans")
+    
+    const data = [...selectedItem, ...dataPlansHandler.plans]
+
+    dispHandler.renderNavigator(data)
+    
 }
 
 
 async function displayPlan(planName) {
     const plHandler = new planHandler
-    const dispHandler = new displayHandler
     const planToDisplay = await plHandler.getPlanHTML(planName)
-    dispHandler.renderDocWindow(planToDisplay)
+    dispHandler.renderPlanWindow(planToDisplay)
 }
 
 

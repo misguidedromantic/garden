@@ -1,36 +1,25 @@
-let mainNavigator = {}
+class destinationHandler {
 
-class navHandler {
-    constructor(){
-        this.destinations = []
-        this.#loadDestinations()
+    static getDestinations (){
+        const data = this.#getDestinationData()
+        return data.map(destData => new destination (destData))
     }
 
-    #loadDestinations(){
-        const data = getDestinationData()
-        this.destinations = data.map(destData => new destination (destData))
-    }
-
-    getDestinationTitles(){
-        return this.destinations
-        //return this.destinations.map(function(dest) {return dest['title']})
+    static #getDestinationData(){
+        return [
+            {title: 'plans'},
+            {title: 'concepts'}
+        ]
     }
 }
 
 class destination {
-    constructor(data){
-        this.title = data.title
+    constructor(d){
+        this.title = d.title
     }
 }
 
-function getDestinationData(){
-    return [
-        {title: 'plans'},
-        {title: 'concepts'}
-    ]
-}
 
-    
 
 
 

@@ -1,11 +1,184 @@
-class displayHandler {
+class navigatorHandler {
 
-    constructor() {
-        this.displays = []
-        this.#loadDisplays()
+    static #div = {}
+    static #svg = {}
+    static #handler = {}
+    static #width = window.innerWidth / 4
+    static #height = 60
+    static #left = 20
+    static #top = 20
+
+    static createNavigator(){
+        this.#div = this.#createDiv()
+        this.#svg = this.#createSVG()
+        this.#handler = new listHandler
+    }
+    
+    static async updateNavigator (data){
+        
+        await this.#handler.renderList(data, this.#svg)
+        this.repositionNavigator('middle')
+        this.resizeNavigator(data.length)
+    }
+
+    static repositionNavigator (position){
+
+            switch(position){
+                case 'middle':
+                    this.#left = (window.innerWidth / 2) - (this.#width / 2)
+                    break;
+
+                case 'left':
+                    this.#left = 20
+            }
+
+        
+        this.#div.transition("tPosition").delay(100).duration(500)
+            .style('left', this.#left + 'px')
+            .style('top', this.#top + 'px')
+    }
+
+
+    static resizeNavigator (itemCount, widestItem){
+
+        const width = this.#handler.getWidestItem(this.#svg)
+        console.log(width)
+
+        this.#width = width + 40
+
+        this.#div.transition("tSize").delay(100).duration(500)
+            .style('width', this.#width + 'px')
+            .style('height', this.#height + 'px')
     }
 
     
+
+
+
+
+
+    static #createDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'navigatorDiv')
+            .style('position', 'fixed')
+            .style('left', this.#left + "px")
+            .style('top', this.#top + "px")
+            .style('width', this.#width + "px")
+            .style('height', this.#height + 'px')
+            .style('border-radius', '20px')
+            .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
+            .style('background-color', 'white')
+    }
+
+    static #createSVG(){
+        return this.#div.append('svg')
+            .attr('id', 'navigatorSvg')
+    }
+
+    
+
+    
+
+}
+
+
+
+
+
+class displayManager {
+
+    static displays = {}
+
+    static createDisplay(name, type){
+        
+        switch(type){
+            case 'docWindow':
+                this.#createDocWindowDisplay(name)
+                break;
+            
+            case 'list':
+                this.#createListDisplay(name)  
+        }
+    }
+
+    static #createListDisplay(name){
+        const handler = new listHandler ()
+        handler.createDiv()
+        handler.createSVG()
+        this.displays[name]
+    }
+
+    static #createDocWindowDisplay(name){
+        this.displays[name] = new docWindow  
+    }
+
+    static #getHandler(displayType){
+    
+        
+    }
+
+    static get (displayName){
+
+        switch(displayName){
+
+            case 'navigator':
+                return new listHandler  
+
+            case 'list':
+                return new docWindowHandler
+
+        
+        }
+    }
+
+    static #loadDisplay(displayName){
+
+        switch(displayName){
+
+            case 'navigator':
+                thisDisplay.div = this.createDiv(id, styles)    
+                break;
+            
+            case 'list':
+                thisDisplay.div = this.createDiv(id, styles)
+                thisDisplay.svg = this.createSVG(thisDisplay.div, id)   
+        }
+
+
+        this.displays[displayName]
+    }
+
+    static #getType (displayName){
+        return this.displays[displayName].constructor.name  
+    }
+
+
+    static setup(display){
+        
+        const id = display.id
+        const styles = display.styles
+
+        switch(display.constructor.name){
+
+            case 'docWindow':
+                thisDisplay.div = this.createDiv(id, styles)    
+                break;
+            
+            case 'list':
+                thisDisplay.div = this.createDiv(id, styles)
+                thisDisplay.svg = this.createSVG(thisDisplay.div, id)   
+        }
+
+    }
+
+    static renderDisplay(displayName, data){
+
+    }
+
+   
+ 
+  
     #appendHeader(sourceElem, targetElem){
         const header = d3.select(sourceElem).select('h1')
         targetElem.append('h1').html(header.html())
@@ -47,9 +220,7 @@ class displayHandler {
         this.#setupContainers(mainNavigator)
     }
 
-    getDisplay(id){
-        return this.displays.find(disp => disp.id === id)
-    }
+
 
 
     #slideIntoView(targetDiv){
@@ -101,53 +272,116 @@ class displayHandler {
 
     }
 
+    
+
+    
+
+}
+
+class displayHandler {
+
+    
+
+    
+}
+
+
+class docWindowHandler extends displayHandler {}
+
+
+class listHandler extends displayHandler {
+
+    constructor(){
+        super()
+        this.transitionPromises = []
+    }
+
+    getWidestItem(svg){
+
+        const groups = svg.selectAll('g.listItem')
+        let widestWidth = 0
+        
+        groups.each(function(){
+            const textElem = d3.select(this).select('text')
+            const width = textElem.node().getBBox().width
+            if(width > widestWidth){
+                widestWidth = width
+            }
+            
+        })
+        return widestWidth
+    }
+
     createDiv(id, styles){
+
         return d3.select('body')
             .append('div')
             .attr('id', id + "Div")
-            .style('position', styles.position)
-            .style('left', styles.left + "px")
-            .style('top', styles.top + "px")
+            .style('position', list.position)
+            .style('left', list.left + "px")
+            .style('top', list.top + "px")
             .style('width', styles.width + "px")
             .style('height', styles.height + 'px')
             .style('padding', styles.padding + 'px')
             .style('margin', styles.margin + 'px')
+            .style('border-radius', styles.borderRadius + "px")
+            .style('box-shadow', styles.boxShadow)
+            .style('background-color', styles.backgroundColor)
             //.attr('font-family', 'arial')
             //.style('z-index', '1')
     }
 
-    createSVG(parentContainer, id){
-        return parentContainer.append('svg')
-            .attr('id', id + 'Svg')
-
+    render(displayName, data){
+        this.renderList(data, displayHandler.displays[displayName])    
     }
 
-}
+    async renderList(data, svg){
 
-
-class listHandler {
-
-
-    renderList(data, list){
-
-        list.svg.selectAll('g')
+        let enterSelection = {}
+        
+        svg.selectAll('g.listItem')
             .data(data, d => d.title)
             .join(
-                this.enterElements(),
-                this.updateElements(),
-                this.exitElements()
+                enter => {
+                    enterSelection = this.#enterElements(enter)
+                },
+                this.#updateElements(),
+                this.#exitElements()
             )
-    }
 
-    enterElements(){
+
+        const text = enterSelection.selectAll('text')
 
         
+
+        
+        
+        
+
+        const enterPromise = text.transition()
+            .delay((d, i) => {return i * 150})
+            .duration(300)
+            .attr('fill', 'black')
+            .end()
+
+        
+
+        //console.log(this.transitionPromises)         
+   
+        
+
+        //const updatePromise
+
+        return Promise.all([enterPromise])
+        
+    }
+
+    #enterElements(enter){
+
         let fnSelectItem = this.selectItem
         let fnGetTranslate = this.calculateTransformTranslate
 
-        return function(enter){
-
-            let groups = enter.append('g')
+            const groups = enter.append('g')
                 .attr("id", d => d.title)
                 .attr("class", 'listItem')
                 .attr("transform", (d, i) => {return fnGetTranslate(d, i)})
@@ -163,40 +397,48 @@ class listHandler {
                     })
                 .attr('fill', 'white')
                 .attr('dy', '-.4em')
-                .transition('tEnterText')
-                .delay((d, i) => {return i * 150})
-                .duration(400)
-                .attr('fill', 'black')
-        }
+
+            return groups
     }
 
-    updateElements(){
+    #updateElements(){
+
+        const updatePromises = []
+        this.transitionPromises.push(updatePromises)
+
 
         return function(update){
 
             if(update.empty()){
+                updatePromises.push(Promise.resolve())
                 return
             }
 
-            let text = update.select('text')
-            let width = text.node().getBBox().width
+            const text = update.select('text')
+            const width = text.node().getBBox().width
 
-            update.transition('tUpdateG')
+            updatePromises.push(
+                update.transition('tUpdateG')
                 .delay(0)
                 .duration(400)
                     .attr("transform", (d, i) => {return getTranslateString(width / 2 + 22.5, 20 * (i + 1) + 20)})
+                    .end()
+            )
 
-            text.transition('tUpdateText')
+            updatePromises.push(
+                text.transition('tUpdateText')
                 .duration(400)
                     .attr('font-weight', d => {
                         if(d.header){return 600}
                         else {return 300}
                     })
+                    .end()
+            )
 
         }
     }
 
-    exitElements(){
+    #exitElements(){
 
         return function(exit){
             
@@ -230,17 +472,7 @@ class listHandler {
     }
 
 
-    resize (list, dimensions){
-        list.div.transition("tSize").delay(100).duration(500)
-            .style('width', dimensions.width + 'px')
-            .style('height', dimensions.height + 'px')
-    }
-
-    reposition (list, position) {
-        list.div.transition("tPosition").delay(100).duration(500)
-            .style('left', position.left + 'px')
-            .style('top', position.top + 'px')
-    }
+    
 
 
     seepInToBackgound(div){
@@ -293,14 +525,33 @@ class docWindow {
 }
 
 class list {
+
+    static getStyles () {
+        return {
+            position: 'fixed',
+            left: 10,
+            top: 10,
+            width: 0,
+            height: 0,
+            padding: 12,
+            margin: 0,
+            fontFamily: 'tahoma',
+            backgroundColor: 'white',
+            borderRadius: 20,
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',    
+        }
+    }
+        
+
+
     constructor(id){
         this.id = id
         this.styles = {
             position: 'fixed',
-            left: 60,
-            top: 0,
-            width: 800,
-            height: 800,
+            left: 10,
+            top: 10,
+            width: 0,
+            height: 0,
             padding: 12,
             margin: 0,
             fontFamily: 'tahoma',
@@ -314,6 +565,11 @@ class list {
 class svgHandler {
     
     
+}
+
+class containerHandler {
+
+
 }
 
 class container {

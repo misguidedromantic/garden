@@ -1,19 +1,25 @@
 
 class planHandler {
+
+    static getPlan(title){
+        const plans = this.#getPlansData()
+        return plans.find(item => item.title === title)
+    }
     
-    constructor() {
-        this.plans = []
-        this.#loadPlans()
+    static getPlans(){
+        const data = this.#getPlansData()
+        return data.map(planData => new plan (planData))
     }
 
-    #loadPlans(){
-        const data = getPlansData()
-        this.plans = data.map(planData => new plan (planData))
+    static #getPlansData(){
+        return [
+            {title: 'my digital garden', filePath: 'myDigitalGarden.html'},
+            {title: 'misguided romantic map', filePath: 'mgrMap.html'}
+        ] 
     }
-
-
-    async getPlanHTML(planTitle){
-        const thisPlan = this.plans.find(item => item.title === planTitle)
+    
+    static async getPlanHTML(planName){
+        const thisPlan = this.getPlan(planName)
         const response = await fetch(thisPlan.filePath)
         const responseText = await response.text()
         const parser = new DOMParser()
@@ -27,11 +33,3 @@ class plan {
         this.filePath = data.filePath  
     }
 }
-
-function getPlansData(){
-    return [
-        {title: 'my digital garden', filePath: 'myDigitalGarden.html'},
-        {title: 'misguided romantic map', filePath: 'mgrMap.html'}
-    ]   
-}
-

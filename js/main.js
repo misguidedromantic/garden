@@ -4,20 +4,10 @@ let dispHandler = {}
 
 window.onload = function (){
     navigatorHandler.createNavigator()
-    navigatorHandler.updateNavigator(destinationHandler.getDestinations())
+    navigatorHandler.updateNavigator()
 }
 
 
-
-function displayNavigator(){
-
-
-
-    
-    const handler = displayHandler.get('navigator')
-    handler.render('navigator', data)
-
-}
 
 function displayPlansSubMenu(){
     const dataPlansHandler = new planHandler
@@ -63,4 +53,22 @@ function insertString(mainString, insertString, position) {
 
 function getDivCount(){
     return d3.selectAll('div').size()
+}
+
+function tweenTextRemovalAndColour(selection, duration) {
+    const originalText = selection.text();
+    const length = originalText.length;
+
+    selection.transition()
+      .duration(duration)
+      .textTween(function() {
+        return function(t) {
+          const i = Math.floor((1 - t) * length);
+          return originalText.slice(0, i);
+        };
+      })
+      .on("end", function() {
+        d3.select(this).text("");
+      });
+
 }

@@ -14,11 +14,15 @@ class navigatorHandler {
         this.#handler = new listHandler
     }
     
-    static async updateNavigator (data){
+    static async updateNavigator (data = destinationHandler.getDestinations()){
         
         this.#handler.renderList(data, this.#svg)
         this.repositionNavigator('middle')
         this.resizeNavigator(data.length)
+    }
+
+    static selectItem(selection){
+
     }
 
     static repositionNavigator (position){
@@ -39,23 +43,19 @@ class navigatorHandler {
     }
 
 
-    static resizeNavigator (itemCount, widestItem){
+    static resizeNavigator (itemCount){
 
         const width = this.#handler.getWidestItem(this.#svg)
-        console.log(width)
+        const height = itemCount * list.yGap + list.yGap
 
         this.#width = width + 40
+        this.#height = height + 20
+        
 
         this.#div.transition("tSize").delay(100).duration(500)
             .style('width', this.#width + 'px')
             .style('height', this.#height + 'px')
     }
-
-    
-
-
-
-
 
     static #createDiv(){
         return d3.select('body')
@@ -76,109 +76,33 @@ class navigatorHandler {
             .attr('id', 'navigatorSvg')
     }
 
-    
+    static seepInToBackgound(){
+        this.#div.transition("tSeep").delay(0).duration(800)
+            .style('background-color', 'lightyellow')
+            .style('border-radius', '0px')
+            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
 
-    
+    }
+
+}
+
+class displayHandler {
 
 }
 
 
 
 
+class docWindowHandler extends displayHandler {
 
-class displayManager {
-
-    static displays = {}
-
-    static createDisplay(name, type){
-        
-        switch(type){
-            case 'docWindow':
-                this.#createDocWindowDisplay(name)
-                break;
-            
-            case 'list':
-                this.#createListDisplay(name)  
-        }
+    renderPlanWindow(htmlDoc){
+        const planWindow = this.getDisplay('planWindow')
+        //this.#setupContainers(planWindow)
+        this.#appendHeader(htmlDoc.body, planWindow.div)
+        this.#appendParagraphs(htmlDoc.body, planWindow.div)
+        this.#slideIntoView(planWindow.div)
     }
-
-    static #createListDisplay(name){
-        const handler = new listHandler ()
-        handler.createDiv()
-        handler.createSVG()
-        this.displays[name]
-    }
-
-    static #createDocWindowDisplay(name){
-        this.displays[name] = new docWindow  
-    }
-
-    static #getHandler(displayType){
-    
-        
-    }
-
-    static get (displayName){
-
-        switch(displayName){
-
-            case 'navigator':
-                return new listHandler  
-
-            case 'list':
-                return new docWindowHandler
-
-        
-        }
-    }
-
-    static #loadDisplay(displayName){
-
-        switch(displayName){
-
-            case 'navigator':
-                thisDisplay.div = this.createDiv(id, styles)    
-                break;
-            
-            case 'list':
-                thisDisplay.div = this.createDiv(id, styles)
-                thisDisplay.svg = this.createSVG(thisDisplay.div, id)   
-        }
-
-
-        this.displays[displayName]
-    }
-
-    static #getType (displayName){
-        return this.displays[displayName].constructor.name  
-    }
-
-
-    static setup(display){
-        
-        const id = display.id
-        const styles = display.styles
-
-        switch(display.constructor.name){
-
-            case 'docWindow':
-                thisDisplay.div = this.createDiv(id, styles)    
-                break;
-            
-            case 'list':
-                thisDisplay.div = this.createDiv(id, styles)
-                thisDisplay.svg = this.createSVG(thisDisplay.div, id)   
-        }
-
-    }
-
-    static renderDisplay(displayName, data){
-
-    }
-
    
- 
-  
     #appendHeader(sourceElem, targetElem){
         const header = d3.select(sourceElem).select('h1')
         targetElem.append('h1').html(header.html())
@@ -209,49 +133,12 @@ class displayManager {
 
     }
 
-
-    #loadDisplays(){
-        this.displays = [
-            new list ('navigator'),
-            new docWindow ('planWindow')
-        ]
-
-        const mainNavigator = this.getDisplay('navigator')
-        this.#setupContainers(mainNavigator)
-    }
-
-
-
-
     #slideIntoView(targetDiv){
         targetDiv
             .transition()
             .duration(1000)
             .style('left', '0px')
             .style('background-color', 'transparent') //#F5F5DC
-    }
-    
-    renderPlanWindow(htmlDoc){
-        const planWindow = this.getDisplay('planWindow')
-        this.#setupContainers(planWindow)
-        this.#appendHeader(htmlDoc.body, planWindow.div)
-        this.#appendParagraphs(htmlDoc.body, planWindow.div)
-        this.#slideIntoView(planWindow.div)
-    }
-
-    renderNavigator(data){
-        const mainNavigator = this.getDisplay('navigator')
-        const handler = new listHandler
-
-        handler.renderList(data, mainNavigator)
-
-        let pos = {left: 50, top: 50}
-        let dim = {width: 300, height: 300}
-
-        handler.reposition(mainNavigator, pos)
-        handler.resize(mainNavigator, dim)
-
-
     }
 
     #setupContainers(thisDisplay){
@@ -271,22 +158,7 @@ class displayManager {
         }
 
     }
-
-    
-
-    
-
 }
-
-class displayHandler {
-
-    
-
-    
-}
-
-
-class docWindowHandler extends displayHandler {}
 
 
 class listHandler extends displayHandler {
@@ -312,29 +184,6 @@ class listHandler extends displayHandler {
         return widestWidth
     }
 
-    createDiv(id, styles){
-
-        return d3.select('body')
-            .append('div')
-            .attr('id', id + "Div")
-            .style('position', list.position)
-            .style('left', list.left + "px")
-            .style('top', list.top + "px")
-            .style('width', styles.width + "px")
-            .style('height', styles.height + 'px')
-            .style('padding', styles.padding + 'px')
-            .style('margin', styles.margin + 'px')
-            .style('border-radius', styles.borderRadius + "px")
-            .style('box-shadow', styles.boxShadow)
-            .style('background-color', styles.backgroundColor)
-            //.attr('font-family', 'arial')
-            //.style('z-index', '1')
-    }
-
-    render(displayName, data){
-        this.renderList(data, displayHandler.displays[displayName])    
-    }
-
     async renderList(data, svg){
 
         let enterSelection = {}
@@ -349,28 +198,11 @@ class listHandler extends displayHandler {
                 this.#exitElements()
             )
 
-
-        const text = enterSelection.selectAll('text')
-
-        
-
-        
-        
-        
-
-        const enterPromise = text.transition()
+        const enterPromise = enterSelection.selectAll('text').transition()
             .delay((d, i) => {return i * 150})
             .duration(300)
             .attr('fill', 'black')
             .end()
-
-        
-
-        //console.log(this.transitionPromises)         
-   
-        
-
-        //const updatePromise
 
         return Promise.all([enterPromise])
         
@@ -459,21 +291,11 @@ class listHandler extends displayHandler {
     }
 
     calculateTransformTranslate(d, i){
-
-        const gap = 20
-        let x = 200
-
-        if(!d.header){
-            x = gap
-        }
-        const y = gap * (i + 1) + gap
+        let x = 0
+        if(!d.header){x = list.yGap}
+        const y = list.yGap * (i + 1) + list.yGap
         return getTranslateString(x, y)
-        
     }
-
-
-    
-
 
     seepInToBackgound(div){
         div.transition("tSeep").delay(0).duration(800)
@@ -484,8 +306,10 @@ class listHandler extends displayHandler {
     }
 
     selectItem(){   
-        const id = d3.select(this).attr('id')
-        displayPlansSubMenu()
+        const svg = d3.select(this.parentNode)
+        
+        
+
         //let data = mainNavigator.getData().filter(item => item.title === id)
        //if(data[0].constructor.name === 'destination'){
             //data = [...data, ...getPlans()]
@@ -526,6 +350,8 @@ class docWindow {
 
 class list {
 
+    static yGap = 20
+
     static getStyles () {
         return {
             position: 'fixed',
@@ -541,84 +367,9 @@ class list {
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',    
         }
     }
-        
-
 
     constructor(id){
         this.id = id
-        this.styles = {
-            position: 'fixed',
-            left: 10,
-            top: 10,
-            width: 0,
-            height: 0,
-            padding: 12,
-            margin: 0,
-            fontFamily: 'tahoma',
-            backgroundColor: 'white',
-            borderRadius: 20,
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-        }
+       
     }
 }
-
-class svgHandler {
-    
-    
-}
-
-class containerHandler {
-
-
-}
-
-class container {
-
-    createDiv(){
-        this.div = d3.select('body')
-            .append('div')
-            .attr('id', this.id + "div")
-            .style('position', 'fixed')
-            .style('background-color', 'white')
-            .style('border-radius', '20px')
-            .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
-            //.style('overflow-y', 'auto')
-            .style('z-index', getDivCount() + 1)
-            //.style('scrollbar-width', 'none')
-
-    }
-
-    createSVG(){
-        this.svg = this.div.append('svg').attr('id', this.id + 'svg')
-        //.attr('height', 200).attr('width', 200)
-    }
-
-    resize (width, height, delay, duration){
-        this.div.transition("tSize").delay(delay).duration(duration)
-            .style('width', width + 'px')
-            .style('height', height + 'px')
-    }
-
-    reposition (left, top, delay, duration) {
-        this.div.transition("tPosition").delay(delay).duration(duration)
-            .style('left', left + 'px')
-            .style('top', top + 'px')
-    }
-
-    renderSize(delay, duration){
-        this.div.transition("tSize").delay(delay).duration(duration)
-            .style('width', this.width + 'px')
-            .style('height', this.height + 'px')
-    }
-
-    renderPosition(delay, duration){
-        this.div.transition("tPosition").delay(delay).duration(duration)
-            .style('left', this.left + 'px')
-            .style('top', this.top + 'px')
-    }
-
-    
-
-}
-
-

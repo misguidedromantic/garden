@@ -16,7 +16,7 @@ class navigatorHandler {
     
     static async updateNavigator (data){
         
-        await this.#handler.renderList(data, this.#svg)
+        this.#handler.renderList(data, this.#svg)
         this.repositionNavigator('middle')
         this.resizeNavigator(data.length)
     }

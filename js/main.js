@@ -8,22 +8,9 @@ window.onload = function (){
 }
 
 
-function displayPlansSubMenu(){
-    const dataPlansHandler = new planHandler
-    const dataNavHandler = new navHandler
-    const destinations = dataNavHandler.getDestinationTitles()
-    const selectedItem = destinations.filter(item => item.title === "plans")
-    
-    const data = [...selectedItem, ...dataPlansHandler.plans]
-
-    dispHandler.renderNavigator(data)
-    
-}
-
-
 async function displayPlan(title) {
     const planToDisplay = await planHandler.getPlanHTML(title)
-    handlers.display.renderPlanWindow(planToDisplay)
+    docWindowHandler.renderPlanWindow(planToDisplay)
 }
 
 

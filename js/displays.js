@@ -33,6 +33,7 @@ class navigatorHandler {
 
         } else if(navigator.position === 'left' && selection.attr('id') !== 'plans'){
             
+            displayPlan(selection.attr('id'))
 
 
         } else{
@@ -199,34 +200,21 @@ class navigatorHandler {
 }
 
 
+class docWindowHandler {
 
-class displayHandler {
-
-    constructor(displayID){
-        this.id = displayID
-    }
-
-}
-
-
-
-
-class docWindowHandler extends displayHandler {
-
-    renderPlanWindow(htmlDoc){
-        const planWindow = this.getDisplay('planWindow')
-        //this.#setupContainers(planWindow)
-        this.#appendHeader(htmlDoc.body, planWindow.div)
-        this.#appendParagraphs(htmlDoc.body, planWindow.div)
-        this.#slideIntoView(planWindow.div)
+    static renderPlanWindow(htmlDoc){
+        const planWindow = this.#renderDiv()
+        this.#appendHeader(htmlDoc.body, planWindow)
+        this.#appendParagraphs(htmlDoc.body, planWindow)
+        this.#slideIntoView(planWindow)
     }
    
-    #appendHeader(sourceElem, targetElem){
+    static #appendHeader(sourceElem, targetElem){
         const header = d3.select(sourceElem).select('h1')
         targetElem.append('h1').html(header.html())
     }
 
-    #appendParagraphs(sourceElem, targetElem){
+    static #appendParagraphs(sourceElem, targetElem){
 
         const paras = d3.select(sourceElem).selectAll('p')
 
@@ -251,30 +239,26 @@ class docWindowHandler extends displayHandler {
 
     }
 
-    #slideIntoView(targetDiv){
+    static #slideIntoView(targetDiv){
         targetDiv
             .transition()
-            .duration(1000)
-            .style('left', '0px')
+            .duration(400)
+            .style('left', '40px')
             .style('background-color', 'transparent') //#F5F5DC
     }
 
-    #setupContainers(thisDisplay){
-
-        const id = thisDisplay.id
-        const styles = thisDisplay.styles
-
-        switch(thisDisplay.constructor.name){
-
-            case 'docWindow':
-                thisDisplay.div = this.renderDiv(id, styles)    
-                break;
-            
-            case 'list':
-                thisDisplay.div = this.renderDiv(id, styles)
-                thisDisplay.svg = this.renderSVG(thisDisplay.div, id)   
-        }
-
+    static #renderDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'plansWindow')
+            .style('position', 'fixed')
+            .style('left', "2000px")
+            .style('top', "150px")
+            .style('width', "600px")
+            .style('height', '800px')
+            .style('background-color', 'lightyellow')
+            .style('border-radius', '0px')
+            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
     }
 }
 

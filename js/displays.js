@@ -257,8 +257,7 @@ class docWindowHandler {
             .style('width', "600px")
             .style('height', '800px')
             .style('background-color', 'lightyellow')
-            .style('border-radius', '0px')
-            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
+            .style('border-top-style', 'solid')
     }
 }
 

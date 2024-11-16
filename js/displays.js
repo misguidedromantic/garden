@@ -1,97 +1,198 @@
+class navigator {
+
+    static position = 'middle'
+    static visible = false
+    static width = window.innerWidth / 4
+    static height = 60
+    static left = 20
+    static top = 20  
+    static div = {}
+    static svg = {}
+}
+
 class navigatorHandler {
 
-    static #div = {}
-    static #svg = {}
-    static #handler = {}
-    static #width = window.innerWidth / 4
-    static #height = 60
-    static #left = 20
-    static #top = 20
-
-    static createNavigator(){
-        this.#div = this.#createDiv()
-        this.#svg = this.#createSVG()
-        this.#handler = new listHandler ('navigator')
+    static initialLoad(){
+        this.#renderDiv()
+        this.#renderSVG()
+        this.update()
+        this.reposition()
+        this.resize()
+        this.seepOutOfBackground()
     }
+
+    static selectDestination(){
+        const selection = d3.select(this)
+        if(navigator.position === 'left' && selection.attr('id') === 'plans'){
+            navigatorHandler.update()
+            navigatorHandler.reposition(0, 400)
+            navigatorHandler.resize()
+            navigatorHandler.seepOutOfBackground()
+
+        } else {
+            const dest = selection.data()
+            const subLocations = destinationHandler.getSubLocations(dest[0].title)
+            const data = [...dest, ...subLocations]
+            navigatorHandler.update(data, 'left')
+            navigatorHandler.reposition(0, 400)
+            navigatorHandler.resize()
+            navigatorHandler.seepInToBackgound()
+        }
+        
+    }
+
+    static update(data = destinationHandler.getDestinations(), position = 'middle'){
+        navigator.position = position
+        this.#render(data)
+        this.setDimensions(data.length)
+        this.setPosition()
+    }
+
+    static setDimensions(destinationCount){
+        navigator.width = this.getWidestItem(navigator.svg) + 40
+        navigator.height = destinationCount * list.yGap + list.yGap + 20
+    }
+
+    static setPosition(){
+        switch(navigator.position){
+            case 'middle':
+                navigator.left = (window.innerWidth / 2) - (navigator.width / 2)
+                break;
+            
+            default:
+                navigator.left = 20
+        }
+        
+        navigator.top = 20
+    }
+  
+    static getWidestItem(svg){
+
+        const groups = svg.selectAll('g.destination')
+        let widestWidth = 0
+        
+        groups.each(function(){
+            const textElem = d3.select(this).select('text')
+            const width = textElem.node().getBBox().width
+            if(width > widestWidth){
+                widestWidth = width
+            }  
+        })
+
+        return widestWidth
+    }
+
+
+    static #render(data){
+
+        const methodSelectItem = this.selectDestination
+
+        navigator.svg.selectAll('g.destination')
+            .data(data, d => d.title)
+            .join(
+                enter => {
+                    const groups = enter.append('g')
+                        .attr("id", d => d.title)
+                        .attr("class", 'destination')
+                        .attr("transform", (d, i) => {return getTranslateString(20, list.yGap * (i + 1) + list.yGap)})
+                        .on("click", methodSelectItem)
+
+                    groups.append('text')
+                        .text(d => d.title)
+                        .style('font-family', 'tahoma')
+                        .style('font-size', 14)
+                        .style('text-anchor', 'left')
+                        .attr('fill', (d, i) => {
+                            if(navigator.visible === true){return 'transparent'} 
+                            else {return 'lightyellow'}})
+                        .attr('dy', '-.4em')
+                    },
+                update => {
+                    update.select('text').transition('tUpdateText')
+                        .delay(0)
+                        .duration(200)
+                            .attr('font-weight', d => {
+                                if(d.constructor.name === 'destination' && navigator.position === 'left'){return 600}
+                                else {return 300}
+                            })},
+                exit => {
+                    exit.selectAll('text').each(function(){
+                        let text = d3.select(this)
+                        text.transition('tExitText')
+                            .duration(100)
+                            .style('fill', 'grey')
+                            .on("end", function() {
+                                tweenTextRemovalAndColour(text, 100) 
+                            })
+                        
+                    })
+        
+                    exit.transition('tExitG').delay(400).remove()
+                }
+            )
+    }
+
     
-    static async updateNavigator (data = destinationHandler.getDestinations(), position = 'middle'){
-        this.#handler.renderList(data, this.#svg)
-        this.repositionNavigator(position)
-        this.resizeNavigator(data.length)
+
+    static reposition (delay = 0, duration = 0){
+        navigator.div.transition("tPosition").delay(delay).duration(duration)
+            .style('left', navigator.left + 'px')
+            .style('top', navigator.top + 'px')
     }
 
-    static selectDestination(dest){
-        const subLocations = destinationHandler.getSubLocations(dest[0].title)
-        const data = [...dest, ...subLocations]
-        this.updateNavigator(data, 'left')
+    static resize (delay = 0, duration = 0){
+        navigator.div.transition("tSize").delay(delay).duration(duration)
+            .style('width', navigator.width + 'px')
+            .style('height', navigator.height + 'px')
     }
 
-    static repositionNavigator (position){
-
-            switch(position){
-                case 'middle':
-                    this.#left = (window.innerWidth / 2) - (this.#width / 2)
-                    break;
-
-                case 'left':
-                    this.#left = 20
-            }
-
-        
-        this.#div.transition("tPosition").delay(100).duration(500)
-            .style('left', this.#left + 'px')
-            .style('top', this.#top + 'px')
-    }
-
-
-    static resizeNavigator (itemCount){
-
-        const width = this.#handler.getWidestItem(this.#svg)
-        const height = itemCount * list.yGap + list.yGap
-
-        this.#width = width + 40
-        this.#height = height + 20
-        
-
-        this.#div.transition("tSize").delay(100).duration(500)
-            .style('width', this.#width + 'px')
-            .style('height', this.#height + 'px')
-    }
-
-    static #createDiv(){
-        return d3.select('body')
+    static #renderDiv(){
+        navigator.div = d3.select('body')
             .append('div')
             .attr('id', 'navigatorDiv')
             .style('position', 'fixed')
-            .style('left', this.#left + "px")
-            .style('top', this.#top + "px")
-            .style('width', this.#width + "px")
-            .style('height', this.#height + 'px')
-            .style('border-radius', '20px')
-            .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
-            .style('background-color', 'white')
+            .style('left', navigator.left + "px")
+            .style('top', navigator.right + "px")
+            .style('width', navigator.width + "px")
+            .style('height', navigator.height + 'px')
+            .style('background-color', 'lightyellow')
+            .style('border-radius', '0px')
+            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
     }
 
-    static #createSVG(){
-        return this.#div.append('svg')
+    static #renderSVG(){
+        navigator.svg = navigator.div.append('svg')
             .attr('id', 'navigatorSvg')
     }
 
     static seepInToBackgound(){
-        this.#div.transition("tSeep").delay(0).duration(800)
+        navigator.visible = false
+        
+        navigator.div.transition("tSeep").delay(0).duration(800)
             .style('background-color', 'lightyellow')
             .style('border-radius', '0px')
             .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')
 
+        let groups = navigator.svg.selectAll('g')
+        groups.selectAll('text').transition().delay(0).duration(800).attr('fill', 'black')
+
+    }
+
+    static seepOutOfBackground(){
+        navigator.visible = true
+        
+        navigator.div.transition().delay(0).duration(600)
+            .style('border-radius', '20px')
+            .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
+            .style('background-color', 'white')
+        
+        let groups = navigator.svg.selectAll('g')
+        groups.selectAll('text').transition().delay(0).duration(800).attr('fill', 'black')
     }
 
 }
 
-class navigator {
 
-
-
-}
 
 class displayHandler {
 
@@ -160,12 +261,12 @@ class docWindowHandler extends displayHandler {
         switch(thisDisplay.constructor.name){
 
             case 'docWindow':
-                thisDisplay.div = this.createDiv(id, styles)    
+                thisDisplay.div = this.renderDiv(id, styles)    
                 break;
             
             case 'list':
-                thisDisplay.div = this.createDiv(id, styles)
-                thisDisplay.svg = this.createSVG(thisDisplay.div, id)   
+                thisDisplay.div = this.renderDiv(id, styles)
+                thisDisplay.svg = this.renderSVG(thisDisplay.div, id)   
         }
 
     }

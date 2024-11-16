@@ -3,9 +3,10 @@ let handlers = {}
 let dispHandler = {} 
 
 window.onload = function (){
-    navigatorHandler.createNavigator()
-    navigatorHandler.updateNavigator()
+    navigatorHandler.initialLoad()  
+
 }
+
 
 function displayPlansSubMenu(){
     const dataPlansHandler = new planHandler

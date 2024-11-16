@@ -7,8 +7,6 @@ window.onload = function (){
     navigatorHandler.updateNavigator()
 }
 
-
-
 function displayPlansSubMenu(){
     const dataPlansHandler = new planHandler
     const dataNavHandler = new navHandler

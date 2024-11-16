@@ -11,18 +11,19 @@ class navigatorHandler {
     static createNavigator(){
         this.#div = this.#createDiv()
         this.#svg = this.#createSVG()
-        this.#handler = new listHandler
+        this.#handler = new listHandler ('navigator')
     }
     
-    static async updateNavigator (data = destinationHandler.getDestinations()){
-        
+    static async updateNavigator (data = destinationHandler.getDestinations(), position = 'middle'){
         this.#handler.renderList(data, this.#svg)
-        this.repositionNavigator('middle')
+        this.repositionNavigator(position)
         this.resizeNavigator(data.length)
     }
 
-    static selectItem(selection){
-
+    static selectDestination(dest){
+        const subLocations = destinationHandler.getSubLocations(dest[0].title)
+        const data = [...dest, ...subLocations]
+        this.updateNavigator(data, 'left')
     }
 
     static repositionNavigator (position){
@@ -86,7 +87,17 @@ class navigatorHandler {
 
 }
 
+class navigator {
+
+
+
+}
+
 class displayHandler {
+
+    constructor(displayID){
+        this.id = displayID
+    }
 
 }
 
@@ -163,8 +174,8 @@ class docWindowHandler extends displayHandler {
 
 class listHandler extends displayHandler {
 
-    constructor(){
-        super()
+    constructor(displayID){
+        super(displayID)
         this.transitionPromises = []
     }
 
@@ -204,6 +215,8 @@ class listHandler extends displayHandler {
             .attr('fill', 'black')
             .end()
 
+        
+
         return Promise.all([enterPromise])
         
     }
@@ -223,10 +236,7 @@ class listHandler extends displayHandler {
                 .text(d => d.title)
                 .style('font-family', 'tahoma')
                 .style('font-size', 14)
-                .style('text-anchor', d => {
-                    if(d.header){return 'middle'}
-                    else{return 'left'}
-                    })
+                .style('text-anchor', 'left')
                 .attr('fill', 'white')
                 .attr('dy', '-.4em')
 
@@ -247,24 +257,17 @@ class listHandler extends displayHandler {
             }
 
             const text = update.select('text')
-            const width = text.node().getBBox().width
-
-            updatePromises.push(
-                update.transition('tUpdateG')
-                .delay(0)
-                .duration(400)
-                    .attr("transform", (d, i) => {return getTranslateString(width / 2 + 22.5, 20 * (i + 1) + 20)})
-                    .end()
-            )
 
             updatePromises.push(
                 text.transition('tUpdateText')
+                .delay(400)
                 .duration(400)
                     .attr('font-weight', d => {
-                        if(d.header){return 600}
+                        if(d.constructor.name === 'destination'){return 600}
                         else {return 300}
                     })
                     .end()
+
             )
 
         }
@@ -306,9 +309,10 @@ class listHandler extends displayHandler {
     }
 
     selectItem(){   
-        const svg = d3.select(this.parentNode)
         
+        navigatorHandler.selectDestination(d3.select(this).data())
         
+
 
         //let data = mainNavigator.getData().filter(item => item.title === id)
        //if(data[0].constructor.name === 'destination'){

@@ -1,60 +1,71 @@
-let handlers = {}
+window.onload = function(){
+    const div = createDiv()
+    const svg = createSVG(div)
+    const data = getDestinations()
+    renderDestinations(svg, data)
 
-let dispHandler = {} 
-
-window.onload = function (){
-    navigatorHandler.initialLoad()  
 
 }
 
-
-async function displayPlan(title) {
-    const planToDisplay = await planHandler.getPlanHTML(title)
-    docWindowHandler.renderPlanWindow(planToDisplay)
+function createDiv (){
+    return d3.select('body')
+        .append('div')
+        .attr('id', 'navigatorDiv')
 }
 
+function createSVG (div){
+    return div.append('svg')
+        .attr('id', 'navigatorSVG')
+}
 
-function createSVGCanvas(id, div){
+function getDestinations(){
+    return [
+        'plans',
+        'concepts'
+    ]
+}
 
-    function convertDivDimension(str){
-        const index = str.indexOf("px")
-        return parseInt(str.slice(0, index))
+function renderDestinations(svg, data){
+
+    
+    svg.selectAll('g')
+        .data(data, d => d)
+        .join(
+            enter => {
+                const groups = enter.append('g')
+                    .attr('class', 'destination')
+                    .attr('id', d => d)
+                    .attr('transform', (d, i) => listHandler.calculateTranslate(i))
+                    .on('click', listHandler.clickItem)
+                
+                
+                
+                groups.append('text').text(d => d)
+            },
+            update => update,
+            exit => exit
+        )
+}
+
+class listHandler {
+
+    static calculateTranslate(i){
+        const x = list.x
+        const y = list.yGap * i + list.yGap
+        return 'translate(' + x + ',' + y + ')'
     }
 
-    return div.append('svg')
-        .attr('id', id)
-        .attr('width', convertDivDimension(div.style('width')))
-        .attr('height', convertDivDimension(div.style('height')))
+    static clickItem(){
+        const item = d3.select(this).attr('id')
+        console.log(item)
+    }
+
+
 }
 
-function insertString(mainString, insertString, position) {
-    return mainString.slice(0, position) + insertString + mainString.slice(position);
-  }
+class list {
 
-
-  function getTranslateString(x, y){
-    return 'translate(' + x + ',' + y + ')'
-}
-
-
-function getDivCount(){
-    return d3.selectAll('div').size()
-}
-
-function tweenTextRemovalAndColour(selection, duration) {
-    const originalText = selection.text();
-    const length = originalText.length;
-
-    selection.transition()
-      .duration(duration)
-      .textTween(function() {
-        return function(t) {
-          const i = Math.floor((1 - t) * length);
-          return originalText.slice(0, i);
-        };
-      })
-      .on("end", function() {
-        d3.select(this).text("");
-      });
+    static x = 0
+    static yGap = 20
 
 }

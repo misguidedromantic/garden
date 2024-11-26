@@ -1,8 +1,14 @@
 window.onload = function(){
-    navigation.setup()
+    navigation.loadNavigator()
 }
 
+
+
+
+
 function selectDestination(){
+
+
     const destinationName = d3.select(this).select('text').text()
     navigation.goToDestination(destinationName)
 }
@@ -11,21 +17,101 @@ function selectDestination(){
 
 class navigation {
 
-    static setup (){
-        this.navigatorWindow = new navigatorWindow
-        this.destinations = destinationManager.getDestinationNames()
-        this.#updateContents()
-        this.navigatorWindow.riseAboveBackground()
-        this.reszieWindow()
-        //this.repositionWindow('centre')
+    static navWindow = {}
+
+
+
+    static loadNavigator(){
+
+        this.navWindow = new navigatorWindow
+        const canvas = this.navWindow.getCanvas()
+        
+        function loadDestinations(){
+            const data = destinationManager.getDestinationNames()
+            navigatorContents.renderDestinations(canvas, data)
+        }
+
+        function setupWindow(){
+
+            let navigatorWidth = 0
+            let navigatorHeight = 0
+
+            function sizeWindow(){
+
+                const padding = 20
+                //const canvas = navWindow.getCanvas()
+
+                function getWidth(){
+
+                    function getWidestItemWidth(){
+                        const groups = canvas.selectAll('g')
+                        let widestWidth = 0
+                        
+                        groups.each(function(){
+                            const textElem = d3.select(this).select('text')
+                            const width = textElem.node().getBBox().width
+                            
+                            if(width > widestWidth){
+                                widestWidth = width
+                            }  
+                        })
+                
+                        return widestWidth
+                    } 
+
+                    const widestItem = getWidestItemWidth()
+                    return widestItem + (padding * 2)
+                }
+            
+                function getHeight(){
+                    const itemCount = canvas.selectAll('g').size()
+                    const ySpacing = 20
+                    return (itemCount) * ySpacing + (padding * 2)
+                }
+
+                navigatorWidth = getWidth()
+                navigatorHeight = getHeight()
+
+                navigation.navWindow.setDimensions(navigatorWidth, navigatorHeight)
+
+            }
+
+            function positionWindow(){
+                const left = window.innerWidth / 2 - navigatorWidth / 2
+                const top = window.innerHeight / 2 - navigatorHeight / 2
+                navigation.navWindow.setPosition(left, top)
+            }
+
+            sizeWindow()
+            positionWindow()
+
+        }
+
+        function reveal (){
+            const canvas = navigation.navWindow.getCanvas()
+            const t1 = d3.transition().delay(0).duration(800)
+            const t2 = d3.transition().delay(200).duration(600)
+            canvas.selectAll('text').transition(t1).attr('fill', 'black')
+            navigation.navWindow.riseAboveBackground(t2)
+        }
+
+        //createNavWindow()
+        loadDestinations()
+        setupWindow()
+        reveal()
+
     }
 
     static goToDestination (destinationName){
-        this.destinations = destinationManager.getDestinationLocations(destinationName)
-        this.#updateContents()
-        this.navigatorWindow.seepIntoBackground()
-        this.reszieWindow()
-        this.repositionWindow('left')
+
+        function updateDestinations(){
+
+        }
+
+        const canvas = navWindow.getCanvas()
+        const data = destinationManager.getDestinationLocations(destinationName)
+        navigatorContents.renderDestinations(canvas, data)
+ 
     }
 
     static repositionWindow(spot){
@@ -87,6 +173,24 @@ class navigatorContents {
             const y = i * 20 + 40
             return 'translate(' + x + ',' + y + ')'
         }
+
+        function tweenTextRemovalAndColour(selection, duration) {
+            const originalText = selection.text();
+            const length = originalText.length;
+        
+            selection.transition()
+              .duration(duration)
+              .textTween(function() {
+                return function(t) {
+                  const i = Math.floor((1 - t) * length);
+                  return originalText.slice(0, i);
+                };
+              })
+              .on("end", function() {
+                d3.select(this).text("");
+              });
+        
+        }
         
         canvas.selectAll('g')
             .data(destinations, d => d)
@@ -97,11 +201,12 @@ class navigatorContents {
                     .on('click', selectDestination)
                     .append('text')
                     .text(d => d)
-                    .attr('dy', '-.4em'),
+                    .attr('dy', '-.4em')
+                    .attr('fill', 'transparent'),
                 
                 update => update.selectAll('text').attr('font-weight', 'bold'),
 
-                exit => exit.remove()
+                exit => exit.transition().duration(400).tween("textTween", tweenTextRemovalAndColour)
 
             )
 
@@ -131,18 +236,43 @@ class navigatorWindow {
     #svg = {}
 
     constructor(){
-        this.#div = divManager.createDiv()
-        this.#svg = canvasManager.createSVGCanvas(this.#div)
+        this.#div = this.#createDiv()
+        this.#svg = this.#createSVGCanvas()
+    }
+
+    setDimensions(width, height){
+        const div = this.getDiv()
+        div.style('width', width + 'px').style('height', height + 'px')
+    }
+
+    setPosition(left, top){
+        const div = this.getDiv()
+        div.style('left', left + 'px').style('top', top + 'px')
+    }
+
+    #createDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'navigatorDiv')
+            .style('position', 'fixed')
+            .style('border-radius', '20px')
+    }
+
+    #createSVGCanvas(){
+        return this.#div.append('svg')
+            .attr('id', 'navigatorSVG')
+    }
+
+    getDiv(){
+        return d3.select('#navigatorDiv')
     }
 
     getCanvas(){
-        return this.#svg
+        return d3.select('#navigatorSVG')
     }
 
-    riseAboveBackground(){
-        const t = d3.transition("tRise").duration(400)
+    riseAboveBackground(t){
         this.#div.transition(t)
-            .style('border-radius', '20px')
             .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
             .style('background-color', 'white')
     }
@@ -153,6 +283,14 @@ class navigatorWindow {
             .style('background-color', 'lightyellow')
             .style('border-radius', '0px')
             .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')  
+    }
+
+    positionCentre(){
+
+    }
+
+    positionLeft(){
+
     }
 
     moveTo(top, left){

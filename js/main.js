@@ -1,25 +1,17 @@
-window.onload = function(){
+window.onload = function(){initialSetup()}
+
+function initialSetup(){
     navigation.loadNavigator()
 }
 
-
-
-
-
 function selectDestination(){
-
-
     const destinationName = d3.select(this).select('text').text()
     navigation.goToDestination(destinationName)
 }
 
-
-
 class navigation {
 
     static navWindow = {}
-
-
 
     static loadNavigator(){
 
@@ -32,58 +24,12 @@ class navigation {
         }
 
         function setupWindow(){
-
-            let navigatorWidth = 0
-            let navigatorHeight = 0
-
-            function sizeWindow(){
-
-                const padding = 20
-                //const canvas = navWindow.getCanvas()
-
-                function getWidth(){
-
-                    function getWidestItemWidth(){
-                        const groups = canvas.selectAll('g')
-                        let widestWidth = 0
-                        
-                        groups.each(function(){
-                            const textElem = d3.select(this).select('text')
-                            const width = textElem.node().getBBox().width
-                            
-                            if(width > widestWidth){
-                                widestWidth = width
-                            }  
-                        })
-                
-                        return widestWidth
-                    } 
-
-                    const widestItem = getWidestItemWidth()
-                    return widestItem + (padding * 2)
-                }
             
-                function getHeight(){
-                    const itemCount = canvas.selectAll('g').size()
-                    const ySpacing = 20
-                    return (itemCount) * ySpacing + (padding * 2)
-                }
+            const navSizing = new navigatorSizing(navigation.navWindow)
+            navSizing.fitToContents()
 
-                navigatorWidth = getWidth()
-                navigatorHeight = getHeight()
-
-                navigation.navWindow.setDimensions(navigatorWidth, navigatorHeight)
-
-            }
-
-            function positionWindow(){
-                const left = window.innerWidth / 2 - navigatorWidth / 2
-                const top = window.innerHeight / 2 - navigatorHeight / 2
-                navigation.navWindow.setPosition(left, top)
-            }
-
-            sizeWindow()
-            positionWindow()
+            const navPositioning = new navigatorPositioning(navigation.navWindow)
+            navPositioning.positionCentre()
 
         }
 
@@ -108,7 +54,7 @@ class navigation {
 
         }
 
-        const canvas = navWindow.getCanvas()
+        const canvas = navigation.navWindow.getCanvas()
         const data = destinationManager.getDestinationLocations(destinationName)
         navigatorContents.renderDestinations(canvas, data)
  
@@ -206,7 +152,16 @@ class navigatorContents {
                 
                 update => update.selectAll('text').attr('font-weight', 'bold'),
 
-                exit => exit.transition().duration(400).tween("textTween", tweenTextRemovalAndColour)
+                exit => {
+                    exit.selectAll('text').each(function(){
+                        let text = d3.select(this)
+                        text.transition('tTweenOut')
+                            .duration(400)
+                            .textTween(tweenTextRemovalAndColour(text, 400))
+                    })
+                    
+                    exit.transition().delay(400).remove()
+                }
 
             )
 
@@ -228,7 +183,51 @@ class navigatorContents {
         return widestWidth
     }
 
+
 }
+
+class navigatorSizing{
+
+    padding = 20
+
+    constructor(navWindow){
+        this.navWindow = navWindow
+        this.canvas = this.navWindow.getCanvas()
+    }
+
+    fitToContents(){
+        this.navWindow.width = this.#setWidthToContents()
+        this.navWindow.height = this.#setHeightToContents()
+        this.navWindow.setDimensions(this.navWindow.width, this.navWindow.height)
+    }
+
+    #setWidthToContents(){
+        const widestItem = navigatorContents.getWidestItemWidth(this.canvas)
+        return widestItem + (this.padding * 2)
+    }
+
+    #setHeightToContents(){
+        const itemCount = this.canvas.selectAll('g').size()
+        const ySpacing = 20
+        return (itemCount) * ySpacing + (this.padding * 2)
+    }
+}
+
+class navigatorPositioning{
+
+    padding = 20
+
+    constructor(navWindow){
+        this.navWindow = navWindow
+    }
+
+    positionCentre(){
+        const left = window.innerWidth / 2 - this.navWindow.width / 2
+        const top = window.innerHeight / 2 - this.navWindow.height / 2
+        this.navWindow.setPosition(left, top)
+    }
+}
+
 
 class navigatorWindow {
 

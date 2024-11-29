@@ -14,6 +14,7 @@ class navigation {
     static window = {}
     static positioning = {}
     static sizing = {}
+    static contentControl = {}
 
 
     static loadNavigator(){
@@ -41,21 +42,17 @@ class navigation {
     }
 
     static reveal (){
-        this.contentControl.transitionText(0, 800)
+        this.contentControl.tweenTextIn()
         this.positioning.riseAboveBackground(200, 600)
     }
 
     static async goToDestination (destinationName){
         const data = destinationManager.getDestinationLocations(destinationName)
-        console.log('start render')
         await this.contentControl.renderDestinations(data)
-        console.log('end render')
         this.sizing.fitToContents()
-        //const sizing = new navigatorSizing(this.window)
-        //sizing.fitToContents()
-        this.positioning.positionLeft(0, 400)
-        this.contentControl.transitionText(0, 800)
-        
+        await this.positioning.positionLeft(0, 400)
+        this.contentControl.tweenTextIn()
+        this.positioning.seepIntoBackground()
     }
 
 }
@@ -96,14 +93,14 @@ class navigatorContentControl {
         }
         
         this.canvas.selectAll('g')
-            .data(destinations, d => d)
+            .data(destinations, d => d.name)
             .join(
                 enter => enter.append('g')
-                    .attr('id', d => d)
+                    .attr('id', d => d.name)
                     .attr('transform', (d, i) => calculateTranslate(i))
                     .on('click', selectDestination)
                     .append('text')
-                    .text(d => d)
+                    .text(d => d.name)
                     .attr('dy', '-.4em')
                     .attr('fill', 'transparent'),
                 
@@ -113,11 +110,12 @@ class navigatorContentControl {
                     exit.selectAll('text').each(function(){
                         let text = d3.select(this)
                         text.transition('tTweenOut')
-                            .duration(400)
-                            .textTween(tweenTextRemovalAndColour(text, 400))
+                            .duration(0)
+                            .textTween(tweenTextRemovalAndColour(text, 100))
                     })
                     
-                    const exitedGroups = exit.transition().delay(400).remove().end()
+                    const exitedGroups = exit.transition().delay(0).duration(100).remove().end()
+
 
                     transitions.push(exitedGroups)
                     return exitedGroups
@@ -132,9 +130,24 @@ class navigatorContentControl {
 
     
 
-    transitionText(delay, duration){
-        const t = d3.transition('tText').delay(delay).duration(duration)
-        this.canvas.selectAll('text').transition(t).attr('fill', 'black')
+    tweenTextIn(){
+
+        const selection = this.canvas.selectAll('g').select('text').filter(function(){
+            return d3.select(this).attr('font-weight') !== 'bold'
+        })
+        
+        selection.attr('fill', 'black').text('')
+        
+        const t = selection.transition('tweenIn')
+            .delay(function(d, i){return i * 150})
+            .duration(200)
+            .textTween(d => {
+                return function(t) {
+                    return d.name.slice(0, Math.round(t * d.name.length));
+                };
+            })
+
+        return t.end()
     }
 }
 
@@ -162,7 +175,6 @@ class navigatorSizing{
 
     #setHeightToContents(){
         const itemCount = this.canvas.selectAll('g').size()
-        console.log(itemCount)
         const ySpacing = 20
         return (itemCount) * ySpacing + (this.padding * 2)
     }
@@ -189,6 +201,7 @@ class navigatorPositioning{
         const top = 20
         const t = d3.transition('posLeft').delay(delay).duration(duration)
         this.window.moveTo(left, top, t)
+        return t.end()
     }
 
     riseAboveBackground(delay, duration){
@@ -294,12 +307,12 @@ class destinationManager{
     static #destinations = ['plans','concepts']
 
     static getDestinationNames(){
-        return this.#destinations
+        return this.#destinations.map(dest => new destination(dest))
     }
 
     static getDestinationLocations(destinationName){
-        const subLocations = this.#getSubLocations(destinationName)
-        return [...[destinationName], ...subLocations]
+        const subLocations = this.#getSubLocations(destinationName).map(dest => new destination(dest))
+        return [...[new destination(destinationName)], ...subLocations]
 
     }
 
@@ -313,7 +326,14 @@ class destinationManager{
             default:
                 return []
         }
+    }
 
+}
+
+class destination {
+    constructor(name){
+        this.name = name
+        this.selected = false
     }
 
 }

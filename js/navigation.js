@@ -1,95 +1,39 @@
-let personaDial = {}
-let domainDial = {}
-const arrivalPersona = 'misguided romantic'
-const arrivalDomain = 'garden'
+class destinationHandler {
 
-function setupNavMenu(){
-
-    const dialCanvas = createSVGCanvas ('dials-SVGCanvas', divs.navMenu)
-    setupDials(dialCanvas)
-
-}
-
-function setupDials(dialCanvas){
-
-    const data = getDataForDials()
-    
-    
-    function setupPersonaDial(){
-        personaDial = new dial (dialCanvas, 'persona', data.persona)
-        personaDial.alignRight()
-    }
-    
-    function setupDomainDial(){
-        domainDial = new dial (dialCanvas, 'domain', data.domain)
-        domainDial.setPosition(personaDial.getWidestPoint() + 5, 0)
+    static getDestinations (){
+        const data = this.#getDestinationData()
+        return data.map(destData => new destination (destData))
     }
 
-    setupPersonaDial()
-    setupDomainDial()
-}
+    static getSubLocations (destName){
+        const data = this.#getDestinationData().find(dest => dest.title === destName).subLocations
+        return data.map(subLocationData => new subLocation (subLocationData))
+    }
 
-function getDataForDials(){
 
-    function getPersonaData(){
+    static #getDestinationData(){
         return [
-            new persona ("aimless analyst"),
-            new persona ("misguided romantic"),
-            new persona ("james parry"),
-            new persona ("dynastic observer")
+            {title: 'plans', subLocations: planHandler.getPlans()},
+            {title: 'concepts'}
         ]
     }
 
-    function getDomainData(){
-        return [
-            new domain ("garden"),
-            new domain ("songs"),
-            new domain ("journeys")
-        ]
-    }
 
-    return {
-        persona: getPersonaData(),
-        domain: getDomainData()
-    }
 
+   
 }
 
-class navConcept {
-
-    constructor(title, arrivalValue){
-        this.title = title
-        this.#markSelected(arrivalValue)
+class destination {
+    constructor(d){
+        this.title = d.title
     }
-
-    #markSelected(arrivalValue){
-        if (this.title === arrivalValue){
-            this.selected = true
-        } else {
-            this.selected = false
-        }
-    }
-
 }
 
-class persona extends navConcept {
-
-    constructor(title){
-        super(title, arrivalPersona)
-    }
-    
-
+class subLocation extends destination {
+    constructor(d){
+        super(d)
+    }    
 }
 
-class domain extends navConcept {
 
-    constructor(title){
-        super(title, arrivalDomain)
-    }
-
-}
-
-function getTranslateString(x, y){
-    return 'translate(' + x + ',' + y + ')'
-}
 

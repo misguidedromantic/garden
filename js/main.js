@@ -5,8 +5,8 @@ function initialSetup(){
 }
 
 function selectDestination(){
-    const destinationName = d3.select(this).select('text').text()
-    navigation.goToDestination(destinationName)
+    const data = d3.select(this).data()
+    navigation.goToDestination(data[0])
 }
 
 class navigation {
@@ -15,11 +15,13 @@ class navigation {
     static positioning = {}
     static sizing = {}
     static contentControl = {}
+    static currentLocation = {}
+    static subMenus = {}
 
 
     static loadNavigator(){
         this.#loadHandlers()
-        this.loadDestinations()
+        this.loadDestinationMenu()
         this.setupWindow()
         this.reveal()
     }
@@ -31,9 +33,15 @@ class navigation {
         this.contentControl = new navigatorContentControl(this.window)
     }
 
-    static loadDestinations(){
-        const data = destinationManager.getDestinationNames()
-        this.contentControl.renderDestinations(data)
+    static loadDestinationMenu(){
+        this.menu = new destinationMenu ()
+        const items = this.menu.refresh()
+        this.contentControl.renderDestinations(items)
+    }
+
+    static updateDestinationMenu(){
+
+
     }
 
     static setupWindow(){  
@@ -46,8 +54,10 @@ class navigation {
         this.positioning.riseAboveBackground(200, 600)
     }
 
-    static async goToDestination (destinationName){
-        const data = destinationManager.getDestinationLocations(destinationName)
+    static async goToDestination (clickedItem){
+        const data = this.menu.refresh(clickedItem)
+        
+        
         await this.contentControl.renderDestinations(data)
         this.sizing.fitToContents()
         await this.positioning.positionLeft(0, 400)
@@ -104,7 +114,15 @@ class navigatorContentControl {
                     .attr('dy', '-.4em')
                     .attr('fill', 'transparent'),
                 
-                update => update.selectAll('text').attr('font-weight', 'bold'),
+                update => update.selectAll('text').attr('font-weight', d => {
+                        if(d.constructor.name === 'menuItem' && d.selected){
+                            return 'bold'
+                        } else {
+                            return 'normal'
+                        }
+
+        
+                    }),
 
                 exit => {
                     exit.selectAll('text').each(function(){
@@ -128,27 +146,198 @@ class navigatorContentControl {
 
     }
 
-    
-
     tweenTextIn(){
-
-        const selection = this.canvas.selectAll('g').select('text').filter(function(){
-            return d3.select(this).attr('font-weight') !== 'bold'
-        })
-        
-        selection.attr('fill', 'black').text('')
-        
-        const t = selection.transition('tweenIn')
-            .delay(function(d, i){return i * 150})
-            .duration(200)
-            .textTween(d => {
-                return function(t) {
-                    return d.name.slice(0, Math.round(t * d.name.length));
-                };
-            })
+        const selection = this.canvas.selectAll('g').select('text').filter(d => !d.selected)
+        const t = selection
+            .attr('fill', 'black')
+            .text('')
+                .transition('tweenIn')
+                .delay(function(d, i){return i * 150})
+                .duration(200)
+                .textTween(d => {
+                    return function(t) {
+                        return d.name.slice(0, Math.round(t * d.name.length));
+                    };
+                })
 
         return t.end()
     }
+}
+
+class destinationMenu {
+
+    #destinations = []
+    #plans = []
+    #items = []
+
+    constructor(){
+        this.#loadItems()
+    }
+
+    refresh(clickedItem){
+
+        if(clickedItem !== undefined){
+            this.#items = this.getItemsFromClickedMenuItem(clickedItem)
+            this.updateItemSelectionWithinType(this.getMenuItems(), clickedItem)
+        }
+
+        return this.#items
+
+    }
+
+    
+
+    updateItemSelectionWithinType(items, clickedItem){
+        items.forEach(item => {
+            if(item === clickedItem){
+                item.toggleSelection()
+            } else{
+                item.deselect()
+            }
+        })
+    }
+
+    getMenuItems(){
+        return this.#items.filter(item => item.constructor.name === 'menuItem')
+    }
+    
+    getSubMenuItems(){
+        return this.#items.filter(item => item.constructor.name === 'subMenuItem')
+    }
+
+
+
+    getItems(clickedItem){
+        let itemsArray = []
+
+        try{
+            itemsArray = this.getItemsArray(clickedItem)
+        }
+
+        catch {
+            itemsArray = this.#items
+        }
+
+        finally {
+            this.updateItems(itemsArray)
+            return itemsArray
+        }
+
+    }
+
+    updateItems(itemsArray){
+        this.#items = itemsArray
+    }
+
+    getItemsArray(clickedItem){
+        if(clickedItem.constructor.name === 'menuItem'){   
+            return this.getItemsFromClickedMenuItem(clickedItem)
+        }
+
+        if(clickedItem.constructor.name === 'subMenuItem'){
+            return this.getItemsFromClickedSubMenuItem(clickedItem)
+        }
+    }
+
+    getItemsFromClickedMenuItem(clickedMenuItem){
+
+        console.log(clickedMenuItem)
+
+        if(!clickedMenuItem.selected){  
+            return [...[clickedMenuItem], ...this.getSubMenuItems(clickedMenuItem.name)]
+        } 
+        
+        if (clickedMenuItem.selected){
+            return this.#destinations
+        }
+    }
+
+    getItemsFromClickedSubMenuItem(clickedSubMenuItem){
+        const parentItem = this.getItem(clickedSubMenuItem.parentItemName)
+        return [...[parentItem], ...this.getSubMenuItems(parentItem.name)]
+    }
+
+
+    updateItemSelection(clickedItem){
+        
+        if(clickedItem.constructor.name === 'menuItem'){
+
+        }
+        
+        
+        this.#items.forEach(item => {
+            if(item.name === itemName){
+                item.toggleSelection()
+            } else {
+                item.deselect()
+            }
+        })
+    }
+
+    getItem(itemName){
+        return this.#items.find(thisItem => thisItem.name === itemName)
+    }
+
+
+    getSubMenuItems(destinationName){
+        switch(destinationName){
+            case 'plans':
+                const planNames = plansManager.getPlanNames()
+                return planNames.map(thisPlanName => new subMenuItem(thisPlanName, destinationName))
+            default:
+                return []
+        }
+    }
+
+    #loadItems(){
+        this.#destinations = this.#getDestinations()
+        this.#plans = this.getSubMenuItems('plans')
+        this.#items = this.#destinations
+
+    }
+
+    #getDestinations(){
+        return [
+            new menuItem ('plans'),
+            new menuItem ('concepts')
+        ]
+    }
+
+}
+
+class menuItem {
+
+    constructor(name){
+        this.name = name
+        this.selected = false
+    }
+
+    toggleSelection(){
+        if(this.selected){
+            this.deselect()
+        } else {
+            this.select()
+        }
+    }
+
+    select(){
+        this.selected = true
+    }
+
+    deselect(){
+        this.selected = false
+    }
+
+
+}
+
+class subMenuItem extends menuItem {
+
+    constructor(name, parentItemName){
+        super(name)
+        this.parentItemName = parentItemName
+    }
+
 }
 
 

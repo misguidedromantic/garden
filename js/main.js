@@ -292,8 +292,7 @@ class navigatorContentControl {
                 },
                 
                 update => {
-                    const group = update.selectAll('g')
-                        .attr('transform', (d, i) => {return calculateTranslate(i)})
+                    const group = update.attr('transform', (d, i) => {return calculateTranslate(i)})
 
                     group.select('text').attr('font-weight', d => {
                         if(d.selected){

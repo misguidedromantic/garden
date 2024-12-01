@@ -49,7 +49,7 @@ class navigation {
 
     static loadMainMenu(){
         this.menuManagement.loadMain()
-        this.contentControl.renderDestinations(this.menuItems)
+        this.contentControl.renderItems(this.menuItems)
         this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
         //this.contentControl.tweenTextIn()
     }
@@ -73,7 +73,7 @@ class navigation {
 
         if(itemType === 'menuItem' && !subMenuLoaded){
             this.menuManagement.loadSub(clickedItem)
-            this.contentControl.renderDestinations(this.menuItems)
+            this.contentControl.renderItems(this.menuItems)
             this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
             //this.contentControl.tweenTextIn()
         }
@@ -219,8 +219,112 @@ class navigatorContentControl {
 
     renderItems(data){
         
+        navigatorWindow.svg.selectAll('g')
+            .data(data, d => d.name)
+            .join(
+                enter => this.enterItems(enter),
+                update => this.updateItems(update),
+                exit => this.exitItems(exit)
+            )
 
     }
+
+    enterItems(selection){
+        const groups = this.enterGroups(selection)
+        const text = this.enterText(groups)
+        this.enterTextTransitionColour(text)
+        this.enterTextTransitionTween(text)
+    }
+
+    enterGroups(selection){
+        return selection.append('g')
+            .attr('id', d => d.name)
+            .attr('transform', (d, i) => this.calculateTranslate(i))
+            .on('click', selectDestination)
+    }
+
+    enterText(groups){
+        return groups.append('text')
+            .text(d => d.name)
+            .attr('dy', '-.4em')
+            .attr('fill', 'transparent')
+    }
+
+    enterTextTransitionColour(text){
+        text.transition('tColour')
+            .delay((d, i) => i * 100) 
+            .duration(100)
+            .attr('fill', 'black')
+    }
+
+    enterTextTransitionTween(text){
+        text.transition('tTween')
+            .delay((d, i) => i * 100)
+            .duration(200)
+            .textTween(d => {
+            return function(t) {
+                return d.name.slice(0, Math.round(t * d.name.length));
+            };
+        })
+
+    }
+
+    updateItems(selection){
+        const groups = this.updateGroups(selection)
+        const text = this.updateText(groups)
+    }
+
+    updateGroups(selection){
+        return selection.attr('transform', (d, i) => {return this.calculateTranslate(i)})
+    }
+
+    updateText(groups){
+        return groups.select('text')
+            .attr('font-weight', d => d.selected ? 'bold' : 'normal')
+    }
+
+    exitItems(selection){
+
+        function tweenTextRemovalAndColour(selection, duration) {
+            const originalText = selection.text();
+            const length = originalText.length;
+        
+            selection.transition()
+              .duration(duration)
+              .textTween(function() {
+                return function(t) {
+                  const i = Math.floor((1 - t) * length);
+                  return originalText.slice(0, i);
+                };
+              })
+              .on("end", function() {
+                d3.select(this).text("");
+              });
+        
+        }
+
+        selection.each(function(){
+            const text = d3.select(this).select('text')
+            text.transition('tTweenOut')
+                .duration(0)
+                .textTween(tweenTextRemovalAndColour(text, 100))
+            })
+                    
+            selection.remove()
+
+        return selection
+    }
+
+
+    calculateTranslate(i){
+        const x = 20
+        const y = i * 20 + 40
+        return 'translate(' + x + ',' + y + ')'
+    }
+
+
+
+
 
 
     

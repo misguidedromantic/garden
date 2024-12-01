@@ -51,7 +51,7 @@ class navigation {
         this.menuManagement.loadMain()
         this.contentControl.renderDestinations(this.menuItems)
         this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
-        this.contentControl.tweenTextIn()
+        //this.contentControl.tweenTextIn()
     }
 
     
@@ -75,14 +75,14 @@ class navigation {
             this.menuManagement.loadSub(clickedItem)
             this.contentControl.renderDestinations(this.menuItems)
             this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
-            this.contentControl.tweenTextIn()
+            //this.contentControl.tweenTextIn()
         }
 
         else if(itemType === 'menuItem' && subMenuLoaded){
             this.menuManagement.loadMain(clickedItem)
             this.contentControl.renderDestinations(this.menuItems)
             this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
-            this.contentControl.tweenTextIn()
+            //this.contentControl.tweenTextIn()
         }
 
         else if(itemType === 'subMenuItem'){
@@ -119,8 +119,8 @@ class navigatorMovement {
 
     toMainMenuDisplay(widestItemWidth, itemCount){
         this.sizing.fitToContents(widestItemWidth, itemCount)
-        this.positioning.positionCentre(0, 400)
-        this.float.floatOffBackground(0, 400)
+        this.positioning.positionCentre(0, 0)
+        this.float.floatOffBackground(0, 400) 
 
     }
 
@@ -161,14 +161,30 @@ class navigatorMenuManagement {
 
     loadSub(clickedItem){
         clickedItem.select()
-        navigation.menuItems = [...[clickedItem],...clickedItem.subMenuItems]
+        let subMenuItems = []
+
+        switch(clickedItem.name){
+            case 'plans':
+                subMenuItems = this.#getPlansSubMenuItems()
+                break;
+
+            case 'songs':
+                subMenuItems = this.#getSongsSubMenuItems()
+                break;
+
+        }
+
+        const newArray = [...[clickedItem],...subMenuItems]
+        console.log(newArray)
+
+        navigation.menuItems = [...[clickedItem],...subMenuItems]
     }
 
     #getMainMenuItems(){
         return [
-            new menuItem ('plans', this.#getPlansSubMenuItems()),
-            new menuItem ('songs', this.#getSongsSubMenuItems()),
-            new menuItem ('concepts', [])
+            new menuItem ('plans'),
+            new menuItem ('songs'),
+            new menuItem ('concepts')
         ]
     }
 
@@ -200,6 +216,13 @@ class navigatorMenuManagement {
 }
 
 class navigatorContentControl {
+
+    renderItems(data){
+        
+
+    }
+
+
     
     renderDestinations(menuItems){
 
@@ -231,7 +254,9 @@ class navigatorContentControl {
         
         }
 
-        const groups = 
+        const tColourIn = d3.transition('tColourIn')
+        const tTweenIn = d3.transition('tTweenIn')
+
         
         navigatorWindow.svg.selectAll('g')
             .data(menuItems, d => d.name)
@@ -242,16 +267,33 @@ class navigatorContentControl {
                         .attr('transform', (d, i) => calculateTranslate(i))
                         .on('click', selectDestination)
 
-                    group.append('text')
+                    const text = group.append('text')
                         .text(d => d.name)
                         .attr('dy', '-.4em')
                         .attr('fill', 'transparent')
+
+                    text.transition(tColourIn)
+                            .delay((d, i) => i * 100) 
+                            .duration(100)
+                            .attr('fill', 'black')
+
+                    text.transition(tTweenIn)
+                            .delay((d, i) => i * 100)
+                            .duration(200)
+                            .textTween(d => {
+                                return function(t) {
+                                    return d.name.slice(0, Math.round(t * d.name.length));
+                                };
+                            })
+                            .end()
+
                             
                     return group
                 },
                 
                 update => {
                     const group = update.selectAll('g')
+                        .attr('transform', (d, i) => {return calculateTranslate(i)})
 
                     group.select('text').attr('font-weight', d => {
                         if(d.selected){
@@ -274,7 +316,8 @@ class navigatorContentControl {
                             .textTween(tweenTextRemovalAndColour(text, 100))
                     })
                     
-                    group.remove()
+                    exit.remove()
+
 
 
                     //transitions.push(exitTransition)
@@ -461,9 +504,8 @@ class destinationMenu {
 
 class menuItem {
 
-    constructor(name, subMenuItems){
+    constructor(name){
         this.name = name
-        this.subMenuItems = subMenuItems
         this.selected = false
     }
 
@@ -488,9 +530,8 @@ class menuItem {
 
 class subMenuItem extends menuItem {
 
-    constructor(name, parentItemName){
+    constructor(name){
         super(name)
-        this.parentItemName = parentItemName
     }
 
 }

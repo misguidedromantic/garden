@@ -1,58 +1,86 @@
-window.onload = function(){initialSetup()}
+window.onload = function(){
+
+    function setupNavigator(){
+
+        navigation.movement = new navigatorMovement
+        navigation.menuManagement = new navigatorMenuManagement
+        navigation.contentControl = new navigatorContentControl
+
+        function createDiv(){
+            return d3.select('body')
+                .append('div')
+                .attr('id', 'navigatorDiv')
+                .style('position', 'fixed')
+                .style('border-radius', '20px')
+        }
+    
+        function createSVGCanvas(){
+            return navigatorWindow.div.append('svg')
+                .attr('id', 'navigatorSVG')
+        }
+        
+        navigatorWindow.div = createDiv()
+        navigatorWindow.svg = createSVGCanvas()
+    
+    }
+
+    setupNavigator()
+
+    navigation.loadMainMenu()
+
+
+}
 
 function initialSetup(){
-    navigation.loadNavigator()
+    setupNavigator()
 }
 
 function selectDestination(){
     const data = d3.select(this).data()
-    navigation.goToDestination(data[0])
+    navigation.updateOnClick(data[0])
 }
 
 class navigation {
 
-    static window = {}
-    static positioning = {}
-    static sizing = {}
+    static menuItems = []
+    static movement = {}
+    static menuManagement = {}
     static contentControl = {}
-    static currentLocation = {}
-    static subMenus = {}
 
-
-    static loadNavigator(){
-        this.#loadHandlers()
-        this.loadDestinationMenu()
-        this.setupWindow()
-        this.reveal()
-    }
-
-    static #loadHandlers(){
-        this.window = new navigatorWindow
-        this.positioning = new navigatorPositioning(this.window)
-        this.sizing = new navigatorSizing(this.window)
-        this.contentControl = new navigatorContentControl(this.window)
-    }
-
-    static loadDestinationMenu(){
-        this.menu = new destinationMenu ()
-        const items = this.menu.refresh()
-        this.contentControl.renderDestinations(items)
-    }
-
-    static updateDestinationMenu(){
-
-
-    }
-
-    static setupWindow(){  
-        this.sizing.fitToContents()
-        this.positioning.positionCentre(0, 0)
-    }
-
-    static reveal (){
+    static loadMainMenu(){
+        this.menuManagement.loadMain()
+        this.contentControl.renderDestinations(this.menuItems)
+        this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
         this.contentControl.tweenTextIn()
-        this.positioning.riseAboveBackground(200, 600)
     }
+
+    
+    static loadSubMenu(){
+
+    }
+
+    static loadSubMenuSelection(){
+
+    }
+
+
+    static updateOnClick(clickedItem){
+
+        const itemType = clickedItem.constructor.name
+        const subMenuLoaded = (navigatorWindow.div.style('left') === '20px')
+
+        if(itemType === 'menuItem' && !subMenuLoaded){
+            
+        }
+
+
+        this.menuManagement.updateOnSelection(clickedItem)
+        this.contentControl.renderDestinations(this.menuItems)
+        this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
+        this.contentControl.tweenTextIn()
+    }
+
+
 
     static async goToDestination (clickedItem){
         const data = this.menu.refresh(clickedItem)
@@ -67,14 +95,116 @@ class navigation {
 
 }
 
-class navigatorContentControl {
-    
-    constructor(window){
-        this.window = window
-        this.canvas = this.window.getCanvas()
+
+class navigatorWindow {
+    static div = {}
+    static svg = {}
+    static items = []
+    static width = 0
+    static height = 0
+    static left = 0
+    static top = 0
+    static padding = 20
+}
+
+
+class navigatorMovement {
+
+    constructor(){
+        this.positioning = new navigatorPositioning
+        this.sizing = new navigatorSizing
+        this.float = new navigatorFloat
     }
 
-    renderDestinations(destinations){
+    toMainMenuDisplay(widestItemWidth, itemCount){
+        this.sizing.fitToContents(widestItemWidth, itemCount)
+        this.positioning.positionCentre()
+        this.float.floatOffBackground(0, 400)
+
+    }
+
+    toSubMenuDisplay(widestItemWidth, itemCount){
+        this.sizing.fitToContents(widestItemWidth, itemCount)
+        this.positioning.positionLeft(0, 400)
+        this.float.sinkIntoBackground(0, 400)
+
+
+    }
+
+    toSubMenuItemSelectedDisplay(){
+
+    }
+
+
+}
+
+class navigatorMenuManagement {
+
+    constructor(){
+        this.mainItems = this.#getMainMenuItems()
+    }
+
+    #getMainMenuItems(){
+        return [
+            new menuItem ('plans', this.#getPlansSubMenuItems()),
+            new menuItem ('songs', this.#getSongsSubMenuItems()),
+            new menuItem ('concepts', [])
+        ]
+    }
+
+    #getPlansSubMenuItems(){
+        return [
+            new subMenuItem ('statement of intent'),
+            new subMenuItem ('wooden blocks')
+        ]
+    }
+
+    #getSongsSubMenuItems(){
+        return [
+            new subMenuItem ('slice of cedar'),
+            new subMenuItem ('ton of nothing'),
+            new subMenuItem ('intention and the act')
+        ]
+    }
+
+    getMenuItems(){
+        return navigation.menuItems.filter(item => item.constructor.name === 'menuItem')
+    }
+    
+    getSubMenuItemCount(){
+        const subMenuItems = navigation.menuItems.filter(item => item.constructor.name === 'subMenuItem')
+        return subMenuItems.length
+    }
+
+
+    loadMain(){
+        navigation.menuItems = this.mainItems
+    }
+
+    updateOnSelection(selectedItem){
+
+        const itemType = selectedItem.constructor.name
+        const subMenuItemCount = this.getSubMenuItemCount() 
+
+        selectedItem.select()
+        
+        if(itemType === 'menuItem' && subMenuItemCount === 0){
+            navigation.menuItems = [...[selectedItem],...selectedItem.subMenuItems]
+        }
+
+        if(itemType === 'menuItem' && subMenuItemCount > 0){
+            navigation.menuItems = this.mainItems
+        }
+
+
+    }
+}
+
+class navigatorContentControl {
+    
+    renderDestinations(menuItems){
+
+
 
         const transitions = []
 
@@ -102,8 +232,8 @@ class navigatorContentControl {
         
         }
         
-        this.canvas.selectAll('g')
-            .data(destinations, d => d.name)
+        navigatorWindow.svg.selectAll('g')
+            .data(menuItems, d => d.name)
             .join(
                 enter => enter.append('g')
                     .attr('id', d => d.name)
@@ -147,7 +277,7 @@ class navigatorContentControl {
     }
 
     tweenTextIn(){
-        const selection = this.canvas.selectAll('g').select('text').filter(d => !d.selected)
+        const selection = navigatorWindow.svg.selectAll('g').select('text').filter(d => !d.selected)
         const t = selection
             .attr('fill', 'black')
             .text('')
@@ -161,6 +291,23 @@ class navigatorContentControl {
                 })
 
         return t.end()
+    }
+
+
+    getWidestItemWidth(){
+        const groups = navigatorWindow.svg.selectAll('g')
+        let widestWidth = 0
+        
+        groups.each(function(){
+            const textElem = d3.select(this).select('text')
+            const width = textElem.node().getBBox().width
+            
+            if(width > widestWidth){
+                widestWidth = width
+            }  
+        })
+
+        return widestWidth
     }
 }
 
@@ -197,13 +344,7 @@ class destinationMenu {
         })
     }
 
-    getMenuItems(){
-        return this.#items.filter(item => item.constructor.name === 'menuItem')
-    }
     
-    getSubMenuItems(){
-        return this.#items.filter(item => item.constructor.name === 'subMenuItem')
-    }
 
 
 
@@ -307,8 +448,9 @@ class destinationMenu {
 
 class menuItem {
 
-    constructor(name){
+    constructor(name, subMenuItems){
         this.name = name
+        this.subMenuItems = subMenuItems
         this.selected = false
     }
 
@@ -344,133 +486,93 @@ class subMenuItem extends menuItem {
 
 class navigatorSizing{
 
-    padding = 20
+    ySpacing = 20
 
-    constructor(window){
-        this.window = window
-        this.canvas = this.window.getCanvas()
+    fitToContents(widestItemWidth, itemCount){
+        navigatorWindow.width = this.#setWidthToContents(widestItemWidth)
+        navigatorWindow.height = this.#setHeightToContents(itemCount)
+        this.resize(navigatorWindow.width, navigatorWindow.height)
     }
 
-    fitToContents(){
-        this.window.width = this.#setWidthToContents()
-        this.window.height = this.#setHeightToContents()
-        this.window.resize(this.window.width, this.window.height)
+    #setWidthToContents(widestItemWidth){
+        return widestItemWidth + (navigatorWindow.padding * 2)
     }
 
-    #setWidthToContents(){
-        const widestItem = this.window.getWidestItemWidth()
-        return widestItem + (this.padding * 2)
+    #setHeightToContents(itemCount){
+        return (itemCount) * this.ySpacing + (navigatorWindow.padding * 2)
     }
 
-    #setHeightToContents(){
-        const itemCount = this.canvas.selectAll('g').size()
-        const ySpacing = 20
-        return (itemCount) * ySpacing + (this.padding * 2)
+    resize(width, height){
+        navigatorWindow.div.transition('tSizing').duration(0).delay(0)
+            .style('width', width + 'px')
+            .style('height', height + 'px')
+
     }
 }
 
 class navigatorPositioning{
 
-    padding = 20
-
-    constructor(window){
-        this.window = window
-        this.div = this.window.getDiv()
+    positionCentre(delay = 0, duration = 0){
+        const left = window.innerWidth / 2 - navigatorWindow.width / 2
+        const top = window.innerHeight / 2 - navigatorWindow.height / 2
+        this.set(left, top)
+        this.move(delay, duration)
     }
 
-    positionCentre(delay, duration){
-        const left = window.innerWidth / 2 - this.window.width / 2
-        const top = window.innerHeight / 2 - this.window.height / 2
-        const t = d3.transition('posCentre').delay(delay).duration(duration)
-        this.window.moveTo(left, top, t)
-    }
-
-    positionLeft(delay, duration){
+    positionLeft(delay = 0, duration = 0){
         const left = 20
         const top = 20
-        const t = d3.transition('posLeft').delay(delay).duration(duration)
-        this.window.moveTo(left, top, t)
-        return t.end()
+        this.set(left, top)
+        this.move(delay, duration)
     }
 
-    riseAboveBackground(delay, duration){
-        const t = d3.transition("tRise").delay(delay).duration(duration)
-        this.div.transition(t)
-            .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.2)')
-            .style('background-color', 'white')
+    set(left, top){
+        navigatorWindow.left = left
+        navigatorWindow.top = top
     }
 
-    seepIntoBackground(){
-        const t = d3.transition("tSeep").duration(400)
-        this.div.transition(t)
-            .style('background-color', 'lightyellow')
-            .style('border-radius', '0px')
-            .style('box-shadow', '0 0 0 rgba(0, 0, 0, 0)')  
+    move(delay, duration){
+        navigatorWindow.div.transition('tMove')
+            .delay(delay)
+            .duration(duration)
+            .style('left', navigatorWindow.left + "px")
+            .style('top', navigatorWindow.top + "px")
     }
 }
 
+class navigatorFloat {
 
-class navigatorWindow {
-
-    #div = {}
-    #svg = {}
-
-    constructor(){
-        this.#div = this.#createDiv()
-        this.#svg = this.#createSVGCanvas()
+    floatOffBackground(delay = 0, duration = 0){
+        this.#setStyles('white', 20, '0 4px 8px rgba(0, 0, 0, 0.2)')
+        this.#transition(delay, duration)
     }
 
-    #createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', 'navigatorDiv')
-            .style('position', 'fixed')
-            .style('border-radius', '20px')
+    sinkIntoBackground(delay = 0, duration = 0){
+        this.#setStyles('lightyellow', 0, '0 0 0 rgba(0, 0, 0, 0)')
+        this.#transition(delay, duration)
     }
 
-    #createSVGCanvas(){
-        return this.#div.append('svg')
-            .attr('id', 'navigatorSVG')
-    }
-
-    getDiv(){
-        return this.#div
-    }
-
-    getCanvas(){
-        return this.#svg
-    }
-
-    moveTo(left, top, t){
-        this.#div.transition(t)
-            .style('left', left + "px")
-            .style('top', top + "px")
-    }
-
-    resize(width, height, t){
-        this.#div.transition(t)
-            .style('width', width + 'px')
-            .style('height', height + 'px')
+    #setStyles(backgroundColour, borderRadius, boxShadow){
+        navigatorWindow.backgroundColour = backgroundColour
+        navigatorWindow.borderRadius = borderRadius
+        navigatorWindow.boxShadow = boxShadow
 
     }
 
-    getWidestItemWidth(){
-        const groups = this.#svg.selectAll('g')
-        let widestWidth = 0
-        
-        groups.each(function(){
-            const textElem = d3.select(this).select('text')
-            const width = textElem.node().getBBox().width
-            
-            if(width > widestWidth){
-                widestWidth = width
-            }  
-        })
+    #transition(duration, delay){
+        navigatorWindow.div.transition('tFloat')
+            .delay(delay)
+            .duration(duration)
+                .style('background-color', navigatorWindow.backgroundColour)
+                .style('border-radius', navigatorWindow.borderRadius + 'px')
+                .style('box-shadow', navigatorWindow.boxShadow)
 
-        return widestWidth
     }
 
 }
+
+
+
 
 
 class divManager {

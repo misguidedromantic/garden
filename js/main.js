@@ -69,29 +69,30 @@ class navigation {
         const itemType = clickedItem.constructor.name
         const subMenuLoaded = (navigatorWindow.div.style('left') === '20px')
 
+        
+
         if(itemType === 'menuItem' && !subMenuLoaded){
-            
+            this.menuManagement.loadSub(clickedItem)
+            this.contentControl.renderDestinations(this.menuItems)
+            this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
+            this.contentControl.tweenTextIn()
         }
 
+        else if(itemType === 'menuItem' && subMenuLoaded){
+            this.menuManagement.loadMain(clickedItem)
+            this.contentControl.renderDestinations(this.menuItems)
+            this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
+            this.contentControl.tweenTextIn()
+        }
 
-        this.menuManagement.updateOnSelection(clickedItem)
-        this.contentControl.renderDestinations(this.menuItems)
-        this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
-        this.contentControl.tweenTextIn()
+        else if(itemType === 'subMenuItem'){
+            clickedItem.toggleSelection()
+            this.contentControl.renderDestinations(this.menuItems)
+        }
+
     }
 
 
-
-    static async goToDestination (clickedItem){
-        const data = this.menu.refresh(clickedItem)
-        
-        
-        await this.contentControl.renderDestinations(data)
-        this.sizing.fitToContents()
-        await this.positioning.positionLeft(0, 400)
-        this.contentControl.tweenTextIn()
-        this.positioning.seepIntoBackground()
-    }
 
 }
 
@@ -118,7 +119,7 @@ class navigatorMovement {
 
     toMainMenuDisplay(widestItemWidth, itemCount){
         this.sizing.fitToContents(widestItemWidth, itemCount)
-        this.positioning.positionCentre()
+        this.positioning.positionCentre(0, 400)
         this.float.floatOffBackground(0, 400)
 
     }
@@ -144,6 +145,25 @@ class navigatorMenuManagement {
         this.mainItems = this.#getMainMenuItems()
     }
 
+    loadMain(clickedItem){
+
+        navigation.menuItems = this.mainItems
+
+        try{
+            clickedItem.deselect()
+        }
+
+        catch{
+            return
+        }
+        
+    }
+
+    loadSub(clickedItem){
+        clickedItem.select()
+        navigation.menuItems = [...[clickedItem],...clickedItem.subMenuItems]
+    }
+
     #getMainMenuItems(){
         return [
             new menuItem ('plans', this.#getPlansSubMenuItems()),
@@ -154,16 +174,16 @@ class navigatorMenuManagement {
 
     #getPlansSubMenuItems(){
         return [
-            new subMenuItem ('statement of intent'),
-            new subMenuItem ('wooden blocks')
+            new subMenuItem ('statementofintent'),
+            new subMenuItem ('woodenblocks')
         ]
     }
 
     #getSongsSubMenuItems(){
         return [
-            new subMenuItem ('slice of cedar'),
-            new subMenuItem ('ton of nothing'),
-            new subMenuItem ('intention and the act')
+            new subMenuItem ('sliceofcedar'),
+            new subMenuItem ('tonofnothing'),
+            new subMenuItem ('intentionandtheact')
         ]
     }
 
@@ -177,34 +197,13 @@ class navigatorMenuManagement {
     }
 
 
-    loadMain(){
-        navigation.menuItems = this.mainItems
-    }
-
-    updateOnSelection(selectedItem){
-
-        const itemType = selectedItem.constructor.name
-        const subMenuItemCount = this.getSubMenuItemCount() 
-
-        selectedItem.select()
-        
-        if(itemType === 'menuItem' && subMenuItemCount === 0){
-            navigation.menuItems = [...[selectedItem],...selectedItem.subMenuItems]
-        }
-
-        if(itemType === 'menuItem' && subMenuItemCount > 0){
-            navigation.menuItems = this.mainItems
-        }
-
-
-    }
 }
 
 class navigatorContentControl {
     
     renderDestinations(menuItems){
 
-
+        console.log(menuItems)
 
         const transitions = []
 
@@ -231,48 +230,62 @@ class navigatorContentControl {
               });
         
         }
+
+        const groups = 
         
         navigatorWindow.svg.selectAll('g')
             .data(menuItems, d => d.name)
             .join(
-                enter => enter.append('g')
-                    .attr('id', d => d.name)
-                    .attr('transform', (d, i) => calculateTranslate(i))
-                    .on('click', selectDestination)
-                    .append('text')
-                    .text(d => d.name)
-                    .attr('dy', '-.4em')
-                    .attr('fill', 'transparent'),
+                enter => {
+                    const group = enter.append('g')
+                        .attr('id', d => d.name)
+                        .attr('transform', (d, i) => calculateTranslate(i))
+                        .on('click', selectDestination)
+
+                    group.append('text')
+                        .text(d => d.name)
+                        .attr('dy', '-.4em')
+                        .attr('fill', 'transparent')
+                            
+                    return group
+                },
                 
-                update => update.selectAll('text').attr('font-weight', d => {
-                        if(d.constructor.name === 'menuItem' && d.selected){
+                update => {
+                    const group = update.selectAll('g')
+
+                    group.select('text').attr('font-weight', d => {
+                        if(d.selected){
                             return 'bold'
                         } else {
                             return 'normal'
                         }
-
-        
-                    }),
+                    })
+                    return group
+                }
+                    ,
 
                 exit => {
-                    exit.selectAll('text').each(function(){
-                        let text = d3.select(this)
+                    const group = exit.selectAll('g')
+
+                    group.each(function(){
+                        const text = d3.select(this).select('text')
                         text.transition('tTweenOut')
                             .duration(0)
                             .textTween(tweenTextRemovalAndColour(text, 100))
                     })
                     
-                    const exitedGroups = exit.transition().delay(0).duration(100).remove().end()
+                    group.remove()
 
 
-                    transitions.push(exitedGroups)
-                    return exitedGroups
+                    //transitions.push(exitTransition)
+                    
 
+                    //return exitTransition
 
                 }
             )
 
-        return Promise.all(transitions)
+        //return Promise.all(transitions)
 
     }
 

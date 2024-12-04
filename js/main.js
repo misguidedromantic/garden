@@ -17,11 +17,14 @@ class navigation {
         
         
         this.rendering = new navigatorRendering
+        this.windowSettings = new navigatorWindowSettings
+        
         this.movement = new navigatorMovement
         this.menuManagement = new navigatorMenuManagement
         this.contentControl = new navigatorContentControl
 
         this.rendering.createNavigator()
+     
         
         
         this.loadMainMenu()
@@ -29,7 +32,10 @@ class navigation {
 
     static loadMainMenu(){
 
-        this.contentControl.setToMain()
+        this.contentControl.loadMainMenuItems()
+        this.windowSettings.setForMainMenu()
+
+
 
 
         //update window settings
@@ -107,9 +113,16 @@ class navigatorRendering {
 
 class navigatorWindowSettings{
 
-    update(items){
-        
+    constructor(){
+        this.sizing = new navigatorSizing
+        this.positioning = new navigatorPositioning
+        this.float = new navigatorFloat
+    }
 
+    setForMainMenu(){
+        this.sizing.fitToContents()
+        this.positioning.positionCentre()
+        this.float.floatOffBackground()
     }
 
 }
@@ -123,10 +136,16 @@ class navigatorWindow {
     static height = 0
     static left = 0
     static top = 0
-    static padding = 20
     static position = 'fixed'
     static borderRadius = 20
 }
+
+class navigatorContent {
+    static menuItems = []
+    static ySpacing = 20
+    static padding = 20
+}
+
 
 
 class navigatorMovement {
@@ -162,8 +181,25 @@ class navigatorMovement {
 class navigatorMenuManagement {
 
     constructor(){
-        this.mainItems = this.#getMainMenuItems()
+        this.#setMainMenuItems()
     }
+
+    #setMainMenuItems(){
+        this.mainItems = [
+            new menuItem ('plans'),
+            new menuItem ('songs'),
+            new menuItem ('concepts')
+        ]
+    }
+
+
+    getMainMenuItems(){
+        return this.mainItems
+    }
+
+ 
+
+
 
     updateMenuItems(menu){
         switch(menu){
@@ -211,13 +247,9 @@ class navigatorMenuManagement {
         navigation.menuItems = [...[clickedItem],...subMenuItems]
     }
 
-    #getMainMenuItems(){
-        return [
-            new menuItem ('plans'),
-            new menuItem ('songs'),
-            new menuItem ('concepts')
-        ]
-    }
+    
+
+
 
     #getPlansSubMenuItems(){
         return [
@@ -393,26 +425,12 @@ class navigatorContentControl {
         this.rendering = new navigatorContentRendering
     }
 
-    setToMain(){
-        this.menuManagement.loadMain()
-        this.rendering.renderItems(navigation.menuItems)
+    loadMainMenuItems(){
+        navigatorContent.items = this.menuManagement.getMainMenuItems()
+        this.rendering.renderItems(navigatorContent.items)
     }
 
-    getWidestItemWidth(){
-        const groups = navigatorWindow.svg.selectAll('g')
-        let widestWidth = 0
-        
-        groups.each(function(){
-            const textElem = d3.select(this).select('text')
-            const width = textElem.node().getBBox().width
-            
-            if(width > widestWidth){
-                widestWidth = width
-            }  
-        })
-
-        return widestWidth
-    }
+    
 }
 
 class menuItem {
@@ -453,20 +471,36 @@ class subMenuItem extends menuItem {
 
 class navigatorSizing{
 
-    ySpacing = 20
-
-    fitToContents(widestItemWidth, itemCount){
-        navigatorWindow.width = this.#setWidthToContents(widestItemWidth)
-        navigatorWindow.height = this.#setHeightToContents(itemCount)
+    fitToContents(){
+        navigatorWindow.width = this.#setWidthToContents()
+        navigatorWindow.height = this.#setHeightToContents()
         this.resize(navigatorWindow.width, navigatorWindow.height)
     }
 
-    #setWidthToContents(widestItemWidth){
-        return widestItemWidth + (navigatorWindow.padding * 2)
+    #setWidthToContents(){
+        const widestItemWidth = this.#getWidestItemWidth()
+        return widestItemWidth + (navigatorContent.padding * 2)
     }
 
-    #setHeightToContents(itemCount){
-        return (itemCount) * this.ySpacing + (navigatorWindow.padding * 2)
+    #setHeightToContents(){
+        const itemCount = navigatorContent.items.length
+        return (itemCount) * navigatorContent.ySpacing + (navigatorContent.padding * 2)
+    }
+
+    #getWidestItemWidth(){
+        const groups = navigatorWindow.svg.selectAll('g')
+        let widestWidth = 0
+        
+        groups.each(function(){
+            const textElem = d3.select(this).select('text')
+            const width = textElem.node().getBBox().width
+            
+            if(width > widestWidth){
+                widestWidth = width
+            }  
+        })
+
+        return widestWidth
     }
 
     resize(width, height){

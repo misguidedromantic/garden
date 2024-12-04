@@ -30,10 +30,8 @@ class navigation {
 
 
         if(itemType === 'menuItem' && mainMenuLoaded){
-            this.contentControl.loadSubMenu(clickedItem)
-
-            
-
+            this.contentControl.updateFromSelection(clickedItem)
+            this.windowControl.transitionMainToSub()
         }
 
         else if(itemType === 'menuItem' && !mainMenuLoaded){
@@ -98,6 +96,44 @@ class navigatorRendering {
 
 }
 
+class navigatorContentControl {
+
+    constructor(){
+        this.menuManagement = new navigatorMenuManagement
+        this.rendering = new navigatorContentRendering
+    }
+
+    updateFromSelection(item){
+        this.menuManagement.selectItem(item)
+
+        if(item.constructor.name === 'menuItem'){
+            this.loadSubMenu(item)
+        }
+    }
+
+    loadMainMenuItems(){
+        navigatorContent.items = this.menuManagement.getMainMenuItems()
+        this.rendering.renderItems(navigatorContent.items)
+    }
+
+    loadSubMenu(parentItem){
+        navigatorContent.items = this.menuManagement.getMenuFromSelection(parentItem)
+        this.rendering.renderItems(navigatorContent.items)
+    }
+
+    isMainMenuLoaded(){
+        return this.getSubMenuItemCount() > 0 ? false : true 
+    }
+
+
+    getSubMenuItemCount(){
+        const subMenuItems = navigatorContent.items.filter(item => item.constructor.name === 'subMenuItem')
+        return subMenuItems.length
+    }
+
+    
+}
+
 class navigatorWindowControl {
 
     constructor(){
@@ -120,8 +156,10 @@ class navigatorWindowControl {
     transitionSubToMain(){}
 
     transitionMainToSub(){
-
-
+        this.settings.setForSubMenu()
+        this.rendering.resize(0, 0)
+        this.rendering.move(0, 0)
+        this.rendering.float(100, 300)
     }
 
 
@@ -139,6 +177,12 @@ class navigatorWindowSettings{
         this.sizing.fitToContents()
         this.positioning.positionCentre()
         this.float.floatOffBackground()
+    }
+
+    setForSubMenu(){
+        this.sizing.fitToContents()
+        this.positioning.positionLeft()
+        this.float.sinkIntoBackground()
     }
 }
 
@@ -172,7 +216,7 @@ class navigatorMenuManagement {
         return this.mainItems
     }
 
-    getSubMenuItems(parentItem){
+    getMenuFromSelection(parentItem){
         switch(parentItem.name){
             case 'plans':
                 return [...[parentItem],...this.plansItems]
@@ -182,8 +226,23 @@ class navigatorMenuManagement {
             
             default:
                 return []
-
         }
+    }
+
+    toggleItemSelection(item){
+        if(item.selected){
+            item.selected = false
+        } else {
+            item.selected = true
+        }
+    }
+
+    selectItem(item){
+        item.selected = true
+    }
+
+    deselectItem(){
+        item.selected = false
     }
 
     #setMainMenuItems(){
@@ -213,9 +272,6 @@ class navigatorMenuManagement {
 class navigatorContentRendering {
 
     renderItems(data){
-
-        console.log(data)
-
         const enterControl = new menuItemEnter
         const updateControl = new menuItemUpdate
         const exitControl = new menuItemExit
@@ -350,35 +406,7 @@ class textTransitions {
 
 }
 
-class navigatorContentControl {
 
-    constructor(){
-        this.menuManagement = new navigatorMenuManagement
-        this.rendering = new navigatorContentRendering
-    }
-
-    loadMainMenuItems(){
-        navigatorContent.items = this.menuManagement.getMainMenuItems()
-        this.rendering.renderItems(navigatorContent.items)
-    }
-
-    loadSubMenu(parentItem){
-        navigatorContent.items = this.menuManagement.getSubMenuItems(parentItem)
-        this.rendering.renderItems(navigatorContent.items)
-    }
-
-    isMainMenuLoaded(){
-        return this.getSubMenuItemCount() > 0 ? false : true 
-    }
-
-
-    getSubMenuItemCount(){
-        const subMenuItems = navigatorContent.items.filter(item => item.constructor.name === 'subMenuItem')
-        return subMenuItems.length
-    }
-
-    
-}
 
 class menuItem {
 
@@ -387,21 +415,7 @@ class menuItem {
         this.selected = false
     }
 
-    toggleSelection(){
-        if(this.selected){
-            this.deselect()
-        } else {
-            this.select()
-        }
-    }
-
-    select(){
-        this.selected = true
-    }
-
-    deselect(){
-        this.selected = false
-    }
+    
 
 
 }

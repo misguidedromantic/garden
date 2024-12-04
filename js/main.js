@@ -3,7 +3,7 @@ window.onload = function(){navigation.setup()}
 
 function selectDestination(){
     const data = d3.select(this).data()
-    navigation.updateOnClick(data[0])
+    navigation.updateNavigator(data[0])
 }
 
 class navigation {
@@ -23,21 +23,20 @@ class navigation {
         this.windowControl.revealAsMainMenu()
     }
 
-/*     static updateOnClick(clickedItem){
-
+    static updateNavigator(clickedItem){
+ 
         const itemType = clickedItem.constructor.name
-        const subMenuLoaded = (navigatorWindow.div.style('left') === '20px')
+        const mainMenuLoaded = this.contentControl.isMainMenuLoaded()
 
-        
 
-        if(itemType === 'menuItem' && !subMenuLoaded){
-            this.menuManagement.loadSub(clickedItem)
-            this.contentControl.renderItems(this.menuItems)
-            this.movement.toSubMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
+        if(itemType === 'menuItem' && mainMenuLoaded){
+            this.contentControl.loadSubMenu(clickedItem)
+
+            
 
         }
 
-        else if(itemType === 'menuItem' && subMenuLoaded){
+        else if(itemType === 'menuItem' && !mainMenuLoaded){
             this.menuManagement.loadMain(clickedItem)
             this.contentControl.renderDestinations(this.menuItems)
             this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
@@ -49,7 +48,7 @@ class navigation {
             this.contentControl.renderDestinations(this.menuItems)
         }
 
-    } */
+    }
 
 
 
@@ -118,6 +117,13 @@ class navigatorWindowControl {
         this.rendering.float(100, 300)
     }
 
+    transitionSubToMain(){}
+
+    transitionMainToSub(){
+
+
+    }
+
 
 }
 
@@ -134,9 +140,7 @@ class navigatorWindowSettings{
         this.positioning.positionCentre()
         this.float.floatOffBackground()
     }
-
 }
-
 
 class navigatorWindow {
     static div = {}
@@ -156,12 +160,30 @@ class navigatorContent {
     static padding = 20
 }
 
-
-
 class navigatorMenuManagement {
 
     constructor(){
         this.#setMainMenuItems()
+        this.#setPlansSubMenuItems()
+        this.#setSongsSubMenuItems()
+    }
+
+    getMainMenuItems(){
+        return this.mainItems
+    }
+
+    getSubMenuItems(parentItem){
+        switch(parentItem.name){
+            case 'plans':
+                return [...[parentItem],...this.plansItems]
+
+            case 'songs':
+                return [...[parentItem],...this.songsItems]
+            
+            default:
+                return []
+
+        }
     }
 
     #setMainMenuItems(){
@@ -172,90 +194,20 @@ class navigatorMenuManagement {
         ]
     }
 
-
-    getMainMenuItems(){
-        return this.mainItems
-    }
-
- 
-
-
-
-    updateMenuItems(menu){
-        switch(menu){
-            case 'subMenu':
-                break;
-
-            default:
-                //get menu
-
-        }
-    }
-
-    loadMain(clickedItem){
-
-        navigation.menuItems = this.mainItems
-
-        try{
-            clickedItem.deselect()
-        }
-
-        catch{
-            return
-        }
-        
-    }
-
-    loadSub(clickedItem){
-        clickedItem.select()
-        let subMenuItems = []
-
-        switch(clickedItem.name){
-            case 'plans':
-                subMenuItems = this.#getPlansSubMenuItems()
-                break;
-
-            case 'songs':
-                subMenuItems = this.#getSongsSubMenuItems()
-                break;
-
-        }
-
-        const newArray = [...[clickedItem],...subMenuItems]
-        console.log(newArray)
-
-        navigation.menuItems = [...[clickedItem],...subMenuItems]
-    }
-
-    
-
-
-
-    #getPlansSubMenuItems(){
-        return [
+    #setPlansSubMenuItems(){
+        this.plansItems = [
             new subMenuItem ('statementofintent'),
             new subMenuItem ('woodenblocks')
         ]
     }
 
-    #getSongsSubMenuItems(){
-        return [
+    #setSongsSubMenuItems(){
+        this.songsItems = [
             new subMenuItem ('sliceofcedar'),
             new subMenuItem ('tonofnothing'),
             new subMenuItem ('intentionandtheact')
         ]
     }
-
-    getMenuItems(){
-        return navigation.menuItems.filter(item => item.constructor.name === 'menuItem')
-    }
-    
-    getSubMenuItemCount(){
-        const subMenuItems = navigation.menuItems.filter(item => item.constructor.name === 'subMenuItem')
-        return subMenuItems.length
-    }
-
-
 }
 
 class navigatorContentRendering {
@@ -333,7 +285,7 @@ class menuItemUpdate {
     }
 
     updateGroups(selection){
-        return selection.attr('transform', (d, i) => {return this.calculateTranslate(i)})
+        return selection.attr('transform', (d, i) => {return menuItemPositioning.calculateTranslate(i)})
     }
 
     updateText(groups){
@@ -353,7 +305,7 @@ class menuItemExit {
             const text = d3.select(this).select('text')
             text.transition('tTweenOut')
                 .duration(100)
-                .textTween(exitTween(text, 100))
+                .textTween(textTransitions.tweenOut(text, 100))
             })
                     
             selection.remove()
@@ -408,6 +360,21 @@ class navigatorContentControl {
     loadMainMenuItems(){
         navigatorContent.items = this.menuManagement.getMainMenuItems()
         this.rendering.renderItems(navigatorContent.items)
+    }
+
+    loadSubMenu(parentItem){
+        navigatorContent.items = this.menuManagement.getSubMenuItems(parentItem)
+        this.rendering.renderItems(navigatorContent.items)
+    }
+
+    isMainMenuLoaded(){
+        return this.getSubMenuItemCount() > 0 ? false : true 
+    }
+
+
+    getSubMenuItemCount(){
+        const subMenuItems = navigatorContent.items.filter(item => item.constructor.name === 'subMenuItem')
+        return subMenuItems.length
     }
 
     

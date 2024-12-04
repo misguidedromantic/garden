@@ -1,8 +1,5 @@
 window.onload = function(){navigation.setup()}
 
-function initialSetup(){
-    setupNavigator()
-}
 
 function selectDestination(){
     const data = d3.select(this).data()
@@ -17,19 +14,29 @@ class navigation {
     static contentControl = {}
 
     static setup(){
+        
+        
         this.rendering = new navigatorRendering
         this.movement = new navigatorMovement
         this.menuManagement = new navigatorMenuManagement
         this.contentControl = new navigatorContentControl
 
         this.rendering.createNavigator()
+        
+        
         this.loadMainMenu()
     }
 
     static loadMainMenu(){
-        this.menuManagement.loadMain()
-        this.contentControl.renderItems(this.menuItems)
-        this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
+
+        this.contentControl.setToMain()
+
+
+        //update window settings
+
+        //this.menuManagement.loadMain()
+        //this.contentControl.renderItems(this.menuItems)
+        //this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
     }
 
     
@@ -76,14 +83,12 @@ class navigation {
 
 class navigatorRendering {
 
-    updateMenu(items){
-
-    }
-
     createNavigator(){
         navigatorWindow.div = this.#createDiv()
         navigatorWindow.svg = this.#createSVGCanvas()
     }
+
+
 
     #createDiv(){
         return d3.select('body')
@@ -96,6 +101,15 @@ class navigatorRendering {
     #createSVGCanvas(){
         return navigatorWindow.div.append('svg')
             .attr('id', 'navigatorSVG')
+    }
+
+}
+
+class navigatorWindowSettings{
+
+    update(items){
+        
+
     }
 
 }
@@ -149,6 +163,17 @@ class navigatorMenuManagement {
 
     constructor(){
         this.mainItems = this.#getMainMenuItems()
+    }
+
+    updateMenuItems(menu){
+        switch(menu){
+            case 'subMenu':
+                break;
+
+            default:
+                //get menu
+
+        }
     }
 
     loadMain(clickedItem){
@@ -221,19 +246,30 @@ class navigatorMenuManagement {
 
 }
 
-class navigatorContentControl {
+class navigatorContentRendering {
 
     renderItems(data){
+
+        console.log(data)
+
+        const enterControl = new menuItemEnter
+        const updateControl = new menuItemUpdate
+        const exitControl = new menuItemExit
         
         navigatorWindow.svg.selectAll('g')
             .data(data, d => d.name)
             .join(
-                enter => this.enterItems(enter),
-                update => this.updateItems(update),
-                exit => this.exitItems(exit)
+                enter => enterControl.enterItems(enter),
+                update => updateControl.updateItems(update),
+                exit => exitControl.exitItems(exit)
             )
 
     }
+
+
+}
+
+class menuItemEnter {
 
     enterItems(selection){
         const groups = this.enterGroups(selection)
@@ -245,7 +281,7 @@ class navigatorContentControl {
     enterGroups(selection){
         return selection.append('g')
             .attr('id', d => d.name)
-            .attr('transform', (d, i) => this.calculateTranslate(i))
+            .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(i))
             .on('click', selectDestination)
     }
 
@@ -275,6 +311,10 @@ class navigatorContentControl {
 
     }
 
+}
+
+class menuItemUpdate {
+
     updateItems(selection){
         const groups = this.updateGroups(selection)
         const text = this.updateText(groups)
@@ -288,6 +328,10 @@ class navigatorContentControl {
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
     }
+
+}
+
+class menuItemExit {
 
     exitItems(selection){
 
@@ -305,7 +349,21 @@ class navigatorContentControl {
         return selection
     }
 
-    exitTextTransitionTween(selection, duration){
+}
+
+class menuItemPositioning {
+
+    static calculateTranslate(i){
+        const x = 20
+        const y = i * 20 + 40
+        return 'translate(' + x + ',' + y + ')'
+    }
+
+}
+
+class textTransitions {
+
+    static tweenOut(selection, duration){
         const originalText = selection.text();
         const length = originalText.length;
         
@@ -322,11 +380,22 @@ class navigatorContentControl {
               });
     }
 
+    static colourChange(selection, newColour, t){
+        return selection.transition(t).attr('fill', newColour)
+    }
 
-    calculateTranslate(i){
-        const x = 20
-        const y = i * 20 + 40
-        return 'translate(' + x + ',' + y + ')'
+}
+
+class navigatorContentControl {
+
+    constructor(){
+        this.menuManagement = new navigatorMenuManagement
+        this.rendering = new navigatorContentRendering
+    }
+
+    setToMain(){
+        this.menuManagement.loadMain()
+        this.rendering.renderItems(navigation.menuItems)
     }
 
     getWidestItemWidth(){

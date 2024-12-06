@@ -18,7 +18,7 @@ class navigation {
 
     static #loadControllers(){
         this.windowControl = new navigatorWindowControl
-        this.contentControl = new navigatorContentControl
+        this.contentControl = new navigatorMenuControl
     }
 
     static #loadNavigator(){
@@ -29,18 +29,14 @@ class navigation {
     }
 
     static updateNavigator(clickedItem){
-        const itemType = clickedItem.constructor.name
-        const mainMenuLoaded  = this.contentControl.isMainMenuLoaded()
-        const menuName =  mainMenuLoaded ? 'main' : 'plans'
-        
-        this.contentControl.update(menuName, clickedItem)
+        const menuState =  this.contentControl.getMenuState()
+        this.contentControl.update(menuState, clickedItem)
 
-        if(mainMenuLoaded){
-            
+        if(menuState === 'main'){
             this.windowControl.transitionMainToSub()
         }
 
-        else if (itemType === 'menuItem'){
+        else if (clickedItem.constructor.name === 'menuItem'){
             this.windowControl.transitionSubToMain()
         }
 
@@ -91,31 +87,27 @@ class navigatorRendering {
 
 }
 
-class navigatorContentControl {
+class navigatorMenuControl {
 
     constructor(){
         this.menuManagement = new navigatorMenuManagement
-        this.rendering = new navigatorContentRendering
+        this.rendering = new navigatorMenuRendering
     }
 
     update(clickedMenu, clickedItem){
-        navigatorContent.items = this.getItemData(clickedMenu, clickedItem)
-        this.rendering.renderItems(navigatorContent.items)
+        navigatorMenu.items = this.getItemData(clickedMenu, clickedItem)
+        this.rendering.renderItems(navigatorMenu.items)
     }
 
     getItemData(clickedMenu, clickedItem){
 
+
         switch(clickedMenu){
             case 'main':
-                return this.menuManagement.refreshFromItemSelectionOnMain(clickedItem)
+                return this.menuManagement.refreshFromSelectionOnMain(clickedItem)
 
-            case 'plans', 'songs':
-
-                if(clickedItem.constructor.name === 'subMenuItem'){
-                    return this.menuManagement.refreshFromSubItemSelection(clickedItem, navigatorContent.items)
-                } else{
-                    return this.menuManagement.refreshFromItemSelectionOnMain(clickedItem)
-                }
+            case 'sub':
+                return this.menuManagement.refreshFromSelectionOnSub(clickedItem)
 
             default:
                 return this.menuManagement.getMainMenuItems()
@@ -124,23 +116,27 @@ class navigatorContentControl {
     }
 
     loadMainMenuItems(){
-        navigatorContent.items = this.menuManagement.getMainMenuItems()
-        this.rendering.renderItems(navigatorContent.items)
+        navigatorMenu.items = this.menuManagement.getMainMenuItems()
+        this.rendering.renderItems(navigatorMenu.items)
     }
 
     selectMainItemOnSubMenu(item){
-        navigatorContent.items = this.menuManagement.refreshFromItemSelectionOnSub(item)
-        this.rendering.renderItems(navigatorContent.items)
+        navigatorMenu.items = this.menuManagement.refreshFromItemSelectionOnSub(item)
+        this.rendering.renderItems(navigatorMenu.items)
     }
 
     selectSubMenuItemOnSubMenu(item){
-        this.menuManagement.refreshFromSubItemSelection(item, navigatorContent.items)
-        this.rendering.renderItems(navigatorContent.items)
+        this.menuManagement.refreshFromSubItemSelection(item, navigatorMenu.items)
+        this.rendering.renderItems(navigatorMenu.items)
     }
 
     selectItemOnMainMenu(item){
-        navigatorContent.items = this.menuManagement.refreshFromItemSelectionOnMain(item)
-        this.rendering.renderItems(navigatorContent.items)
+        navigatorMenu.items = this.menuManagement.refreshFromItemSelectionOnMain(item)
+        this.rendering.renderItems(navigatorMenu.items)
+    }
+
+    getMenuState(){
+        return this.isMainMenuLoaded() ? 'main' : 'sub'
     }
 
     isMainMenuLoaded(){
@@ -148,7 +144,7 @@ class navigatorContentControl {
     }
 
     #getSubMenuItemCount(){
-        const subMenuItems = navigatorContent.items.filter(item => item.constructor.name === 'subMenuItem')
+        const subMenuItems = navigatorMenu.items.filter(item => item.constructor.name === 'subMenuItem')
         return subMenuItems.length
     }
 
@@ -225,8 +221,9 @@ class navigatorWindow {
     static borderRadius = 20
 }
 
-class navigatorContent {
-    static menuItems = []
+class navigatorMenu {
+    static items = []
+    static level = 'main'
     static ySpacing = 20
     static padding = 20
 }
@@ -260,10 +257,11 @@ class navigatorMenuManagement {
             clickedItem.selected = false
         }
         else {
-            this.selectItemExclusively(clickedItem, navigatorContent.items)
+            const items = navigatorMenu.items.filter(item => item.constructor.name === clickedItem.constructor.name)
+            this.selectItemExclusively(clickedItem, items)
         }
 
-        return navigatorContent.items
+        return navigatorMenu.items
     }
 
     selectItemExclusively(itemToSelect, items){
@@ -318,7 +316,7 @@ class navigatorMenuManagement {
     }
 }
 
-class navigatorContentRendering {
+class navigatorMenuRendering {
 
     renderItems(data){
         const enterControl = new menuItemEnter
@@ -488,12 +486,12 @@ class navigatorSizing{
 
     #setWidthToContents(){
         const widestItemWidth = this.#getWidestItemWidth()
-        return widestItemWidth + (navigatorContent.padding * 2)
+        return widestItemWidth + (navigatorMenu.padding * 2)
     }
 
     #setHeightToContents(){
-        const itemCount = navigatorContent.items.length
-        return (itemCount) * navigatorContent.ySpacing + (navigatorContent.padding * 2)
+        const itemCount = navigatorMenu.items.length
+        return (itemCount) * navigatorMenu.ySpacing + (navigatorMenu.padding * 2)
     }
 
     #getWidestItemWidth(){

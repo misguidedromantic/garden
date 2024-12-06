@@ -41,6 +41,14 @@ class navigation {
         }
 
     }
+
+    static loadSelected(item){
+        
+        switch(item.name){
+
+        }
+
+    }
 }
 
 class navigatorRendering {
@@ -232,8 +240,9 @@ class navigatorMenuManagement {
 
     constructor(){
         this.#setMainMenuItems()
-        this.#setPlansSubMenuItems()
-        this.#setSongsSubMenuItems()
+        this.#setSubMenuItems()
+        //this.#setPlansSubMenuItems()
+        //this.#setSongsSubMenuItems()
     }
 
     refreshFromSelectionOnMain(clickedItem){
@@ -299,6 +308,36 @@ class navigatorMenuManagement {
             new menuItem ('concepts')
         ]
     }
+
+    #setSubMenuItems(){
+
+
+
+        this.mainItems.forEach(item => { 
+            let targetItems = []
+            const functionName = 'get' + item.name.charAt(0).toUpperCase() + item.name.slice(1)
+            try{
+                targetItems = window[functionName]()
+                item.subMenu = targetItems.map(item => new subMenuItem(item.title, item))   
+            }
+            catch{
+                targetItems = []
+            }
+            finally{
+                console.log(item)
+            }
+        })
+
+        //let songs = window['getSongs']()//getSongs()
+        //console.log(songs)
+
+    }
+
+    #createSubMenuItems(targetItems){
+          
+    }
+
+    
 
     #setPlansSubMenuItems(){
         this.plansItems = [
@@ -469,8 +508,9 @@ class menuItem {
 
 class subMenuItem extends menuItem {
 
-    constructor(name){
+    constructor(name, target){
         super(name)
+        this.target = target
     }
 
 }

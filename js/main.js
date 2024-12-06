@@ -12,44 +12,39 @@ class navigation {
     static contentControl = {}
 
     static setup(){
-        this.windowControl = new navigatorWindowControl
-        this.contentControl = new navigatorContentControl
-        this.windowControl.createNavigator()
-        this.loadMainMenu()
+        this.#loadControllers()
+        this.#loadNavigator()
     }
 
-    static loadMainMenu(){
-        this.contentControl.loadMainMenuItems()
+    static #loadControllers(){
+        this.windowControl = new navigatorWindowControl
+        this.contentControl = new navigatorContentControl
+    }
+
+    static #loadNavigator(){
+        this.windowControl.createNavigator()
+        this.contentControl.update()
         this.windowControl.revealAsMainMenu()
+
     }
 
     static updateNavigator(clickedItem){
- 
         const itemType = clickedItem.constructor.name
-        const mainMenuLoaded = this.contentControl.isMainMenuLoaded()
+        const mainMenuLoaded  = this.contentControl.isMainMenuLoaded()
+        const menuName =  mainMenuLoaded ? 'main' : 'plans'
+        
+        this.contentControl.update(menuName, clickedItem)
 
-
-        if(itemType === 'menuItem' && mainMenuLoaded){
-            this.contentControl.updateFromSelection(clickedItem)
+        if(mainMenuLoaded){
+            
             this.windowControl.transitionMainToSub()
         }
 
-        else if(itemType === 'menuItem' && !mainMenuLoaded){
-            this.menuManagement.loadMain(clickedItem)
-            this.contentControl.renderDestinations(this.menuItems)
-            this.movement.toMainMenuDisplay(this.contentControl.getWidestItemWidth(), this.menuItems.length)
-
-        }
-
-        else if(itemType === 'subMenuItem'){
-            clickedItem.toggleSelection()
-            this.contentControl.renderDestinations(this.menuItems)
+        else if (itemType === 'menuItem'){
+            this.windowControl.transitionSubToMain()
         }
 
     }
-
-
-
 }
 
 class navigatorRendering {
@@ -103,12 +98,29 @@ class navigatorContentControl {
         this.rendering = new navigatorContentRendering
     }
 
-    updateFromSelection(item){
-        this.menuManagement.selectItem(item)
+    update(clickedMenu, clickedItem){
+        navigatorContent.items = this.getItemData(clickedMenu, clickedItem)
+        this.rendering.renderItems(navigatorContent.items)
+    }
 
-        if(item.constructor.name === 'menuItem'){
-            this.loadSubMenu(item)
+    getItemData(clickedMenu, clickedItem){
+
+        switch(clickedMenu){
+            case 'main':
+                return this.menuManagement.refreshFromItemSelectionOnMain(clickedItem)
+
+            case 'plans', 'songs':
+
+                if(clickedItem.constructor.name === 'subMenuItem'){
+                    return this.menuManagement.refreshFromSubItemSelection(clickedItem, navigatorContent.items)
+                } else{
+                    return this.menuManagement.refreshFromItemSelectionOnMain(clickedItem)
+                }
+
+            default:
+                return this.menuManagement.getMainMenuItems()
         }
+
     }
 
     loadMainMenuItems(){
@@ -116,17 +128,26 @@ class navigatorContentControl {
         this.rendering.renderItems(navigatorContent.items)
     }
 
-    loadSubMenu(parentItem){
-        navigatorContent.items = this.menuManagement.getMenuFromSelection(parentItem)
+    selectMainItemOnSubMenu(item){
+        navigatorContent.items = this.menuManagement.refreshFromItemSelectionOnSub(item)
+        this.rendering.renderItems(navigatorContent.items)
+    }
+
+    selectSubMenuItemOnSubMenu(item){
+        this.menuManagement.refreshFromSubItemSelection(item, navigatorContent.items)
+        this.rendering.renderItems(navigatorContent.items)
+    }
+
+    selectItemOnMainMenu(item){
+        navigatorContent.items = this.menuManagement.refreshFromItemSelectionOnMain(item)
         this.rendering.renderItems(navigatorContent.items)
     }
 
     isMainMenuLoaded(){
-        return this.getSubMenuItemCount() > 0 ? false : true 
+        return this.#getSubMenuItemCount() > 0 ? false : true 
     }
 
-
-    getSubMenuItemCount(){
+    #getSubMenuItemCount(){
         const subMenuItems = navigatorContent.items.filter(item => item.constructor.name === 'subMenuItem')
         return subMenuItems.length
     }
@@ -153,12 +174,18 @@ class navigatorWindowControl {
         this.rendering.float(100, 300)
     }
 
-    transitionSubToMain(){}
+    transitionSubToMain(){
+        this.settings.setForMainMenu()
+        this.rendering.resize(0, 400)
+        this.rendering.move(0, 400)
+        this.rendering.float(100, 300)
+
+    }
 
     transitionMainToSub(){
         this.settings.setForSubMenu()
-        this.rendering.resize(0, 0)
-        this.rendering.move(0, 0)
+        this.rendering.resize(0, 400)
+        this.rendering.move(0, 400)
         this.rendering.float(100, 300)
     }
 
@@ -212,6 +239,44 @@ class navigatorMenuManagement {
         this.#setSongsSubMenuItems()
     }
 
+    refreshFromSelectionOnMain(clickedItem){
+        clickedItem.selected = true
+        return this.getMenuFromSelection(clickedItem)
+    }
+
+    refreshFromSelectionOnSub(clickedItem){
+        if(clickedItem.constructor.name === 'menuItem'){
+            return this.refreshFromItemSelectionOnSub(clickedItem)
+        }
+
+        if(clickedItem.constructor.name === 'subMenuItem'){
+            return this.refreshFromSubItemSelection(clickedItem)
+        }
+        
+    }
+
+    refreshFromSubItemSelection(clickedItem){
+        if(clickedItem.selected){
+            clickedItem.selected = false
+        }
+        else {
+            this.selectItemExclusively(clickedItem, navigatorContent.items)
+        }
+
+        return navigatorContent.items
+    }
+
+    selectItemExclusively(itemToSelect, items){
+        items.forEach(item => {
+            item === itemToSelect ? item.selected = true : item.selected = false
+        });
+    }
+
+    refreshFromItemSelectionOnSub(clickedItem){
+        clickedItem.selected = false
+        return this.getMainMenuItems()
+    }
+
     getMainMenuItems(){
         return this.mainItems
     }
@@ -227,22 +292,6 @@ class navigatorMenuManagement {
             default:
                 return []
         }
-    }
-
-    toggleItemSelection(item){
-        if(item.selected){
-            item.selected = false
-        } else {
-            item.selected = true
-        }
-    }
-
-    selectItem(item){
-        item.selected = true
-    }
-
-    deselectItem(){
-        item.selected = false
     }
 
     #setMainMenuItems(){

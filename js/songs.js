@@ -7,7 +7,7 @@ function getSongs(){
 }
 
 class song {
-    constructor(title){
-        this.title = title
+    constructor(name){
+        this.name = name
     }
 }

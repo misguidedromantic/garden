@@ -6,6 +6,7 @@ function selectDestination(){
     navigation.updateNavigator(data[0])
 }
 
+
 class navigation {
 
     static windowControl = {}
@@ -38,14 +39,6 @@ class navigation {
 
         else if (clickedItem.constructor.name === 'menuItem'){
             this.windowControl.transitionSubToMain()
-        }
-
-    }
-
-    static loadSelected(item){
-        
-        switch(item.name){
-
         }
 
     }
@@ -108,8 +101,6 @@ class navigatorMenuControl {
     }
 
     getItemData(clickedMenu, clickedItem){
-
-
         switch(clickedMenu){
             case 'main':
                 return this.menuManagement.refreshFromSelectionOnMain(clickedItem)
@@ -121,26 +112,6 @@ class navigatorMenuControl {
                 return this.menuManagement.getMainMenuItems()
         }
 
-    }
-
-    loadMainMenuItems(){
-        navigatorMenu.items = this.menuManagement.getMainMenuItems()
-        this.rendering.renderItems(navigatorMenu.items)
-    }
-
-    selectMainItemOnSubMenu(item){
-        navigatorMenu.items = this.menuManagement.refreshFromItemSelectionOnSub(item)
-        this.rendering.renderItems(navigatorMenu.items)
-    }
-
-    selectSubMenuItemOnSubMenu(item){
-        this.menuManagement.refreshFromSubItemSelection(item, navigatorMenu.items)
-        this.rendering.renderItems(navigatorMenu.items)
-    }
-
-    selectItemOnMainMenu(item){
-        navigatorMenu.items = this.menuManagement.refreshFromItemSelectionOnMain(item)
-        this.rendering.renderItems(navigatorMenu.items)
     }
 
     getMenuState(){
@@ -169,6 +140,30 @@ class navigatorWindowControl {
     createNavigator(){
         navigatorWindow.div = this.rendering.createDiv()
         navigatorWindow.svg = this.rendering.createSVGCanvas()
+    }
+
+    update(clickedMenu, clickedItem){
+        switch(clickedMenu){
+            case 'main':
+                this.updateFromMain(clickedItem)
+                break;
+
+            case 'sub':
+                this.updateFromSub(clickedItem)
+                break;
+        }
+    }
+
+    updateFromMain(clickedItem){
+        if (clickedItem.subMenu.length > 0){
+            this.transitionMainToSub()
+        }
+    }
+
+    updateFromSub(clickedItem){
+        if(clickedItem.constructor.name === 'menuItem'){
+            this.transitionSubToMain()
+        }
     }
 
     revealAsMainMenu(){
@@ -241,13 +236,11 @@ class navigatorMenuManagement {
     constructor(){
         this.#setMainMenuItems()
         this.#setSubMenuItems()
-        //this.#setPlansSubMenuItems()
-        //this.#setSongsSubMenuItems()
     }
 
     refreshFromSelectionOnMain(clickedItem){
         clickedItem.selected = true
-        return this.getMenuFromSelection(clickedItem)
+        return [...[clickedItem],...clickedItem.subMenu]
     }
 
     refreshFromSelectionOnSub(clickedItem){
@@ -291,7 +284,7 @@ class navigatorMenuManagement {
     getMenuFromSelection(parentItem){
         switch(parentItem.name){
             case 'plans':
-                return [...[parentItem],...this.plansItems]
+                return [...[parentItem],...parentItem.subMenu]
 
             case 'songs':
                 return [...[parentItem],...this.songsItems]
@@ -318,13 +311,13 @@ class navigatorMenuManagement {
             const functionName = 'get' + item.name.charAt(0).toUpperCase() + item.name.slice(1)
             try{
                 targetItems = window[functionName]()
-                item.subMenu = targetItems.map(item => new subMenuItem(item.title, item))   
+                targetItems = targetItems.map(item => new subMenuItem(item.name, item))   
             }
             catch{
                 targetItems = []
             }
             finally{
-                console.log(item)
+                item.subMenu = targetItems
             }
         })
 
@@ -354,6 +347,7 @@ class navigatorMenuManagement {
         ]
     }
 }
+
 
 class navigatorMenuRendering {
 

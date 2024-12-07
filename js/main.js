@@ -3,16 +3,12 @@ window.onload = function(){
     contentControl.setup()
 }
 
-
-
-
 function menuItemClicked(){
     const data = d3.select(this).data()
     const clickedItem = data[0]
     navigation.updateNavigator(clickedItem)
     navigation.toggleSelection(clickedItem)
 }
-
 
 class navigation {
 
@@ -43,19 +39,19 @@ class navigation {
 
     static toggleSelection(clickedItem){
         if(clickedItem.constructor.name === 'subMenuItem'){
-            this.toggleSubMenuItemSelection(clickedItem)
+            this.#toggleSubMenuItemSelection(clickedItem)
         }
     }
 
-    static toggleSubMenuItemSelection(clickedItem){
+    static #toggleSubMenuItemSelection(clickedItem){
         if(clickedItem.selected){
-            this.loadSubMenuSelection(clickedItem.target)
+            this.#loadSubMenuSelection(clickedItem.target)
         } else {
-            this.unloadSubMenuSelection(clickedItem.target)
+            this.#unloadSubMenuSelection(clickedItem.target)
         }
     }
 
-    static async loadSubMenuSelection(targetItem){
+    static async #loadSubMenuSelection(targetItem){
         switch(targetItem.constructor.name){
             case('plan'):
                 contentControl.loadPlan(targetItem)
@@ -66,7 +62,7 @@ class navigation {
         }
     }
 
-    static  unloadSubMenuSelection(targetItem){
+    static #unloadSubMenuSelection(targetItem){
         switch(targetItem.constructor.name){
             case('plan'):
                 contentControl.hideDoc()
@@ -77,13 +73,6 @@ class navigation {
         }
     }
 
-
-
-    
-
-
-
-
 }
 
 class contentControl {
@@ -91,8 +80,8 @@ class contentControl {
     static docControl = {}
     
     static setup(){
-        this.#loadControllers()
-        this.#loadDocWindow()
+        this.docControl = new docWindowControl
+        this.docControl.createDocWindow()
     }
 
     static async loadPlan(plan){
@@ -104,16 +93,6 @@ class contentControl {
             this.docControl.loadDoc(plan)
         }
     }
-
-
-    static #loadControllers(){
-        this.docControl = new docWindowControl
-    }
-
-    static #loadDocWindow(){
-        this.docControl.createDocWindow()
-    }
-
 
     static hideDoc(){
         this.docControl.hideWindow()

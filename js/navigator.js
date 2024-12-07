@@ -28,6 +28,7 @@ class navigatorWindowControl {
                 break;
 
             case 'sub':
+            case 'subSelect':
                 this.updateFromSub(clickedItem)
                 break;
 

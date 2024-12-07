@@ -263,6 +263,7 @@ class menuItemUpdate {
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
+            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menu.state === 'subSelect' ? 'grey' : 'black')
     }
 }
 

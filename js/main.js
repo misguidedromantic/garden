@@ -1,60 +1,94 @@
-let handlers = {}
-
-let dispHandler = {} 
-
-window.onload = function (){
-    navigatorHandler.initialLoad()  
-
+window.onload = function(){
+    navigation.setup()
+    contentControl.setup()
 }
 
 
-async function displayPlan(title) {
-    const planToDisplay = await planHandler.getPlanHTML(title)
-    docWindowHandler.renderPlanWindow(planToDisplay)
+
+
+function menuItemClicked(){
+    const data = d3.select(this).data()
+    const clickedItem = data[0]
+    navigation.updateNavigator(clickedItem)
+    navigation.loadSelection(clickedItem)
 }
 
 
-function createSVGCanvas(id, div){
+class navigation {
 
-    function convertDivDimension(str){
-        const index = str.indexOf("px")
-        return parseInt(str.slice(0, index))
+    static windowControl = {}
+    static menuControl = {}
+
+    static setup(){
+        this.#loadControllers()
+        this.#loadNavigator()
     }
 
-    return div.append('svg')
-        .attr('id', id)
-        .attr('width', convertDivDimension(div.style('width')))
-        .attr('height', convertDivDimension(div.style('height')))
+    static #loadControllers(){
+        this.windowControl = new navigatorWindowControl
+        this.menuControl = new menuControl
+    }
+
+    static #loadNavigator(){
+        this.windowControl.createNavigator()
+        this.menuControl.update()
+        this.windowControl.update()
+    }
+
+    static updateNavigator(clickedItem){
+        const clickedMenu =  this.menuControl.getMenuState()
+        this.menuControl.update(clickedMenu, clickedItem)
+        this.windowControl.update(clickedMenu, clickedItem)
+    }
+
+    static async loadSelection(clickedItem){
+        if(clickedItem.constructor.name === 'subMenuItem'){
+            const targetItem = clickedItem.target
+            switch(targetItem.constructor.name){
+                case('plan'):
+                    const htmlDoc = await plansDataHandling.getPlanHTML(targetItem.name)
+                    contentControl.displayDoc(htmlDoc)
+                    break;
+
+                case('song'):
+                    console.log('this a song')
+            }
+        }
+
+    }
 }
 
-function insertString(mainString, insertString, position) {
-    return mainString.slice(0, position) + insertString + mainString.slice(position);
-  }
+class contentControl {
 
+    static docControl = {}
+    
+    static setup(){
+        this.#loadControllers()
+        this.#loadDocWindow()
+    }
 
-  function getTranslateString(x, y){
-    return 'translate(' + x + ',' + y + ')'
-}
+    static #loadControllers(){
+        this.docControl = new docWindowControl
+    }
 
+    static #loadDocWindow(){
+        this.docControl.createDocWindow()
+    }
 
-function getDivCount(){
-    return d3.selectAll('div').size()
-}
-
-function tweenTextRemovalAndColour(selection, duration) {
-    const originalText = selection.text();
-    const length = originalText.length;
-
-    selection.transition()
-      .duration(duration)
-      .textTween(function() {
-        return function(t) {
-          const i = Math.floor((1 - t) * length);
-          return originalText.slice(0, i);
-        };
-      })
-      .on("end", function() {
-        d3.select(this).text("");
-      });
+    static displayDoc(htmlDoc){
+        this.docControl.loadDoc(htmlDoc)
+    }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+

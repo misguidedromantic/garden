@@ -19,28 +19,19 @@ class navigation {
 
     static #loadControllers(){
         this.windowControl = new navigatorWindowControl
-        this.contentControl = new navigatorMenuControl
+        this.contentControl = new navigatorContentControl
     }
 
     static #loadNavigator(){
         this.windowControl.createNavigator()
         this.contentControl.update()
-        this.windowControl.revealAsMainMenu()
-
+        this.windowControl.update()
     }
 
     static updateNavigator(clickedItem){
-        const menuState =  this.contentControl.getMenuState()
-        this.contentControl.update(menuState, clickedItem)
-
-        if(menuState === 'main'){
-            this.windowControl.transitionMainToSub()
-        }
-
-        else if (clickedItem.constructor.name === 'menuItem'){
-            this.windowControl.transitionSubToMain()
-        }
-
+        const clickedMenu =  this.contentControl.getMenuState()
+        this.contentControl.update(clickedMenu, clickedItem)
+        this.windowControl.update(clickedMenu, clickedItem)
     }
 }
 
@@ -88,30 +79,16 @@ class navigatorRendering {
 
 }
 
-class navigatorMenuControl {
+class navigatorContentControl {
 
     constructor(){
-        this.menuManagement = new navigatorMenuManagement
+        this.menuData = new menuDataHandling
         this.rendering = new navigatorMenuRendering
     }
 
     update(clickedMenu, clickedItem){
-        navigatorMenu.items = this.getItemData(clickedMenu, clickedItem)
+        this.menuData.update(clickedMenu, clickedItem)
         this.rendering.renderItems(navigatorMenu.items)
-    }
-
-    getItemData(clickedMenu, clickedItem){
-        switch(clickedMenu){
-            case 'main':
-                return this.menuManagement.refreshFromSelectionOnMain(clickedItem)
-
-            case 'sub':
-                return this.menuManagement.refreshFromSelectionOnSub(clickedItem)
-
-            default:
-                return this.menuManagement.getMainMenuItems()
-        }
-
     }
 
     getMenuState(){
@@ -129,6 +106,118 @@ class navigatorMenuControl {
 
     
 }
+
+class menuDataHandling {
+
+    constructor(){
+        this.mainMenuItems = []
+        this.selections = new menuSelections
+        this.#setMainMenuItems()
+        this.#setSubMenuItems()
+    }
+
+    update(clickedMenu, clickedItem){
+        switch(clickedMenu){
+            case 'main':
+                return this.#updateFromMain(clickedItem)
+
+            case 'sub':
+                return this.#updateFromSub(clickedItem)
+
+            default:
+                return this.#setToMainMenu()
+
+        }
+    }
+
+    #updateFromMain(clickedItem){
+        if(clickedItem.subMenu.length > 0){
+            this.#setToSubMenu(clickedItem)
+        }
+    }
+
+    #updateFromSub(clickedItem){
+        switch(clickedItem.constructor.name){
+            case 'menuItem':
+                this.#setToMainMenu()
+                break;
+            case 'subMenuItem':
+                this.selections.updateSubMenuSelection(clickedItem)
+        }
+    }
+
+    #setToMainMenu(){
+        this.selections.deslectAllItems()
+        navigatorMenu.items = this.mainMenuItems
+    }
+
+    #setToSubMenu(parentItem){
+        this.selections.select(parentItem)
+        navigatorMenu.items = [...[parentItem], ...parentItem.subMenu]
+    }
+
+    
+    #setMainMenuItems(){
+        this.mainMenuItems = [
+            new menuItem ('plans'),
+            new menuItem ('songs'),
+            new menuItem ('concepts')
+        ]
+    }
+
+    #setSubMenuItems(){
+        this.mainMenuItems.forEach(item => { 
+            let targetItems = []
+            const functionName = 'get' + item.name.charAt(0).toUpperCase() + item.name.slice(1)
+            try{
+                targetItems = window[functionName]()
+                targetItems = targetItems.map(item => new subMenuItem(item.name, item))   
+            }
+            catch{
+                targetItems = []
+            }
+            finally{
+                item.subMenu = targetItems
+            }
+        })
+
+    }
+}
+
+class menuSelections {
+
+    updateSubMenuSelection(clickedItem){
+        clickedItem.selected ? this.deselect(clickedItem) : this.#selectExclusive(clickedItem)
+    }
+
+    select(item){
+        item.selected = true
+    }
+
+    deselect(item){
+        item.selected = false
+    }
+
+    #selectExclusive(itemToSelect){
+        const itemsInClass = this.#getItemsInClass(itemToSelect)
+        itemsInClass.forEach(item => {
+            item === itemToSelect ? item.selected = true : item.selected = false
+        });
+
+    }
+
+    #getItemsInClass(item){
+        const itemClass = item.constructor.name
+        return navigatorMenu.items.filter(item => item.constructor.name === itemClass)
+    }
+
+    deslectAllItems(){
+        navigatorMenu.items.forEach(item => item.selected = false)
+    }
+
+}
+
+
 
 class navigatorWindowControl {
 
@@ -151,6 +240,9 @@ class navigatorWindowControl {
             case 'sub':
                 this.updateFromSub(clickedItem)
                 break;
+
+            default:
+                this.revealAsMainMenu()
         }
     }
 
@@ -229,123 +321,6 @@ class navigatorMenu {
     static level = 'main'
     static ySpacing = 20
     static padding = 20
-}
-
-class navigatorMenuManagement {
-
-    constructor(){
-        this.#setMainMenuItems()
-        this.#setSubMenuItems()
-    }
-
-    refreshFromSelectionOnMain(clickedItem){
-        clickedItem.selected = true
-        return [...[clickedItem],...clickedItem.subMenu]
-    }
-
-    refreshFromSelectionOnSub(clickedItem){
-        if(clickedItem.constructor.name === 'menuItem'){
-            return this.refreshFromItemSelectionOnSub(clickedItem)
-        }
-
-        if(clickedItem.constructor.name === 'subMenuItem'){
-            return this.refreshFromSubItemSelection(clickedItem)
-        }
-        
-    }
-
-    refreshFromSubItemSelection(clickedItem){
-        if(clickedItem.selected){
-            clickedItem.selected = false
-        }
-        else {
-            const items = navigatorMenu.items.filter(item => item.constructor.name === clickedItem.constructor.name)
-            this.selectItemExclusively(clickedItem, items)
-        }
-
-        return navigatorMenu.items
-    }
-
-    selectItemExclusively(itemToSelect, items){
-        items.forEach(item => {
-            item === itemToSelect ? item.selected = true : item.selected = false
-        });
-    }
-
-    refreshFromItemSelectionOnSub(clickedItem){
-        clickedItem.selected = false
-        return this.getMainMenuItems()
-    }
-
-    getMainMenuItems(){
-        return this.mainItems
-    }
-
-    getMenuFromSelection(parentItem){
-        switch(parentItem.name){
-            case 'plans':
-                return [...[parentItem],...parentItem.subMenu]
-
-            case 'songs':
-                return [...[parentItem],...this.songsItems]
-            
-            default:
-                return []
-        }
-    }
-
-    #setMainMenuItems(){
-        this.mainItems = [
-            new menuItem ('plans'),
-            new menuItem ('songs'),
-            new menuItem ('concepts')
-        ]
-    }
-
-    #setSubMenuItems(){
-
-
-
-        this.mainItems.forEach(item => { 
-            let targetItems = []
-            const functionName = 'get' + item.name.charAt(0).toUpperCase() + item.name.slice(1)
-            try{
-                targetItems = window[functionName]()
-                targetItems = targetItems.map(item => new subMenuItem(item.name, item))   
-            }
-            catch{
-                targetItems = []
-            }
-            finally{
-                item.subMenu = targetItems
-            }
-        })
-
-        //let songs = window['getSongs']()//getSongs()
-        //console.log(songs)
-
-    }
-
-    #createSubMenuItems(targetItems){
-          
-    }
-
-    
-
-    #setPlansSubMenuItems(){
-        this.plansItems = [
-            new subMenuItem ('statementofintent'),
-            new subMenuItem ('woodenblocks')
-        ]
-    }
-
-    #setSongsSubMenuItems(){
-        this.songsItems = [
-            new subMenuItem ('sliceofcedar'),
-            new subMenuItem ('tonofnothing'),
-            new subMenuItem ('intentionandtheact')
-        ]
-    }
 }
 
 

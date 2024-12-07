@@ -2,7 +2,10 @@ class plansDataHandling {
 
     static load(){
         this.#setPlans()
-        console.log(this.plans)
+    }
+
+    static getPlan(name){
+        return this.plans.find(item => item.name === name)
     }
 
     static getPlans(){
@@ -14,6 +17,14 @@ class plansDataHandling {
             new plan ('statement of intent', 'myDigitalGarden.html'),
             new plan ('wooden blocks', 'woodenBlocks.html')
         ]
+    }
+
+    static async getPlanHTML(planName){
+        const thisPlan = this.getPlan(planName)
+        const response = await fetch(thisPlan.fileName)
+        const responseText = await response.text()
+        const parser = new DOMParser()
+        return parser.parseFromString(responseText, "text/html")
     }
 }
 

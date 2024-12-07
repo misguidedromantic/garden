@@ -1,4 +1,9 @@
-window.onload = function(){navigation.setup()}
+window.onload = function(){
+    navigation.setup()
+    contentControl.setup()
+}
+
+
 
 
 function menuItemClicked(){
@@ -36,11 +41,13 @@ class navigation {
         this.windowControl.update(clickedMenu, clickedItem)
     }
 
-    static loadSelection(clickedItem){
+    static async loadSelection(clickedItem){
         if(clickedItem.constructor.name === 'subMenuItem'){
-            switch(clickedItem.target.constructor.name){
+            const targetItem = clickedItem.target
+            switch(targetItem.constructor.name){
                 case('plan'):
-                    console.log(clickedItem.target)
+                    const htmlDoc = await plansDataHandling.getPlanHTML(targetItem.name)
+                    contentControl.displayDoc(htmlDoc)
                     break;
 
                 case('song'):
@@ -49,6 +56,29 @@ class navigation {
         }
 
     }
+}
+
+class contentControl {
+
+    static docControl = {}
+    
+    static setup(){
+        this.#loadControllers()
+        this.#loadDocWindow()
+    }
+
+    static #loadControllers(){
+        this.docControl = new docWindowControl
+    }
+
+    static #loadDocWindow(){
+        this.docControl.createDocWindow()
+    }
+
+    static displayDoc(htmlDoc){
+        this.docControl.loadDoc(htmlDoc)
+    }
+
 }
 
 

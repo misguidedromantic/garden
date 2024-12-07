@@ -1,7 +1,6 @@
 class songsDataHandling {
     static load(){
         this.#setSongs()
-        console.log(this.songs)
     }
 
     static getSongs(){

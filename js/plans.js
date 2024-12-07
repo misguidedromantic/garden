@@ -3,7 +3,6 @@ function getPlans(){
         new plan ('statement of intent'),
         new plan ('wooden blocks')
     ]
-
 }
 
 class plan {

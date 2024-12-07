@@ -2,8 +2,8 @@ class docWindow {
     static div = {}
     static svg = {}
     static position = 'absolute'
-    static left = 2000
-    static top = 200
+    static left = 0
+    static top = 0
     static width = 800
     static height = 800
     static padding = 12
@@ -34,8 +34,18 @@ class docWindowControl {
 }
 
 class docWindowSettings {
+
+    constructor(){
+        this.setStartingPosition()
+    }
+
+    setStartingPosition(){
+        navigatorWindow.top = 20
+        docWindow.left = 2000
+    }
     
     setLoadedPosition(){
+        docWindow.top = navigatorWindow.height + navigatorWindow.top
         docWindow.left = 40
     }
 
@@ -93,7 +103,8 @@ class docWindowRendering {
     }
 
     slideIntoView(delay, duration){
-        docWindow.div.transition()
+        docWindow.div.style('top', docWindow.top + 'px')
+            .transition()
             .delay(delay)
             .duration(duration)
             .style('left', docWindow.left + 'px')

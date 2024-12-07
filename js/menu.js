@@ -101,20 +101,26 @@ class menuDataHandling {
     }
 
     #setSubMenuItems(){
+        this.#setupSubMenuDataHandlers()
         this.mainMenuItems.forEach(item => { 
-            let targetItems = []
-            const functionName = 'get' + item.name.charAt(0).toUpperCase() + item.name.slice(1)
-            try{
-                targetItems = window[functionName]()
-                targetItems = targetItems.map(item => new subMenuItem(item.name, item))   
-            }
-            catch{
-                targetItems = []
-            }
-            finally{
-                item.subMenu = targetItems
-            }
+            item.subMenu = this.#getTargetItems(item.name)    
         })
+    }
+
+    #setupSubMenuDataHandlers(){
+        plansDataHandling.load()
+        songsDataHandling.load()
+    }
+
+    #getTargetItems(itemName){
+        switch(itemName){
+            case 'plans':
+                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.name, plan))
+            case 'songs':
+                return songsDataHandling.getSongs().map(song => new subMenuItem(song.name, song))
+            default:
+                return []
+        }
     }
 }
 

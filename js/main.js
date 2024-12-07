@@ -3,7 +3,9 @@ window.onload = function(){navigation.setup()}
 
 function menuItemClicked(){
     const data = d3.select(this).data()
-    navigation.updateNavigator(data[0])
+    const clickedItem = data[0]
+    navigation.updateNavigator(clickedItem)
+    navigation.loadSelection(clickedItem)
 }
 
 
@@ -32,6 +34,20 @@ class navigation {
         const clickedMenu =  this.menuControl.getMenuState()
         this.menuControl.update(clickedMenu, clickedItem)
         this.windowControl.update(clickedMenu, clickedItem)
+    }
+
+    static loadSelection(clickedItem){
+        if(clickedItem.constructor.name === 'subMenuItem'){
+            switch(clickedItem.target.constructor.name){
+                case('plan'):
+                    console.log(clickedItem.target)
+                    break;
+
+                case('song'):
+                    console.log('this a song')
+            }
+        }
+
     }
 }
 

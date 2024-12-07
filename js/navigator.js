@@ -1,49 +1,16 @@
-class navigatorRendering {
-
-    createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', 'navigatorDiv')
-            .style('position', 'fixed')
-            .style('border-radius', '20px')
-    }
-
-    createSVGCanvas(){
-        return navigatorWindow.div.append('svg')
-            .attr('id', 'navigatorSVG')
-    }
-
-    resize(delay, duration){
-        navigatorWindow.div.transition('tSizing').delay(delay).duration(duration)
-            .style('width', navigatorWindow.width + 'px')
-            .style('height', navigatorWindow.height + 'px')
-
-    }
-
-    float(delay, duration){
-        navigatorWindow.div.transition('tFloat')
-            .delay(delay)
-            .duration(duration)
-                .style('background-color', navigatorWindow.backgroundColour)
-                .style('border-radius', navigatorWindow.borderRadius + 'px')
-                .style('box-shadow', navigatorWindow.boxShadow)
-
-    }
-
-    move(delay, duration){
-        navigatorWindow.div.transition('tMove')
-            .delay(delay)
-            .duration(duration)
-            .style('left', navigatorWindow.left + "px")
-            .style('top', navigatorWindow.top + "px")
-    }
-
-
-
+class navigatorWindow {
+    static div = {}
+    static svg = {}
+    static items = []
+    static width = 0
+    static height = 0
+    static left = 0
+    static top = 0
+    static position = 'fixed'
+    static borderRadius = 20
 }
 
 class navigatorWindowControl {
-
     constructor(){
         this.settings = new navigatorWindowSettings
         this.rendering = new navigatorRendering
@@ -102,12 +69,9 @@ class navigatorWindowControl {
         this.rendering.move(0, 400)
         this.rendering.float(100, 300)
     }
-
-
 }
 
 class navigatorWindowSettings{
-
     constructor(){
         this.sizing = new navigatorSizing
         this.positioning = new navigatorPositioning
@@ -127,16 +91,42 @@ class navigatorWindowSettings{
     }
 }
 
-class navigatorWindow {
-    static div = {}
-    static svg = {}
-    static items = []
-    static width = 0
-    static height = 0
-    static left = 0
-    static top = 0
-    static position = 'fixed'
-    static borderRadius = 20
+class navigatorRendering {
+    createDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'navigatorDiv')
+            .style('position', 'fixed')
+            .style('border-radius', '20px')
+    }
+
+    createSVGCanvas(){
+        return navigatorWindow.div.append('svg')
+            .attr('id', 'navigatorSVG')
+    }
+
+    resize(delay, duration){
+        navigatorWindow.div.transition('tSizing').delay(delay).duration(duration)
+            .style('width', navigatorWindow.width + 'px')
+            .style('height', navigatorWindow.height + 'px')
+    }
+
+    float(delay, duration){
+        navigatorWindow.div.transition('tFloat')
+            .delay(delay)
+            .duration(duration)
+                .style('background-color', navigatorWindow.backgroundColour)
+                .style('border-radius', navigatorWindow.borderRadius + 'px')
+                .style('box-shadow', navigatorWindow.boxShadow)
+    }
+
+    move(delay, duration){
+        navigatorWindow.div.transition('tMove')
+            .delay(delay)
+            .duration(duration)
+            .style('left', navigatorWindow.left + "px")
+            .style('top', navigatorWindow.top + "px")
+    }
 }
 
 class navigatorSizing{
@@ -163,20 +153,15 @@ class navigatorSizing{
         groups.each(function(){
             const textElem = d3.select(this).select('text')
             const width = textElem.node().getBBox().width
-            
             if(width > widestWidth){
                 widestWidth = width
             }  
         })
-
         return widestWidth
     }
-
-    
 }
 
 class navigatorPositioning{
-
     positionCentre(){
         const left = window.innerWidth / 2 - navigatorWindow.width / 2
         const top = window.innerHeight / 2 - navigatorWindow.height / 2
@@ -196,7 +181,6 @@ class navigatorPositioning{
 }
 
 class navigatorFloat {
-
     floatOffBackground(){
         this.#setStyles('white', 20, '0 4px 8px rgba(0, 0, 0, 0.2)')
     }
@@ -210,5 +194,4 @@ class navigatorFloat {
         navigatorWindow.borderRadius = borderRadius
         navigatorWindow.boxShadow = boxShadow
     }
-
 }

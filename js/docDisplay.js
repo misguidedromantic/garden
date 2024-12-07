@@ -11,6 +11,7 @@ class docWindow {
     static fontFamily = 'tahoma'
     static backgroundColor = 'transparent'
     static borderTopStyle = 'solid'
+    static loadedFileName = ''
 }
 
 class docWindowControl {
@@ -25,11 +26,23 @@ class docWindowControl {
     }
 
     loadDoc(doc){
-        this.settings.setLoadedPosition()
-        this.rendering.renderHTMLDoc(doc)
-        this.rendering.slideIntoView(0, 400)
+        this.rendering.renderHTMLDoc(doc.htmlDoc)
+        this.showWindow(doc.fileName)
     }
 
+    showWindow(fileName){
+        this.settings.setToLoaded(fileName)
+        this.rendering.slide(0, 400)
+    }
+
+    checkIfLoaded(fileName){
+        return docWindow.loadedFileName === fileName ? true : false
+    }
+
+    hideWindow(){
+        this.settings.setToHidden()
+        this.rendering.slide(0, 400)
+    }
 
 }
 
@@ -39,15 +52,29 @@ class docWindowSettings {
         this.setStartingPosition()
     }
 
+    setToLoaded(fileName){
+        this.#setFileName(fileName)
+        this.#setLoadedPosition()
+    }
+
+    setToHidden(){
+        docWindow.left = 2000
+    }
+
+    #setFileName(fileName){
+        docWindow.loadedFileName = fileName
+    }
+
     setStartingPosition(){
-        navigatorWindow.top = 20
+        docWindow.top = 20
         docWindow.left = 2000
     }
     
-    setLoadedPosition(){
+    #setLoadedPosition(){
         docWindow.top = navigatorWindow.height + navigatorWindow.top
         docWindow.left = 40
     }
+
 
 }
 
@@ -102,7 +129,7 @@ class docWindowRendering {
 
     }
 
-    slideIntoView(delay, duration){
+    slide(delay, duration){
         docWindow.div.style('top', docWindow.top + 'px')
             .transition()
             .delay(delay)

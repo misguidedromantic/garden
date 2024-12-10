@@ -40,6 +40,9 @@ class navigation {
     static toggleSelection(clickedItem){
         if(clickedItem.constructor.name === 'subMenuItem'){
             this.#toggleSubMenuItemSelection(clickedItem)
+        } else if (clickedItem.constructor.name === 'menuItem' && menu.state === 'subSelect'){
+            console.log('check')
+            this.#unloadSubSelectMenu()
         }
     }
 
@@ -47,7 +50,7 @@ class navigation {
         if(clickedItem.selected){
             this.#loadSubMenuSelection(clickedItem.target)
         } else {
-            this.#unloadSubMenuSelection(clickedItem.target)
+            this.#hideSubMenuSelection(clickedItem.target)
         }
     }
 
@@ -62,15 +65,19 @@ class navigation {
         }
     }
 
-    static #unloadSubMenuSelection(targetItem){
+    static #hideSubMenuSelection(targetItem){
         switch(targetItem.constructor.name){
             case('plan'):
-                contentControl.hideDoc()
+                contentControl.hidePlan()
                 break;
 
             case('song'):
                 console.log('this a song')
         }
+    }
+
+    static #unloadSubSelectMenu(){
+        this.contentControl.unloadPlan()
     }
 
 }
@@ -94,8 +101,12 @@ class contentControl {
         }
     }
 
-    static hideDoc(){
+    static hidePlan(){
         this.docControl.hideWindow()
+    }
+
+    static unloadPlan(){
+        this.docControl.unloadDoc()
     }
 
 }

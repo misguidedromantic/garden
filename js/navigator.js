@@ -28,6 +28,7 @@ class navigatorWindowControl {
                 break;
 
             case 'sub':
+            case 'subSelect':
                 this.updateFromSub(clickedItem)
                 break;
 
@@ -45,6 +46,8 @@ class navigatorWindowControl {
     updateFromSub(clickedItem){
         if(clickedItem.constructor.name === 'menuItem'){
             this.transitionSubToMain()
+        } else {
+            this.transitionSubToSubSelect()
         }
     }
 
@@ -61,6 +64,11 @@ class navigatorWindowControl {
         this.rendering.move(0, 400)
         this.rendering.float(100, 300)
 
+    }
+
+    transitionSubToSubSelect(){
+        this.settings.setForSubSelectMenu()
+        this.rendering.resize(0, 0)
     }
 
     transitionMainToSub(){
@@ -88,6 +96,10 @@ class navigatorWindowSettings{
         this.sizing.fitToContents()
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
+    }
+
+    setForSubSelectMenu(){
+        this.sizing.fitToContents()
     }
 }
 
@@ -142,7 +154,7 @@ class navigatorSizing{
     }
 
     #setHeightToContents(){
-        const itemCount = menu.items.length
+        const itemCount = menu.items.length - (menu.state === 'subSelect' ? 1 : 0)
         return (itemCount) * menu.ySpacing + (menu.padding * 2)
     }
 

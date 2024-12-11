@@ -30,6 +30,10 @@ class docWindowControl {
         this.showWindow(doc.fileName)
     }
 
+    unloadDoc(){
+        this.rendering.wipeHtml()
+    }
+
     showWindow(fileName){
         this.settings.setToLoaded(fileName)
         this.rendering.slide(0, 400)
@@ -38,6 +42,7 @@ class docWindowControl {
     checkIfLoaded(fileName){
         return docWindow.loadedFileName === fileName ? true : false
     }
+
 
     hideWindow(){
         this.settings.setToHidden()
@@ -96,6 +101,10 @@ class docWindowRendering {
     renderHTMLDoc(htmlDoc){
         this.#appendHeader(htmlDoc.body, docWindow.div)
         this.#appendParagraphs(htmlDoc.body, docWindow.div)
+    }
+
+    wipeHtml(){
+        docWindow.div.innerHTML = ''
     }
 
     #appendHeader(sourceElem, targetElem){

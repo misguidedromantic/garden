@@ -3,16 +3,12 @@ window.onload = function(){
     contentControl.setup()
 }
 
-
-
-
 function menuItemClicked(){
     const data = d3.select(this).data()
     const clickedItem = data[0]
     navigation.updateNavigator(clickedItem)
     navigation.toggleSelection(clickedItem)
 }
-
 
 class navigation {
 
@@ -43,46 +39,45 @@ class navigation {
 
     static toggleSelection(clickedItem){
         if(clickedItem.constructor.name === 'subMenuItem'){
-            this.toggleSubMenuItemSelection(clickedItem)
+            this.#toggleSubMenuItemSelection(clickedItem)
+        } else if (clickedItem.constructor.name === 'menuItem' && menu.state === 'subSelect'){
+            this.#unloadSubSelectMenu()
         }
     }
 
-    static toggleSubMenuItemSelection(clickedItem){
+    static #toggleSubMenuItemSelection(clickedItem){
         if(clickedItem.selected){
-            this.loadSubMenuSelection(clickedItem.target)
+            this.#loadSubMenuSelection(clickedItem.target)
         } else {
-            this.unloadSubMenuSelection(clickedItem.target)
+            this.#hideSubMenuSelection(clickedItem.target)
         }
     }
 
-    static async loadSubMenuSelection(targetItem){
+    static async #loadSubMenuSelection(targetItem){
         switch(targetItem.constructor.name){
             case('plan'):
                 contentControl.loadPlan(targetItem)
                 break;
 
             case('song'):
-                console.log('this a song')
+                console.log(targetItem)
         }
     }
 
-    static  unloadSubMenuSelection(targetItem){
+    static #hideSubMenuSelection(targetItem){
         switch(targetItem.constructor.name){
             case('plan'):
-                contentControl.hideDoc()
+                contentControl.hidePlan()
                 break;
 
             case('song'):
-                console.log('this a song')
+                console.log(targetItem)
         }
     }
 
-
-
-    
-
-
-
+    static #unloadSubSelectMenu(){
+        this.contentControl.unloadPlan()
+    }
 
 }
 
@@ -91,8 +86,8 @@ class contentControl {
     static docControl = {}
     
     static setup(){
-        this.#loadControllers()
-        this.#loadDocWindow()
+        this.docControl = new docWindowControl
+        this.docControl.createDocWindow()
     }
 
     static async loadPlan(plan){
@@ -100,23 +95,17 @@ class contentControl {
         if(this.docControl.checkIfLoaded(plan.fileName)){
             this.docControl.showWindow(plan.fileName)
         } else {
-            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.name)
+            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.title)
             this.docControl.loadDoc(plan)
         }
     }
 
-
-    static #loadControllers(){
-        this.docControl = new docWindowControl
-    }
-
-    static #loadDocWindow(){
-        this.docControl.createDocWindow()
-    }
-
-
-    static hideDoc(){
+    static hidePlan(){
         this.docControl.hideWindow()
+    }
+
+    static unloadPlan(){
+        this.docControl.unloadDoc()
     }
 
 }

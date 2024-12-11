@@ -6,15 +6,15 @@ class menu {
 }
 
 class menuItem {
-    constructor(name){
-        this.name = name
+    constructor(title){
+        this.title = title
         this.selected = false
     }
 }
 
 class subMenuItem extends menuItem {
-    constructor(name, target){
-        super(name)
+    constructor(title, target){
+        super(title)
         this.target = target
     }
 }
@@ -32,8 +32,8 @@ class menuControl {
         this.rendering.setRenderedItemWidths()
     }
 
-    getRenderedItemWidth(itemName){
-       return menu.items.find(item => item.name === itemName).renderedWidth
+    getRenderedItemWidth(itemTitle){
+       return menu.items.find(item => item.title === itemTitle).renderedWidth
     }
 
     setMenuState(){
@@ -125,7 +125,7 @@ class menuDataHandling {
     #setSubMenuItems(){
         this.#setupSubMenuDataHandlers()
         this.mainMenuItems.forEach(item => { 
-            item.subMenu = this.#getTargetItems(item.name)    
+            item.subMenu = this.#getTargetItems(item.title)    
         })
     }
 
@@ -134,12 +134,12 @@ class menuDataHandling {
         songsDataHandling.load()
     }
 
-    #getTargetItems(itemName){
-        switch(itemName){
+    #getTargetItems(itemTitle){
+        switch(itemTitle){
             case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.name, plan))
+                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
             case 'songs':
-                return songsDataHandling.getSongs().map(song => new subMenuItem(song.name, song))
+                return songsDataHandling.getSongs().map(song => new subMenuItem(song.title, song))
             default:
                 return []
         }
@@ -185,7 +185,7 @@ class menuRendering {
         const exitControl = new menuItemExit
         
         const groups = navigatorWindow.svg.selectAll('g')
-            .data(data, d => d.name)
+            .data(data, d => d.title)
             .join(
                 enter => enterControl.enterItems(enter),
                 update => updateControl.updateItems(update),
@@ -197,7 +197,7 @@ class menuRendering {
         const groups = navigatorWindow.svg.selectAll('g')
         groups.each(function(){
             const elem = d3.select(this)
-            const item = menu.items.find(item => item.name === elem.attr('id'))
+            const item = menu.items.find(item => item.title === elem.attr('id'))
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
     }
@@ -214,14 +214,14 @@ class menuItemEnter {
 
     enterGroups(selection){
         return selection.append('g')
-            .attr('id', d => d.name)
+            .attr('id', d => d.title)
             .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i))
             .on('click', menuItemClicked)
     }
 
     enterText(groups){
         return groups.append('text')
-            .text(d => d.name)
+            .text(d => d.title)
             .attr('dy', '-.4em')
             .attr('fill', 'transparent')
     }
@@ -239,7 +239,7 @@ class menuItemEnter {
             .duration(200)
             .textTween(d => {
             return function(t) {
-                return d.name.slice(0, Math.round(t * d.name.length));
+                return d.title.slice(0, Math.round(t * d.title.length));
             };
         })
     }

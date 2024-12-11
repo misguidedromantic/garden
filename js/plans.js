@@ -4,8 +4,8 @@ class plansDataHandling {
         this.#setPlans()
     }
 
-    static getPlan(name){
-        return this.plans.find(item => item.name === name)
+    static getPlan(title){
+        return this.plans.find(item => item.title === title)
     }
 
     static getPlans(){
@@ -19,8 +19,8 @@ class plansDataHandling {
         ]
     }
 
-    static async getPlanHTML(planName){
-        const thisPlan = this.getPlan(planName)
+    static async getPlanHTML(planTitle){
+        const thisPlan = this.getPlan(planTitle)
         const response = await fetch(thisPlan.fileName)
         const responseText = await response.text()
         const parser = new DOMParser()
@@ -29,8 +29,8 @@ class plansDataHandling {
 }
 
 class plan {
-    constructor(name, fileName){
-        this.name = name
+    constructor(title, fileName){
+        this.title = title
         this.fileName = fileName
     }
 }

@@ -41,7 +41,6 @@ class navigation {
         if(clickedItem.constructor.name === 'subMenuItem'){
             this.#toggleSubMenuItemSelection(clickedItem)
         } else if (clickedItem.constructor.name === 'menuItem' && menu.state === 'subSelect'){
-            console.log('check')
             this.#unloadSubSelectMenu()
         }
     }
@@ -93,10 +92,12 @@ class contentControl {
 
     static async loadPlan(plan){
 
+        console.log(plan)
+
         if(this.docControl.checkIfLoaded(plan.fileName)){
             this.docControl.showWindow(plan.fileName)
         } else {
-            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.name)
+            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.title)
             this.docControl.loadDoc(plan)
         }
     }

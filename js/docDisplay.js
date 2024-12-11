@@ -31,7 +31,6 @@ class docWindowControl {
     }
 
     unloadDoc(){
-        //this.hideWindow()
         this.rendering.wipeHtml()
     }
 

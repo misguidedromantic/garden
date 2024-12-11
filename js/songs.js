@@ -7,6 +7,15 @@ class songsDataHandling {
         return this.songs
     }
 
+    static getSong(title){
+
+    }
+
+    static addLyric(song, words){
+        thissongs.lyrics.push(words)
+
+    }
+
     static #setSongs(){
         this.songs = [
             new song ('ton of nothing'),
@@ -18,7 +27,21 @@ class songsDataHandling {
 }
 
 class song {
-    constructor(name){
-        this.name = name
+    constructor(title){
+        this.title = title
     }
+}
+
+class lyric {
+    constructor(phrase){
+        this.phrase = phrase
+    }
+
+
+
+}
+
+
+function setupItentionAndTheAct(songIATA){
+
 }

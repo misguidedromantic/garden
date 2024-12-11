@@ -60,7 +60,7 @@ class navigation {
                 break;
 
             case('song'):
-                console.log('this a song')
+                console.log(targetItem)
         }
     }
 
@@ -71,7 +71,7 @@ class navigation {
                 break;
 
             case('song'):
-                console.log('this a song')
+                console.log(targetItem)
         }
     }
 
@@ -91,8 +91,6 @@ class contentControl {
     }
 
     static async loadPlan(plan){
-
-        console.log(plan)
 
         if(this.docControl.checkIfLoaded(plan.fileName)){
             this.docControl.showWindow(plan.fileName)

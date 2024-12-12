@@ -1,9 +1,13 @@
 class songsDataHandling {
     static load(){
         this.#setSongs()
+        this.lyricsHandling = new lyricsHandler
+        this.lyricsHandling.loadLyricFile('good after bad - lyrics.txt')
         //this.#setupItentionAndTheAct()
-        this.#loadTXTFile()
+        //this.#loadTXTFile()
     }
+
+ 
 
     static getSongs(){
         return this.songs
@@ -53,34 +57,19 @@ class songsDataHandling {
         const splitLines = text => text.split(/\r?\n/).filter(line => line !== '')
         const lines = splitLines(text)
 
-
-
-        function getLineType(line){
-
-            try{
-                if(line.includes('verse')){
-                    return 'verse'
-                }
-    
-                if(line.includes('chorus')){
-                    return 'chorus'
-                }
-    
-                if(line.includes('outro')){
-                    return 'outro'
-                }
-
-            }
-
-            catch{
-                return ''
-            }
-            
-
+    function getLineType(line){
+        if(line.includes('verse')){
+            return 'verse'
         }
 
-        
+        if(line.includes('chorus')){
+            return 'chorus'
+        }
 
+        if(line.includes('outro')){
+            return 'outro'
+        }
+    }
         
         const sections = []
 
@@ -90,16 +79,9 @@ class songsDataHandling {
         }
 
         function getSection(line){
-
             const lineType = getLineType(line)
     
-
-
             switch(lineType){
-
-                case undefined:
-                    return
-
 
                 case 'verse':
                     return new verse (line)
@@ -125,6 +107,7 @@ class songsDataHandling {
             const thisSection = getSection(line)
 
             switch(currentSection){
+
                 case thisSection:
                     lineCount = lineCount + 1
                     thisSection.lines.push(new lyricLine(line, lineCount))
@@ -133,15 +116,68 @@ class songsDataHandling {
                 case 'break':
                     break;
 
+                case undefined:
                 default:
                     sections.push(thisSection)
             
             }
 
         })
-
     }
    
+
+}
+
+class lyricsHandler{
+
+    constructor(){
+        this.lineHandler = new lyricLineHandler
+    }
+
+    async loadLyricFile(fileName){
+        const response = await fetch(fileName)
+        const text = await response.text()
+        this.addLines(text)
+        
+    }
+
+    addLines(lyricsText){
+        const splitLines = text => text.split(/\r?\n/).filter(line => line !== '')
+        const lines = splitLines(lyricsText)
+        lines.forEach(line => {
+            const lineType = this.getLineType(line)
+            console.log(lineType)
+        })
+        
+    }
+
+    getLineType(line){
+        if(line.includes('verse')){
+            return 'verse'
+        }
+
+        if(line.includes('chorus')){
+            return 'chorus'
+        }
+
+        if(line.includes('outro')){
+            return 'outro'
+        }
+    }
+
+    getSection(){
+
+    }
+
+
+
+
+}
+
+class lyricLineHandler{
+
+
+
 
 }
 

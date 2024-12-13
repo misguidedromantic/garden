@@ -1,9 +1,9 @@
 class songsDataHandling {
     static load(){
         this.#setSongs()
-        this.lyricsHandling = new lyricsHandler
-        const gab = this.getSong('good after bad')
-        this.setupSong(gab)
+        //this.lyricsHandling = new lyricsHandler
+        //const gab = this.getSong('good after bad')
+        //this.setupSong(gab)
         //this.lyricsHandling.setupLyrics(gab.title)
     }
 

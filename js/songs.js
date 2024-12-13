@@ -34,6 +34,16 @@ class songsDataHandling {
     
     static setupSong(song){
         song.lyrics = this.lyricsHandling.setupLyrics(song.title)
+        const div = d3.select('body')
+            .append('div')
+            .attr('id','lyricsDiv')
+            .style('position','absolute')
+            .style('top','400px')
+            .style('left','100px')
+            
+        const svg = div.append('svg')
+        
+        svg.append('text').text(song.lyrics.sections[3])
         
     }
 }

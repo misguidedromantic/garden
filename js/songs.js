@@ -2,12 +2,9 @@ class songsDataHandling {
     static load(){
         this.#setSongs()
         this.lyricsHandling = new lyricsHandler
-        this.lyricsHandling.loadLyricFile('good after bad - lyrics.txt')
-        //this.#setupItentionAndTheAct()
-        //this.#loadTXTFile()
+        const gab = this.getSong('good after bad')
+        this.lyricsHandling.setupLyrics(gab.title)
     }
-
- 
 
     static getSongs(){
         return this.songs
@@ -34,143 +31,84 @@ class songsDataHandling {
             new song ('good after bad')
         ]
     }
-
-    static #setupItentionAndTheAct(){
-
-        const title = 'intention and the act'
     
-        const stanza = [
-            'you carry callous thoughts',
-            'and moral stones to talk with',
-            'judge post haste',
-            'and with careless aim',
-            'so you send them spinning at my face'
-        ]
-    
-        stanza.forEach(line => songsDataHandling.addLyric(title, line))
-    
-    }
-
-    static async #loadTXTFile(fileName = 'good after bad - lyrics.txt'){
-        const response = await fetch(fileName)
-        const text = await response.text()
-        const splitLines = text => text.split(/\r?\n/).filter(line => line !== '')
-        const lines = splitLines(text)
-
-    function getLineType(line){
-        if(line.includes('verse')){
-            return 'verse'
-        }
-
-        if(line.includes('chorus')){
-            return 'chorus'
-        }
-
-        if(line.includes('outro')){
-            return 'outro'
-        }
-    }
+    static setupSong(song){
+        song.lyrics = this.lyricsHandling.setupLyrics(song.title)
         
-        const sections = []
-
-        function getCurrentSection(){
-            const upperBound = sections.length - 1
-            return sections[upperBound]
-        }
-
-        function getSection(line){
-            const lineType = getLineType(line)
-    
-            switch(lineType){
-
-                case 'verse':
-                    return new verse (line)
-
-                case 'chorus':
-                    return new chorus (line)
-
-                case 'outro':
-                    return new outro (line)
-
-                default:
-                    return getCurrentSection()
-            }
-
-            
-        }
-
-        let lineCount = 0
-
-        lines.forEach(line => {
-
-            const currentSection = getCurrentSection()
-            const thisSection = getSection(line)
-
-            switch(currentSection){
-
-                case thisSection:
-                    lineCount = lineCount + 1
-                    thisSection.lines.push(new lyricLine(line, lineCount))
-                    break;
-
-                case 'break':
-                    break;
-
-                case undefined:
-                default:
-                    sections.push(thisSection)
-            
-            }
-
-        })
     }
-   
-
 }
+
 
 class lyricsHandler{
 
     constructor(){
         this.lineHandler = new lyricLineHandler
     }
-
-    async loadLyricFile(fileName){
+    
+    async setupLyrics(songTitle){
+        const lyricsFileName = songTitle + '- lyrics.txt'
+        const lyricsText = await this.getLyricsFromFile(lyricsFileName)
+        return this.setLines(lyricsText)
+    }
+    
+    async getLyricsFromFile(fileName){
         const response = await fetch(fileName)
-        const text = await response.text()
-        this.addLines(text)
-        
+        return await response.text()
     }
-
-    addLines(lyricsText){
-        const splitLines = text => text.split(/\r?\n/).filter(line => line !== '')
-        const lines = splitLines(lyricsText)
+    
+    getLineSplit(lyricsText){
+        return lyricsText.split(/\r?\n/).filter(line => line !== '')
+    }
+    
+    setLines(lyricsText){
+        const lines = this.getLineSplit(lyricsText)
+        let sections = []
+        let section = undefined
+        let lineCount = 0
         lines.forEach(line => {
-            const lineType = this.getLineType(line)
-            console.log(lineType)
+            const sectionMarker = this.isSectionMarker(line)
+            if(sectionMarker !== ''){
+                section = this.createSection(sectionMarker, line)    
+                sections.push(section)
+            } else {
+                this.addLine(line, section, lineCount)
+                lineCount = lineCount + 1
+            }
         })
-        
+        return sections
+    }
+    
+    createSection(type, line){
+        switch(type){
+            case 'verse':
+                return new verse (line)
+
+            case 'chorus':
+                return new chorus (line)
+
+            case 'outro':
+                return new outro (line)
+        }
+    }
+    
+    
+    addLine(line, section, lineCount){
+        section.lines.push(new lyricLine(line, lineCount))   
     }
 
-    getLineType(line){
-        if(line.includes('verse')){
-            return 'verse'
-        }
-
-        if(line.includes('chorus')){
-            return 'chorus'
-        }
-
-        if(line.includes('outro')){
-            return 'outro'
-        }
+    
+    isLineType(line, typeToCheck){
+        return line.includes(typeToCheck)
     }
-
-    getSection(){
-
+    
+    isSectionMarker(line){
+        const sectionTypes = ['verse','chorus','outro']
+        let result = ''
+        sectionTypes.forEach(sectionType => {
+            this.isLineType(line, sectionType) ? result = sectionType
+        })
+        return result
     }
-
-
-
 
 }
 

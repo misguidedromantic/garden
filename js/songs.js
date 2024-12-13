@@ -3,6 +3,7 @@ class songsDataHandling {
         this.#setSongs()
         this.lyricsHandling = new lyricsHandler
         const gab = this.getSong('good after bad')
+        this.setupSong(gab)
         //this.lyricsHandling.setupLyrics(gab.title)
     }
 
@@ -43,17 +44,13 @@ class songsDataHandling {
             
         const svg = div.append('svg')
         
-        svg.append('text').text(song.lyrics.sections[3])
+        svg.append('text').text(song.lyrics[3])
         
     }
 }
 
 
 class lyricsHandler{
-
-    constructor(){
-        this.lineHandler = new lyricLineHandler
-    }
     
     async setupLyrics(songTitle){
         const lyricsFileName = songTitle + '- lyrics.txt'
@@ -119,13 +116,6 @@ class lyricsHandler{
         })
         return result
     }
-
-}
-
-class lyricLineHandler{
-
-
-
 
 }
 

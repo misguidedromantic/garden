@@ -3,7 +3,7 @@ class songsDataHandling {
         this.#setSongs()
         this.lyricsHandling = new lyricsHandler
         const gab = this.getSong('good after bad')
-        this.lyricsHandling.setupLyrics(gab.title)
+        //this.lyricsHandling.setupLyrics(gab.title)
     }
 
     static getSongs(){

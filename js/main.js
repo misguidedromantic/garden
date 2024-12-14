@@ -89,6 +89,19 @@ class contentControl {
         this.docControl = new docWindowControl
         this.docControl.createDocWindow()
     }
+    
+    static update(selectedItem){
+        switch(selectedItem.constructor.name){
+            case('plan'):
+                this.loadPlan(selectedItem)
+                break;
+
+            case('song'):
+                console.log(selectedItem)
+        }
+    }
+    
+
 
     static async loadPlan(plan){
 

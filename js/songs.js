@@ -1,9 +1,9 @@
 class songsDataHandling {
     static load(){
         this.#setSongs()
-        //this.lyricsHandling = new lyricsHandler
-        //const gab = this.getSong('good after bad')
-        //this.setupSong(gab)
+        this.lyricsHandling = new lyricsHandler
+        const gab = this.getSong('good after bad')
+        this.setupSong(gab)
         //this.lyricsHandling.setupLyrics(gab.title)
     }
 
@@ -33,8 +33,12 @@ class songsDataHandling {
         ]
     }
     
-    static setupSong(song){
-        song.lyrics = this.lyricsHandling.setupLyrics(song.title)
+    static async setupSong(song){
+        song.lyrics = await this.lyricsHandling.setupLyrics('goodAfterBadLyrics.txt')
+
+        console.log(song.lyrics)
+        console.log(song.lyrics[3].lines[0].text)
+
         const div = d3.select('body')
             .append('div')
             .attr('id','lyricsDiv')
@@ -44,7 +48,57 @@ class songsDataHandling {
             
         const svg = div.append('svg')
         
-        svg.append('text').text(song.lyrics[3])
+        svg.append('text').text(song.lyrics[3].lines[0].text).attr('dy',20)
+        
+    }
+
+    static setupGoodAfterBad(){
+        const blocks = [
+            
+        ]
+        
+        
+        
+        
+        const thisBlock = new songBlock ('AA')
+        const fourFour = new timeSignature(4, 4)
+
+       
+
+        const thisMeasure = new measure(fourFour)
+
+        const EbMinor = new chord ('EbMinor')
+
+        thisBlock.measures = [
+            new measure (fourFour),
+            new measure (fourFour),
+            new measure (fourFour),
+            new measure (fourFour)
+        ]
+
+        this.blocks.measures[0].beats = [
+            new beat (EbMinor, 1),
+            new beat (EbMinor, 2),
+            new beat (EbMinor, 3),
+            new beat (EbMinor, 4)
+        ]
+
+        
+
+        
+        //thisBlock.measures = this.addMeasures(4, fourFour)
+
+    }
+
+    static addMeasures(quantity, timeSignature){
+        let measures = []
+        for(let i = 0; quantity; i++){
+            measures.push(new measure(timeSignature))
+        }
+        return measures
+    }
+
+    static addChord(chord){
         
     }
 }
@@ -53,14 +107,14 @@ class songsDataHandling {
 class lyricsHandler{
     
     async setupLyrics(songTitle){
-        const lyricsFileName = songTitle + '- lyrics.txt'
+        const lyricsFileName = songTitle// + '- lyrics.txt'
         const lyricsText = await this.getLyricsFromFile(lyricsFileName)
         return this.setLines(lyricsText)
     }
     
     async getLyricsFromFile(fileName){
         const response = await fetch(fileName)
-        return await response.text()
+        return response.text()
     }
     
     getLineSplit(lyricsText){
@@ -112,8 +166,9 @@ class lyricsHandler{
         const sectionTypes = ['verse','chorus','outro']
         let result = ''
         sectionTypes.forEach(sectionType => {
-            this.isLineType(line, sectionType) ? result = sectionType
+            this.isLineType(line, sectionType) ? result = sectionType : result
         })
+
         return result
     }
 
@@ -123,6 +178,53 @@ class song {
     constructor(title){
         this.title = title
         this.lyrics = []
+    }
+}
+
+class songSection {
+    constructor(id){
+        this.id = id
+        this.lines = []
+    }
+}
+
+class songBlock {
+    constructor(id){
+        this.id = id
+        this.melody = {}
+        this.lyrics = {}
+        this.chords = {}
+    }
+}
+
+class measure {
+    constructor(timeSignature){
+        this.timeSignature = timeSignature
+    }
+}
+
+class chord {
+    constructor(id){
+        this.id = id
+    }
+}
+
+class beat {
+    constructor(chord, position){
+        this.chord = chord
+        this.position = position
+    }
+}
+
+class note {
+    constructor(pitch, accidental){
+
+    }
+}
+
+class timeSignature{
+    constructor(numerator, denominator){
+        this.id = numerator + '/' + denominator
     }
 }
 
@@ -136,16 +238,17 @@ class lyric {
 class lyricLine {
     constructor(text, i){
         this.text = text
-        this.id = 'line' + i
+        this.id = 'line' + (i + 1)
     }
 
 
 }
 
-class songSection {
+
+
+class intro extends songSection {
     constructor(id){
-        this.id = id
-        this.lines = []
+        super(id)
     }
 }
 

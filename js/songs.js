@@ -1,10 +1,20 @@
 class songsDataHandling {
+    static songs = []
+
     static load(){
         this.#setSongs()
-        this.lyricsHandling = new lyricsHandler
-        const gab = this.getSong('good after bad')
-        this.setupSong(gab)
+        //this.lyricsHandling = new lyricsHandler
+        //const gab = this.getSong('good after bad')
+        //this.setupSong(gab)
         //this.lyricsHandling.setupLyrics(gab.title)
+       // this.getData()
+
+    }
+
+    static async getData(){
+        const shapes = await d3.csv('melodyShapes.csv')
+        const progressions = await d3.csv('chordProgressions.csv')
+        
     }
 
     static getSongs(){
@@ -24,14 +34,15 @@ class songsDataHandling {
         section.lines.push(line)
     }
 
-    static #setSongs(){
-        this.songs = [
-            new song ('ton of nothing'),
-            new song ('intention and the act'),
-            new song ('toiling avoiding'),
-            new song ('good after bad')
-        ]
+    static async #setSongs(){
+        const songsData = await d3.csv('songs.csv')
+        songsData.forEach(d => {
+            this.songs.push(new song (d.songTitle))
+        })
+        console.log(this.songs)
     }
+
+
     
     static async setupSong(song){
 
@@ -54,7 +65,13 @@ class songsDataHandling {
 
     static setupGoodAfterBad(){
 
+
+
         const blockA = new songBlock ('A')
+        
+        
+        
+        
         blockA.subBlocks = [
             new songSubBlock('A', ['Eb4', 'Bb3'], [['EbMinor', 4],['BbMinor', 4]]),
             new songSubBlock('B', ['C4', 'Ab3'], [['AbMajor', 4],['DbMajor', 4]]),

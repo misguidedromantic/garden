@@ -1,3 +1,6 @@
-﻿songTitle,blockID,subBlockID,peakNote,endNote
+﻿songID,blockID,subBlockID,peakNote,endNote
 goodafterbad,b1,sb1,Eb4,Bb3
 goodafterbad,b1,sb2,C4,Ab3
+goodafterbad,b1,sb3,Db4,Bb3
+goodafterbad,b1,sb4,Gb3,Eb3
+goodafterbad,b1,sb5,F3,Bb3

@@ -15,12 +15,12 @@ class navigation {
     static windowControl = {}
     static menuControl = {}
 
-    static setup(){
+    static async setup(){
         this.#loadControllers()
         this.#loadNavigator()
     }
 
-    static #loadControllers(){
+    static async #loadControllers(){
         this.windowControl = new navigatorWindowControl
         this.menuControl = new menuControl
     }
@@ -32,6 +32,7 @@ class navigation {
     }
 
     static updateNavigator(clickedItem){
+        console.log(clickedItem)
         const clickedMenu =  this.menuControl.getMenuState()
         this.menuControl.update(clickedMenu, clickedItem)
         this.windowControl.update(clickedMenu, clickedItem)

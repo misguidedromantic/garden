@@ -34,10 +34,10 @@ class songsDataHandling {
     }
     
     static async setupSong(song){
-        song.lyrics = await this.lyricsHandling.setupLyrics('goodAfterBadLyrics.txt')
 
-        console.log(song.lyrics)
-        console.log(song.lyrics[3].lines[0].text)
+        this.setupGoodAfterBad()
+        
+        song.lyrics = await this.lyricsHandling.setupLyrics('goodAfterBadLyrics.txt')
 
         const div = d3.select('body')
             .append('div')
@@ -53,40 +53,17 @@ class songsDataHandling {
     }
 
     static setupGoodAfterBad(){
-        const blocks = [
-            
-        ]
-        
-        
-        
-        
-        const thisBlock = new songBlock ('AA')
-        const fourFour = new timeSignature(4, 4)
 
-       
-
-        const thisMeasure = new measure(fourFour)
-
-        const EbMinor = new chord ('EbMinor')
-
-        thisBlock.measures = [
-            new measure (fourFour),
-            new measure (fourFour),
-            new measure (fourFour),
-            new measure (fourFour)
+        const blockA = new songBlock ('A')
+        blockA.subBlocks = [
+            new songSubBlock('A', ['Eb4', 'Bb3'], [['EbMinor', 4],['BbMinor', 4]]),
+            new songSubBlock('B', ['C4', 'Ab3'], [['AbMajor', 4],['DbMajor', 4]]),
+            new songSubBlock('C', ['Db4', 'Bb3'], [['GbMajor', 2],['GbMajor/F', 2], ['EbMinor', 4]]),
+            new songSubBlock('D', ['Gb3', 'Gb3'], [['EbMinor', 2],['BbMinor', 2], ['AbMajor', 4]]),
+            new songSubBlock('E', ['F3', 'Bb3'], [['AbMajor', 4],['DbMajor', 4],['GbMajor', 8]])
         ]
 
-        this.blocks.measures[0].beats = [
-            new beat (EbMinor, 1),
-            new beat (EbMinor, 2),
-            new beat (EbMinor, 3),
-            new beat (EbMinor, 4)
-        ]
-
-        
-
-        
-        //thisBlock.measures = this.addMeasures(4, fourFour)
+        console.log(blockA)
 
     }
 
@@ -188,12 +165,50 @@ class songSection {
     }
 }
 
+class melodyShape {
+    constructor(peakNoteDescriptor, endNoteDescriptor){
+        this.peakNote = new note (peakNoteDescriptor)
+        this.endNote = new note (endNoteDescriptor)
+    }
+
+}
+
+class songSubBlock {
+    constructor(id, melodyShape, chordProgression){
+        this.id = id
+        this.setMelodyShape(melodyShape)
+        this.setChordProgression(chordProgression)
+
+    }
+
+    setMelodyShape(melodyArray){
+        this.shape = new melodyShape (melodyArray[0], melodyArray[1])
+    }
+
+    setChordProgression(progressionArray){
+        this.progression = new chordProgression(progressionArray)
+    }
+
+}
+
 class songBlock {
     constructor(id){
         this.id = id
-        this.melody = {}
-        this.lyrics = {}
-        this.chords = {}
+    }
+
+}
+
+class chordProgression {
+    constructor(progressionArray){
+        this.chords = this.getChords(progressionArray)
+    }
+
+    getChords(progressionArray){
+        let chords = []
+        progressionArray.forEach(elem => {
+            chords.push(new chord (elem[0], elem[1]))
+        })
+        return chords
     }
 }
 
@@ -204,8 +219,9 @@ class measure {
 }
 
 class chord {
-    constructor(id){
-        this.id = id
+    constructor(name, lengthInBeats){
+        this.name = name
+        this.length = lengthInBeats
     }
 }
 
@@ -217,9 +233,50 @@ class beat {
 }
 
 class note {
-    constructor(pitch, accidental){
-
+    constructor(pitchDescriptor){
+        this.id = pitchDescriptor
+        this.pitch = this.getPitch(pitchDescriptor)
     }
+
+    getPitch(str){
+        const letter = this.getLetter(str)
+        const accidental = this.getAccidental(str)
+        const octave = this.getOctave(str)
+        return new pitch (letter, accidental, octave)
+    }
+
+    getLetter(str){
+        return str.substring(0, 1)
+    }
+
+    getAccidental(str){
+        switch(str.substring(1, 2)){
+            case 'b':
+                return 'flat'
+
+            case '#':
+                return 'sharp'
+
+            default:
+                return 'natural'
+        }
+    }
+
+    getOctave(str){
+        return isNaN(str.substring(1,2)) ? str.substring(2, 3) : str.substring(1, 2)
+    }
+
+
+}
+
+class pitch {
+    constructor(letter, accidental, octave){
+        this.letter = letter
+        this.accidental = accidental
+        this.octave = octave
+    }
+
+    
 }
 
 class timeSignature{

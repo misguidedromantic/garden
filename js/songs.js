@@ -63,8 +63,6 @@ class songsDataHandling {
             new songSubBlock('E', ['F3', 'Bb3'], [['AbMajor', 4],['DbMajor', 4],['GbMajor', 8]])
         ]
 
-        console.log(blockA)
-
     }
 
     static addMeasures(quantity, timeSignature){
@@ -78,6 +76,16 @@ class songsDataHandling {
     static addChord(chord){
         
     }
+}
+
+class songBuilder {
+
+    constructor(){
+
+    }
+
+    
+
 }
 
 

@@ -1,7 +1,15 @@
-window.onload = function(){
+window.onload = async function(){
+    
+    await loadData()
     navigation.setup()
     contentControl.setup()
 }
+
+function loadData(){
+    plansDataHandling.load()
+    return songsDataHandling.load()
+}
+
 
 function menuItemClicked(){
     const data = d3.select(this).data()

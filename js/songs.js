@@ -1,15 +1,34 @@
 class songsDataHandling {
     static songs = []
 
-    static load(){
-        this.#setSongs()
+    static async load(){
+        const songsData = await d3.csv('songs.csv')
+        const shapesData = await d3.csv('melodyShapes.csv')
+        const progressionsData = await d3.csv('chordProgressions.csv')
+
+        songsData.forEach(d => {
+            const thisSong = new song (d.songTitle)
+
+            this.songs.push(thisSong)
+        })
+    }
+
+    static loadBlocks(song, shapesData){
+
+        const songBlocks = shapesData.filter(data => data.songID === song.id)
+
+    }
+
+
+
+
+  
         //this.lyricsHandling = new lyricsHandler
         //const gab = this.getSong('good after bad')
         //this.setupSong(gab)
         //this.lyricsHandling.setupLyrics(gab.title)
        // this.getData()
 
-    }
 
     static async getData(){
         const shapes = await d3.csv('melodyShapes.csv')
@@ -34,19 +53,13 @@ class songsDataHandling {
         section.lines.push(line)
     }
 
-    static async #setSongs(){
-        const songsData = await d3.csv('songs.csv')
-        songsData.forEach(d => {
-            this.songs.push(new song (d.songTitle))
-        })
-        console.log(this.songs)
-    }
-
-
     
     static async setupSong(song){
 
-        this.setupGoodAfterBad()
+
+
+
+/*         this.setupGoodAfterBad()
         
         song.lyrics = await this.lyricsHandling.setupLyrics('goodAfterBadLyrics.txt')
 
@@ -59,9 +72,13 @@ class songsDataHandling {
             
         const svg = div.append('svg')
         
-        svg.append('text').text(song.lyrics[3].lines[0].text).attr('dy',20)
+        svg.append('text').text(song.lyrics[3].lines[0].text).attr('dy',20) */
         
     }
+
+    
+
+    
 
     static setupGoodAfterBad(){
 

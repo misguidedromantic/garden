@@ -123,15 +123,9 @@ class menuDataHandling {
     }
 
     #setSubMenuItems(){
-        this.#setupSubMenuDataHandlers()
         this.mainMenuItems.forEach(item => { 
             item.subMenu = this.#getTargetItems(item.title)    
         })
-    }
-
-    #setupSubMenuDataHandlers(){
-        plansDataHandling.load()
-        songsDataHandling.load()
     }
 
     #getTargetItems(itemTitle){

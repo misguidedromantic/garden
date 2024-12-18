@@ -6,16 +6,39 @@ class songsDataHandling {
         const shapesData = await d3.csv('melodyShapes.csv')
         const progressionsData = await d3.csv('chordProgressions.csv')
 
-        songsData.forEach(d => {
-            const thisSong = new song (d.songTitle)
+        const groupedShapes = d3.groups(shapesData, d => d.songID)
+        const groupedProgressions = d3.groups(progressionsData, d => d.songID)
 
+        songsData.forEach(d => {
+            const thisSong = new song (d.songID, d.songTitle)
+            const shapes = this.getSongShapes(thisSong, groupedShapes)
+            const progressions = this.getSongProgressions(thisSong, groupedProgressions)
+            //this.loadBlocks(thisSong,  shapes[1], progressions[1])
             this.songs.push(thisSong)
         })
     }
 
-    static loadBlocks(song, shapesData){
+    static getSongShapes(song, shapes){
+        try{return shapes.find(shape => shape[0] === song.id)[1]}
+        catch{return []}
+    }
 
-        const songBlocks = shapesData.filter(data => data.songID === song.id)
+    static getSongProgressions(song, shapes){
+        try{return shapes.find(shape => shape[0] === song.id)[1]}
+        catch{return []}
+    }
+
+    static loadBlocks(song, shapes, progressions){
+
+        
+        console.log(song)
+        console.log(shapes)
+        console.log(progressions)
+
+        const blocks = shapesData.filter(elem => elem.songID === song.id)
+        blocks.forEach(elem => {
+            
+        })
 
     }
 
@@ -194,7 +217,8 @@ class lyricsHandler{
 }
 
 class song {
-    constructor(title){
+    constructor(id, title){
+        this.id = id
         this.title = title
         this.lyrics = []
     }

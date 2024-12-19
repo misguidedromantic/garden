@@ -6,14 +6,14 @@ class songsDataHandling {
         const shapesData = await d3.csv('melodyShapes.csv')
         const progressionsData = await d3.csv('chordProgressions.csv')
 
-        const groupedShapes = d3.groups(shapesData, d => d.songID)
-        const groupedProgressions = d3.groups(progressionsData, d => d.songID)
+        const groupedShapes = d3.groups(shapesData, d => d.songID, d => d.blockID)
+        const groupedProgressions = d3.groups(progressionsData, d => d.songID, d => d.blockID)
 
         songsData.forEach(d => {
             const thisSong = new song (d.songID, d.songTitle)
             const shapes = this.getSongShapes(thisSong, groupedShapes)
             const progressions = this.getSongProgressions(thisSong, groupedProgressions)
-            //this.loadBlocks(thisSong,  shapes[1], progressions[1])
+            this.loadBlocks(thisSong,  shapes, progressions)
             this.songs.push(thisSong)
         })
     }
@@ -23,10 +23,11 @@ class songsDataHandling {
         catch{return []}
     }
 
-    static getSongProgressions(song, shapes){
-        try{return shapes.find(shape => shape[0] === song.id)[1]}
+    static getSongProgressions(song, progressions){
+        try{return progressions.find(progression => progression[0] === song.id)[1]}
         catch{return []}
     }
+
 
     static loadBlocks(song, shapes, progressions){
 
@@ -35,7 +36,11 @@ class songsDataHandling {
         console.log(shapes)
         console.log(progressions)
 
-        const blocks = shapesData.filter(elem => elem.songID === song.id)
+        shapes.forEach(block => {
+            const blockID = block[0]
+            new songBlock (block[0])
+        })
+
         blocks.forEach(elem => {
             
         })

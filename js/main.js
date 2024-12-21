@@ -40,7 +40,6 @@ class navigation {
     }
 
     static updateNavigator(clickedItem){
-        console.log(clickedItem)
         const clickedMenu =  this.menuControl.getMenuState()
         this.menuControl.update(clickedMenu, clickedItem)
         this.windowControl.update(clickedMenu, clickedItem)
@@ -69,7 +68,7 @@ class navigation {
                 break;
 
             case('song'):
-                console.log(targetItem)
+                contentControl.loadSong(targetItem)
         }
     }
 
@@ -93,8 +92,19 @@ class navigation {
 class contentControl {
 
     static docControl = {}
+    static songBlockControl = {}
     
     static setup(){
+        this.setupDocControl()
+        this.setupSongBlockControl()
+    }
+
+    static setupSongBlockControl(){
+        this.songBlockControl = new songBlockControl
+        this.songBlockControl.createSongBlockCanvas()
+    }
+
+    static setupDocControl(){
         this.docControl = new docWindowControl
         this.docControl.createDocWindow()
     }
@@ -106,8 +116,12 @@ class contentControl {
                 break;
 
             case('song'):
-                console.log(selectedItem)
+                this.loadSong(selectedItem)
         }
+    }
+
+    static loadSong(song){
+        this.songBlockControl.loadSong(song)
     }
     
 

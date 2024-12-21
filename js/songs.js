@@ -5,17 +5,9 @@ class songsDataHandling {
         const songsData = await d3.csv('songs.csv')
         const shapesData = await d3.csv('melodyShapes.csv')
         const progressionsData = await d3.csv('chordProgressions.csv')
-
-        const groupedShapes = d3.groups(shapesData, d => d.songID, d => d.blockID)
-        const groupedProgressions = d3.groups(progressionsData, d => d.songID, d => d.blockID)
-
-        songsData.forEach(d => {
-            const thisSong = new song (d.songID, d.songTitle)
-            const shapes = this.getSongShapes(thisSong, groupedShapes)
-            const progressions = this.getSongProgressions(thisSong, groupedProgressions)
-            this.loadBlocks(thisSong,  shapes, progressions)
-            this.songs.push(thisSong)
-        })
+        const builder = new songBuilder(shapesData, progressionsData)
+        songsData.forEach(d => {this.songs.push(builder.addSong(d))})
+        console.log(this.songs)
     }
 
     static getSongShapes(song, shapes){
@@ -26,42 +18,6 @@ class songsDataHandling {
     static getSongProgressions(song, progressions){
         try{return progressions.find(progression => progression[0] === song.id)[1]}
         catch{return []}
-    }
-
-
-    static loadBlocks(song, shapes, progressions){
-
-        
-        console.log(song)
-        console.log(shapes)
-        console.log(progressions)
-
-        shapes.forEach(block => {
-            const blockID = block[0]
-            new songBlock (block[0])
-        })
-
-        blocks.forEach(elem => {
-            
-        })
-
-    }
-
-
-
-
-  
-        //this.lyricsHandling = new lyricsHandler
-        //const gab = this.getSong('good after bad')
-        //this.setupSong(gab)
-        //this.lyricsHandling.setupLyrics(gab.title)
-       // this.getData()
-
-
-    static async getData(){
-        const shapes = await d3.csv('melodyShapes.csv')
-        const progressions = await d3.csv('chordProgressions.csv')
-        
     }
 
     static getSongs(){
@@ -81,51 +37,6 @@ class songsDataHandling {
         section.lines.push(line)
     }
 
-    
-    static async setupSong(song){
-
-
-
-
-/*         this.setupGoodAfterBad()
-        
-        song.lyrics = await this.lyricsHandling.setupLyrics('goodAfterBadLyrics.txt')
-
-        const div = d3.select('body')
-            .append('div')
-            .attr('id','lyricsDiv')
-            .style('position','absolute')
-            .style('top','400px')
-            .style('left','100px')
-            
-        const svg = div.append('svg')
-        
-        svg.append('text').text(song.lyrics[3].lines[0].text).attr('dy',20) */
-        
-    }
-
-    
-
-    
-
-    static setupGoodAfterBad(){
-
-
-
-        const blockA = new songBlock ('A')
-        
-        
-        
-        
-        blockA.subBlocks = [
-            new songSubBlock('A', ['Eb4', 'Bb3'], [['EbMinor', 4],['BbMinor', 4]]),
-            new songSubBlock('B', ['C4', 'Ab3'], [['AbMajor', 4],['DbMajor', 4]]),
-            new songSubBlock('C', ['Db4', 'Bb3'], [['GbMajor', 2],['GbMajor/F', 2], ['EbMinor', 4]]),
-            new songSubBlock('D', ['Gb3', 'Gb3'], [['EbMinor', 2],['BbMinor', 2], ['AbMajor', 4]]),
-            new songSubBlock('E', ['F3', 'Bb3'], [['AbMajor', 4],['DbMajor', 4],['GbMajor', 8]])
-        ]
-
-    }
 
     static addMeasures(quantity, timeSignature){
         let measures = []
@@ -135,18 +46,97 @@ class songsDataHandling {
         return measures
     }
 
-    static addChord(chord){
-        
-    }
 }
 
 class songBuilder {
 
-    constructor(){
+    constructor(shapesData, progressionsData){
+        this.shapesData = shapesData
+        this.progressionsData = progressionsData
+        
+    }
+
+    addSong(songData){
+        const thisSong = new song(songData.songID, songData.songTitle)
+        this.addBlocks(thisSong)
+        return thisSong
+    }
+
+    getBlocks(songShapes){
+        return [...new Set (songShapes.map(item => item.blockID))]
+    }
+
+    getSubBlocks(blockShapes){
+        return [...new Set (blockShapes.map(item => item.subBlockID))]
+    }
+
+    filterForSong(data, songID){
+        return data.filter(item => item.songID === songID)
+    }
+
+    filterForBlock(data, blockID){
+        return data.filter(item => item.blockID === blockID)
+    }
+
+    filterForSubBlock(data, subBlockID){
+        const filtered = data.filter(item => item.subBlockID === subBlockID)
+        return filtered.length === 1 ? filtered[0] : filtered
+    }
+
+ 
+    addBlocks(thisSong){
+        const songShapes = this.filterForSong(this.shapesData, thisSong.id)
+        const songProgressions = this.filterForSong(this.progressionsData, thisSong.id)
+        const blockSet = this.getBlocks(songShapes)
+        blockSet.forEach(id => {
+            const thisBlock = new songBlock(id)
+            this.addSubBlocks(thisBlock, songShapes, songProgressions)
+            thisSong.blocks.push(thisBlock)
+        }) 
+    }
+
+    addSubBlocks(thisBlock, songShapes, songProgressions){
+        const blockShapes = this.filterForBlock(songShapes, thisBlock.id)
+        const blockProgressions = this.filterForBlock(songProgressions, thisBlock.id)
+        const subBlockSet = this.getSubBlocks(blockShapes)
+        let subBlockArray = []
+
+        subBlockSet.forEach(id => {
+            const thisSubBlock = new songSubBlock (id)
+            this.setupSubBlock(thisSubBlock, blockShapes, blockProgressions)
+            thisBlock.subBlocks.push(thisSubBlock)
+        })
 
     }
 
-    
+    setupSubBlock(thisSubBlock, blockShapes, blockProgressions){
+        const subBlockShape = this.filterForSubBlock(blockShapes, thisSubBlock.id)
+        const subBlockProgression = this.filterForSubBlock(blockProgressions, thisSubBlock.id)
+        thisSubBlock.melodyShape = new melodyShape(subBlockShape.peakNote, subBlockShape.endNote)
+        thisSubBlock.progression = new chordProgression(subBlockProgression)
+    }
+
+}
+
+class blockBuilder {
+
+    constructor(shapesData, progressionsData){
+        this.shapesData = shapesData
+        this.progressionsData = progressionsData
+    }
+
+    addBlock(blockID){
+        console.log(blockID)
+        const thisBlock = new songBlock (blockID)
+        thisBlock.subBlocks = this.getSubBlocks(blockID)
+        console.log(thisBlock)
+    }
+
+    getSubBlocks(blockID){
+        const filteredMap = this.shapesData.filter(item => item.blockID === blockID).map(item => item.subBlockID)
+        return [...new Set (filteredMap)]
+    }
+
 
 }
 
@@ -226,6 +216,7 @@ class song {
         this.id = id
         this.title = title
         this.lyrics = []
+        this.blocks = []
     }
 }
 
@@ -245,19 +236,8 @@ class melodyShape {
 }
 
 class songSubBlock {
-    constructor(id, melodyShape, chordProgression){
+    constructor(id){
         this.id = id
-        this.setMelodyShape(melodyShape)
-        this.setChordProgression(chordProgression)
-
-    }
-
-    setMelodyShape(melodyArray){
-        this.shape = new melodyShape (melodyArray[0], melodyArray[1])
-    }
-
-    setChordProgression(progressionArray){
-        this.progression = new chordProgression(progressionArray)
     }
 
 }
@@ -265,6 +245,7 @@ class songSubBlock {
 class songBlock {
     constructor(id){
         this.id = id
+        this.subBlocks = []
     }
 
 }
@@ -276,8 +257,8 @@ class chordProgression {
 
     getChords(progressionArray){
         let chords = []
-        progressionArray.forEach(elem => {
-            chords.push(new chord (elem[0], elem[1]))
+        progressionArray.forEach(item => {
+            chords.push(new chord (item.chordName, item.chordLengthInBeats))
         })
         return chords
     }

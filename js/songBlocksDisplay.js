@@ -1,51 +1,52 @@
-
-
-class songBlock {
-    constructor(id, groupID){
-        this.id = id
-        this.groupID = groupID
-    }
+class songBlockCanvas {
+    static div = {}
+    static svg = {}
+    static blocks = []
+    static width = 0
+    static height = 0
+    static left = 0
+    static top = 160
+    static position = 'absolute'
+    static borderRadius = 20
 }
 
-class melodyBlock extends songBlock {
-    constructor(item){
-        super(item.blockID + 'Melody', item.blockGroupID)
-        this.peakNote = new note (item.peakNote)
-        this.endNote = new note (item.endNote)
+class songBlockControl {
+    constructor(){
+        this.canvasRendering = new songBlockCanvasRendering
+        this.blockRendering = new songBlockRendering
     }
+
+    createSongBlockCanvas(){
+        songBlockCanvas.div = this.canvasRendering.createDiv()
+        songBlockCanvas.svg = this.canvasRendering.createSVGCanvas()
+    }
+
+    loadSong(song){
+        this.blockRendering.renderBlocks(song.blocks)
+    }
+
 }
 
-class progressionBlock extends songBlock {
-    constructor(item, progressionArray){
-        super(item.blockID + 'Progression', item.blockGroupID)
-        this.chords = []
-        this.setChords(progressionArray)   
-    }   
+class songBlockCanvasRendering {
+    createDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'songBlockCanvasDiv')
+            .style('position', songBlockCanvas.position)
+            .style('top', songBlockCanvas.top + 'px')
 
-    setChords(progressionArray){
-        progressionArray.forEach(item => {
-            this.chords.push(new chord (item.chordName, item.chordLengthInBeats))
-        })
-    }
-}
-
-class blockDataHandling {
-
-    static getGroupNumber(groupID){
-        return groupID.slice(2)
     }
 
-    static getBlockNumberInGroup(blockID){
-        const blockTypeIndex = this.#getBlockTypeIndex(blockID)
-        return blockID.slice(1,2)
+    createSVGCanvas(){
+        return songBlockCanvas.div.append('svg')
+            .attr('id', 'songBlockCanvasSVG')
     }
 
-    static #getBlockTypeIndex(blockID){
-        const iMelody = blockID.indexOf('Melody') 
-        const iProgression = blockID.indexOf('Progression')
-        return iMelody > 0 ? iMelody : iProgression
+    resize(delay, duration){
+        songBlockCanvas.div.transition('tSizing').delay(delay).duration(duration)
+            .style('width', songBlockCanvas.width + 'px')
+            .style('height', songBlockCanvas.height + 'px')
     }
-
 }
 
 class songBlockPositioning {
@@ -69,26 +70,6 @@ class songBlockPositioning {
         return 'translate(' + x + ',' + y + ')'
     }
 }
-
-class songBlockControl {
-    constructor(){
-        this.canvasRendering = new songBlockCanvasRendering
-        this.blockRendering = new songBlockRendering
-    }
-
-    createSongBlockCanvas(){
-        songBlockCanvas.div = this.canvasRendering.createDiv()
-        songBlockCanvas.svg = this.canvasRendering.createSVGCanvas()
-    }
-
-    loadSong(song){
-        this.blockRendering.renderBlocks(song.blocks)
-    }
-
-}
-
-
-
 
 class songBlockRendering {
 
@@ -165,3 +146,4 @@ class blockExit {
         return selection
     }
 }
+

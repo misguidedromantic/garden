@@ -1,12 +1,109 @@
+class song {
+    constructor(id, title){
+        this.id = id
+        this.title = title
+        this.sections = []
+    }
+}
+
+class songSection {
+    constructor(id){
+        this.id = id
+        this.lines = []
+    }
+}
+
+
+async function loadSongs(){
+    const songsData = await d3.csv('data/songs.csv')
+    const songStructures = await d3.csv('data/songStructures.csv')
+    const songPatterns = await d3.csv('data/songPatterns.csv')
+
+    songsData.forEach(songDatum => {
+        const thisSong = new song(songDatum.songID, songDatum.songTitle)
+        this.song.sections = getSections(songStructures, thisSong.id)
+
+    })
+
+    return 
+
+}
+
+function getSections(songStructures, songID){
+    return songStructures.filter(element => element.songID === songID)
+        .map(element => new songSection (element.sectionID))
+}
+
+
+
 class songsDataHandling {
     static songs = []
 
     static async load(){
-        const songsData = await d3.csv('data/songs.csv')
-        const shapesData = await d3.csv('data/melodyShapes.csv')
-        const progressionsData = await d3.csv('data/chordProgressions.csv')
-        const builder = new songBuilder(shapesData, progressionsData)
-        songsData.forEach(d => {this.songs.push(builder.addSong(d))})
+        await this.#loadData()
+        this.#loadHandlers()
+        this.#setupSongs()
+    }
+
+    static async #loadData(){
+        this.songsData = await d3.csv('data/songs.csv')
+        this.songStructures = await d3.csv('data/songStructures.csv')
+        this.songPatterns = await d3.csv('data/songPatterns.csv')
+        return Promise.resolve()
+    }
+
+    static #loadHandlers(){
+        this.sectionHandling = new songSectionHandling(this.songStructures,this.songPatterns)   
+    }
+
+    static #setupSongs(){
+        this.songsData.forEach(song => {
+            const thisSong = this.#createSong(song)
+            this.#setupSong(thisSong)
+            this.songs.push(thisSong)
+        })
+    }
+
+    static #createSong(songData){
+        return new song(songData.songID, songData.songTitle)
+    }
+
+    static #setupSong(thisSong){
+        this.sectionHandling.setupSections(thisSong)
+        console.log(thisSong)
+        return thisSong
+    }
+
+    static filterForSong(data, songID){
+        return data.filter(item => item.songID === songID)
+    }
+
+
+
+    
+
+   
+
+    static getSection(sectionID){
+        
+    }
+
+
+
+
+    static loadControllers(){
+        this.structuring = new songStructuring
+        return this.structuring.loadData()
+    }
+
+    static setSongs(songsData){
+        songsData.forEach(entry => {this.songs.push(this.setupSong(entry))})
+    }
+
+    
+
+    static structureSong(thisSong){
+
     }
 
     static getSongs(){
@@ -17,24 +114,98 @@ class songsDataHandling {
         return this.songs.find(song => song.title === title)
     }
 
-    static addLyric(songTitle, text){
-        const thisSong = this.getSong(songTitle)
-        thisSong.lyrics.push(new lyric(text))
-    }
-
-    static addLyricLine(section, line){
-        section.lines.push(line)
-    }
-
-    static addMeasures(quantity, timeSignature){
-        let measures = []
-        for(let i = 0; quantity; i++){
-            measures.push(new measure(timeSignature))
-        }
-        return measures
-    }
+    
 
 }
+
+class songSectionHandling {
+
+    constructor(sectionData, patternData){
+        this.sectionData = sectionData
+        this.patternData = patternData
+    }
+
+    setupSections(song){
+        const sectionIDs = this.#getSectionIDs(song.id)
+        sectionIDs.forEach(sectionID => {
+            const thisSection = this.#createSongSection(sectionID)
+            song.sections.push(thisSection)
+        })
+    }
+
+    #getSectionDataForSong(songID){
+        return this.sectionData.filter(element => element.songID === songID)
+    }
+
+    #getSectionIDs(songID){
+        const songSectionData = this.#getSectionDataForSong(songID)
+        return [...new Set (songSectionData.map(element => element.sectionID))]
+    }
+
+    #createSongSection (sectionID){
+        const sectionType = this.#getSectionType(sectionID)
+        switch(sectionType){
+            case 'verse':
+                return new verse (sectionID)
+
+            case 'chorus':
+                return new chorus (sectionID)
+
+            case 'outro':
+                return new outro (sectionID)  
+
+            default:
+                return new songSection (sectionID)
+
+        }
+        
+    }
+
+    #getSectionType(sectionID){
+        for (let sectionType of ['verse','chorus','outro']){
+            if(sectionID.includes(sectionType)){
+                return sectionType
+            }
+        }
+    }
+
+
+}
+
+class songStructuring {
+    constructor(){
+        
+    }
+
+    
+
+    async loadData(){
+        this.structures = await d3.csv('data/songStructures.csv')
+        this.blocks = await d3.csv('data/songBlocks.csv')
+        return Promise.resolve()
+    }
+
+    loadControllers(){
+        this.blocksDataHandling = new songBlocksDataHandling
+    }
+
+    setupBlocks(){
+
+    }
+
+    addBlocks(thisSong){
+        const songShapes = this.filterForSong(this.shapesData, thisSong.id)
+        const songProgressions = this.filterForSong(this.progressionsData, thisSong.id)
+        songShapes.forEach(item => {
+            thisSong.blocks.push(this.getMelodyBlock(item))
+            thisSong.blocks.push(this.getProgressionBlock(item, songProgressions))
+        })
+    }
+
+    
+}
+
+
 
 class songBuilder {
 
@@ -162,24 +333,13 @@ class lyricsHandler{
 
         return result
     }
-
 }
 
-class song {
-    constructor(id, title){
-        this.id = id
-        this.title = title
-        this.lyrics = []
-        this.blocks = []
-    }
-}
 
-class songSection {
-    constructor(id){
-        this.id = id
-        this.lines = []
-    }
-}
+
+
+
+
 
 class melodyShape {
     constructor(peakNoteDescriptor, endNoteDescriptor){

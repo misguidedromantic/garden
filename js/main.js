@@ -1,5 +1,5 @@
 window.onload = async function(){
-    
+
     await loadData()
     navigation.setup()
     contentControl.setup()
@@ -16,6 +16,7 @@ function menuItemClicked(){
     const clickedItem = data[0]
     navigation.updateNavigator(clickedItem)
     navigation.toggleSelection(clickedItem)
+
 }
 
 class navigation {
@@ -116,16 +117,12 @@ class contentControl {
                 break;
 
             case('song'):
-                this.loadSong(selectedItem)
+                this.songBlockControl.loadSong(selectedItem)
         }
     }
 
-    static loadSong(song){
-        this.songBlockControl.loadSong(song)
-    }
+
     
-
-
     static async loadPlan(plan){
 
         if(this.docControl.checkIfLoaded(plan.fileName)){

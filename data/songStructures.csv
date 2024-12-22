@@ -1,0 +1,16 @@
+﻿songID,sectionID,blockID,actualKickNote,actualPeakNote,actualEndNote,actualChordNames,actualChordLengths
+goodafterbad,intro,vb1,,,,EbMi;BbMi,4;4
+goodafterbad,intro,vb2,,,,Ab;Db,4;4
+goodafterbad,intro,vb3,,,,Gb;Gb/F;EbMi,2;2;4
+goodafterbad,intro,vb4,,,,EbMi;BbMi;Ab,2;2;4
+goodafterbad,intro,vb5,,,,Ab;Db;Gb,4;4;8
+goodafterbad,verse1a,vb1,Eb4,Db3,Bb3,EbMi;BbMi,4;4
+goodafterbad,verse1a,vb2,C4,Bb3,Ab3,Ab;Db,4;4
+goodafterbad,verse1a,vb4,Gb3,F3,Eb3,EbMi;BbMi;Ab,2;2;4
+goodafterbad,verse1a,vb5,Eb3,F3,Bb3,Ab;Db;Gb,4;4;8
+goodafterbad,verse1b,vb1,Eb4,Db3,Bb3,EbMi;BbMi,4;4
+goodafterbad,verse1b,vb2,C4,Db4,Db4,Ab;Db,4;4
+goodafterbad,verse1b,vb3,Bb3,Db4,Bb3,Gb;Gb/F;EbMi,2;2;4
+goodafterbad,verse1b,vb4,Gb3,F3,Eb3,EbMi;BbMi;Ab,2;2;4
+goodafterbad,verse1b,vb5,Eb3,F3,Bb3,Ab;Db;Gb,4;4;8
+goodafterbad,verse1b,vb5,Eb3,F3,Bb4,Ab;Db;EbMi,4;4;8

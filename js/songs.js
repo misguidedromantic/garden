@@ -3,6 +3,7 @@ class song {
         this.id = id
         this.title = title
         this.sections = []
+        this.patternBlocks = []
     }
 }
 
@@ -14,28 +15,6 @@ class songSection {
 }
 
 
-async function loadSongs(){
-    const songsData = await d3.csv('data/songs.csv')
-    const songStructures = await d3.csv('data/songStructures.csv')
-    const songPatterns = await d3.csv('data/songPatterns.csv')
-
-    songsData.forEach(songDatum => {
-        const thisSong = new song(songDatum.songID, songDatum.songTitle)
-        this.song.sections = getSections(songStructures, thisSong.id)
-
-    })
-
-    return 
-
-}
-
-function getSections(songStructures, songID){
-    return songStructures.filter(element => element.songID === songID)
-        .map(element => new songSection (element.sectionID))
-}
-
-
-
 class songsDataHandling {
     static songs = []
 
@@ -43,6 +22,7 @@ class songsDataHandling {
         await this.#loadData()
         this.#loadHandlers()
         this.#setupSongs()
+        console.log(this.songs)
     }
 
     static async #loadData(){
@@ -53,7 +33,8 @@ class songsDataHandling {
     }
 
     static #loadHandlers(){
-        this.sectionHandling = new songSectionHandling(this.songStructures,this.songPatterns)   
+        this.sectionHandling = new songSectionHandling(this.songStructures)
+        this.blockHandling = new songBlockHandling (this.songPatterns)
     }
 
     static #setupSongs(){
@@ -70,40 +51,14 @@ class songsDataHandling {
 
     static #setupSong(thisSong){
         this.sectionHandling.setupSections(thisSong)
-        console.log(thisSong)
+        this.blockHandling.setupPatternBlocks(thisSong)
         return thisSong
     }
 
+
+
     static filterForSong(data, songID){
         return data.filter(item => item.songID === songID)
-    }
-
-
-
-    
-
-   
-
-    static getSection(sectionID){
-        
-    }
-
-
-
-
-    static loadControllers(){
-        this.structuring = new songStructuring
-        return this.structuring.loadData()
-    }
-
-    static setSongs(songsData){
-        songsData.forEach(entry => {this.songs.push(this.setupSong(entry))})
-    }
-
-    
-
-    static structureSong(thisSong){
-
     }
 
     static getSongs(){
@@ -113,16 +68,14 @@ class songsDataHandling {
     static getSong(title){
         return this.songs.find(song => song.title === title)
     }
-
-    
+ 
 
 }
 
 class songSectionHandling {
 
-    constructor(sectionData, patternData){
+    constructor(sectionData){
         this.sectionData = sectionData
-        this.patternData = patternData
     }
 
     setupSections(song){
@@ -171,6 +124,29 @@ class songSectionHandling {
 
 
 }
+
+class songBlockHandling {
+    constructor(patternsData){
+        this.patternsData = patternsData
+    }
+
+    setupPatternBlocks(song){
+        const thisSongBlocks = this.#getBlockDataForSong(song.id)
+        thisSongBlocks.forEach(block => {
+            song.patternBlocks.push(new melodyBlock(block))
+            song.patternBlocks.push(new progressionBlock(block))
+        })  
+    }
+
+    #getBlockDataForSong(songID){
+        return this.patternsData.filter(element => element.songID === songID)
+    }
+
+}
+
+
+
+
 
 class songStructuring {
     constructor(){

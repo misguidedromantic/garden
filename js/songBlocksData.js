@@ -1,34 +1,34 @@
-class songBlocksDataHandling {
 
-}
 
 
 class songBlock {
-    constructor(id, groupID){
+    constructor(id){
         this.id = id
-        this.groupID = groupID
     }
 }
 
 class melodyBlock extends songBlock {
     constructor(item){
-        super(item.blockID + 'Melody', item.blockGroupID)
+        super(item.blockID + 'Melody')
+        this.kickNote = new note (item.kickNote)
         this.peakNote = new note (item.peakNote)
         this.endNote = new note (item.endNote)
     }
 }
 
 class progressionBlock extends songBlock {
-    constructor(item, progressionArray){
-        super(item.blockID + 'Progression', item.blockGroupID)
+    constructor(item){
+        super(item.blockID + 'Progression')
         this.chords = []
-        this.setChords(progressionArray)   
+        this.setChords(item.chords, item.chordLengths)   
     }   
 
-    setChords(progressionArray){
-        progressionArray.forEach(item => {
-            this.chords.push(new chord (item.chordName, item.chordLengthInBeats))
-        })
+    setChords(chords, chordLengths){
+        const chordNameValues = chords.split(';')
+        const chordLengthValues = chordLengths.split(';') 
+        for(let i = 0; i < chordNameValues.length; i++){
+            this.chords.push(new chord (chordNameValues[i], chordLengthValues[i]))
+        }
     }
 }
 

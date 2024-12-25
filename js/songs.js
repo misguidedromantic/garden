@@ -10,7 +10,7 @@ class song {
 class songSection {
     constructor(id){
         this.id = id
-        this.lines = []
+        this.blocks = []
     }
 }
 
@@ -22,7 +22,6 @@ class songsDataHandling {
         await this.#loadData()
         this.#loadHandlers()
         this.#setupSongs()
-        console.log(this.songs)
     }
 
     static async #loadData(){
@@ -34,7 +33,7 @@ class songsDataHandling {
 
     static #loadHandlers(){
         this.sectionHandling = new songSectionHandling(this.songStructures)
-        this.blockHandling = new songBlockHandling (this.songPatterns)
+        this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
     }
 
     static #setupSongs(){
@@ -51,7 +50,7 @@ class songsDataHandling {
 
     static #setupSong(thisSong){
         this.sectionHandling.setupSections(thisSong)
-        this.blockHandling.setupPatternBlocks(thisSong)
+        this.blockHandling.setupBlocks(thisSong)
         return thisSong
     }
 
@@ -126,121 +125,45 @@ class songSectionHandling {
 }
 
 class songBlockHandling {
-    constructor(patternsData){
+    constructor(patternsData, structureData){
         this.patternsData = patternsData
+        this.structureData = structureData
     }
 
-    setupPatternBlocks(song){
-        const thisSongBlocks = this.#getBlockDataForSong(song.id)
-        thisSongBlocks.forEach(block => {
+    setupBlocks(song){
+        console.log(song)
+        this.#setupPatternBlocks(song)
+        this.#setupSectionBlocks(song)
+    }
+
+
+    #setupPatternBlocks(song){
+        const blockData = this.#getBlockDataForSong(song.id, this.patternsData)
+        blockData.forEach(block => {
             song.patternBlocks.push(new melodyBlock(block))
             song.patternBlocks.push(new progressionBlock(block))
         })  
     }
 
-    #getBlockDataForSong(songID){
-        return this.patternsData.filter(element => element.songID === songID)
-    }
-
-}
-
-
-
-
-
-class songStructuring {
-    constructor(){
-        
-    }
-
-    
-
-    async loadData(){
-        this.structures = await d3.csv('data/songStructures.csv')
-        this.blocks = await d3.csv('data/songBlocks.csv')
-        return Promise.resolve()
-    }
-
-    loadControllers(){
-        this.blocksDataHandling = new songBlocksDataHandling
-    }
-
-    setupBlocks(){
-
-    }
-
-    addBlocks(thisSong){
-        const songShapes = this.filterForSong(this.shapesData, thisSong.id)
-        const songProgressions = this.filterForSong(this.progressionsData, thisSong.id)
-        songShapes.forEach(item => {
-            thisSong.blocks.push(this.getMelodyBlock(item))
-            thisSong.blocks.push(this.getProgressionBlock(item, songProgressions))
+    #setupSectionBlocks(song){
+        song.sections.forEach(section => {
+            const sectionBlocks = this.#getBlockDataForSection(song, section.id)
+            sectionBlocks.forEach(block => {
+                section.blocks.push(new melodyBlock(block))
+                section.blocks.push(new progressionBlock (block))
+            })
         })
     }
 
-    
-}
-
-
-
-class songBuilder {
-
-    constructor(shapesData, progressionsData){
-        this.shapesData = shapesData
-        this.progressionsData = progressionsData
-        
+    #getBlockDataForSong(songID, dataSource){
+        return dataSource.filter(element => element.songID === songID)
     }
 
-    addSong(songData){
-        const thisSong = new song(songData.songID, songData.songTitle)
-        this.addBlocks(thisSong)
-        return thisSong
-    }
-
-    getBlocks(songShapes){
-        return [...new Set (songShapes.map(item => item.blockID))]
-    }
-
-    getSubBlocks(blockShapes){
-        return [...new Set (blockShapes.map(item => item.subBlockID))]
-    }
-
-    filterForSong(data, songID){
-        return data.filter(item => item.songID === songID)
-    }
-
-    filterForBlock(data, blockID){
-        return data.filter(item => item.blockID === blockID)
-    }
-
-    filterForSubBlock(data, subBlockID){
-        const filtered = data.filter(item => item.subBlockID === subBlockID)
-        return filtered.length === 1 ? filtered[0] : filtered
-    }
- 
-    addBlocks(thisSong){
-        const songShapes = this.filterForSong(this.shapesData, thisSong.id)
-        const songProgressions = this.filterForSong(this.progressionsData, thisSong.id)
-        songShapes.forEach(item => {
-            thisSong.blocks.push(this.getMelodyBlock(item))
-            thisSong.blocks.push(this.getProgressionBlock(item, songProgressions))
-        })
-    }
-
-    getMelodyBlock(item){
-        return new melodyBlock (item)
-    }
-
-    getProgressionBlock(item, songProgressions){
-        const progressionArray = this.getProgressionArray(item.blockID, songProgressions)
-        return new progressionBlock (item, progressionArray)
-    }
-
-    getProgressionArray(blockID, songProgressions){
-        return songProgressions.filter(item => item.blockID === blockID)
+    #getBlockDataForSection(song, sectionID){
+        const songBlockData = this.#getBlockDataForSong(song.id, this.structureData)
+        return songBlockData.filter(element => element.sectionID === sectionID)
     }
 }
-
 
 class lyricsHandler{
     

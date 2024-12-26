@@ -96,8 +96,6 @@ class songsDataHandling {
         return thisSong
     }
 
-
-
     static filterForSong(data, songID){
         return data.filter(item => item.songID === songID)
     }
@@ -109,8 +107,6 @@ class songsDataHandling {
     static getSong(title){
         return this.songs.find(song => song.title === title)
     }
- 
-
 }
 
 class songSectionHandling {
@@ -150,9 +146,7 @@ class songSectionHandling {
 
             default:
                 return new songSection (sectionID)
-
         }
-        
     }
 
     #getSectionType(sectionID){
@@ -162,8 +156,6 @@ class songSectionHandling {
             }
         }
     }
-
-
 }
 
 class songBlockHandling {
@@ -177,7 +169,6 @@ class songBlockHandling {
         this.#setupSectionBlocks(song)
     }
 
-
     #setupPatternBlocks(song){
         const blockData = this.#getBlockDataForSong(song.id, this.patternsData)
         blockData.forEach(block => {
@@ -190,31 +181,27 @@ class songBlockHandling {
     #setupSectionBlocks(song){
         song.sections.forEach(section => {
             const sectionBlocks = this.#getBlockDataForSection(song, section.id)
-            sectionBlocks.forEach(block => {
-                const structureBlock = this.#getBlock(block)
-                structureBlock.sectionID = block.sectionID
-                song.structureBlocks.push(structureBlock)
-            })
-
+            sectionBlocks.forEach(block => {this.#addBlocks(block, song.structureBlocks)})
         })
         console.log(song.structureBlocks)
+    }
+
+    #addBlocks(block, structureBlocks){
+        structureBlocks.push(this.#getMelodyBlock(block))
+        structureBlocks.push(this.#getProgressionBlock(block))
     }
 
     #getMelodyBlock(data){
         const block = new melodyBlock (data)
         block.sectionID = data.sectionID
+        return block
     }
 
     #getProgressionBlock(data){
         const block = new progressionBlock (data)
         block.sectionID = data.sectionID
+        return block
     }
-
-
-
-
-
-
 
     #getBlockDataForSong(songID, dataSource){
         return dataSource.filter(element => element.songID === songID)
@@ -225,8 +212,6 @@ class songBlockHandling {
         return songBlockData.filter(element => element.sectionID === sectionID)
     }
 }
-
-
 
 class blockDataHandling {
 
@@ -316,12 +301,6 @@ class lyricsHandler{
     }
 }
 
-
-
-
-
-
-
 class melodyShape {
     constructor(peakNoteDescriptor, endNoteDescriptor){
         this.peakNote = new note (peakNoteDescriptor)
@@ -329,8 +308,6 @@ class melodyShape {
     }
 
 }
-
-
 
 class chordProgression {
     constructor(progressionArray){
@@ -485,7 +462,7 @@ class songBlockControl {
     }
 
     loadSong(song){
-        this.blockRendering.renderBlocks(song.blocks)
+        this.blockRendering.renderBlocks(song.structureBlocks)
     }
 
 }
@@ -517,6 +494,8 @@ class songBlockPositioning {
     static calculateTranslate(d, i){
         const x = this.#getXPos(d)
         const y = this.#getYPos(d)
+        console.log(x)
+        console.log(y)
         return this.#getTranslateString(x, y)
     }
 
@@ -525,8 +504,35 @@ class songBlockPositioning {
     }
 
     static #getYPos(d){
-        const groupNum = blockDataHandling.getGroupNumber(d.groupID)
+        console.log()
+        //const groupNum = blockDataHandling.getGroupNumber(d.groupID)
         return (groupNum * 27) + (d.constructor.name === 'melodyBlock' ? 0 : 11)
+    }
+
+    static #getSectionSequence(sectionID){
+        const sectionType = this.#getSectionSequence(sectionID)
+        switch(sectionType){
+            case 'intro':
+                return 1
+
+            case 'verse':
+                return 
+
+        }
+
+
+    }
+
+    #getSectionSuffixNumber(sectionID){
+        return sectionID.match(/\d+/)
+    }
+
+    #getSectionType(sectionID){
+        for (let sectionType of ['verse','chorus','outro']){
+            if(sectionID.includes(sectionType)){
+                return sectionType
+            }
+        }
     }
 
     static #getTranslateString(x, y){
@@ -537,6 +543,7 @@ class songBlockPositioning {
 class songBlockRendering {
 
     renderBlocks(data){
+        console.log(data)
         const enterControl = new blockEnter
         const updateControl = new blockUpdate
         const exitControl = new blockExit

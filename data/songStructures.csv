@@ -1,4 +1,4 @@
-﻿songID,sectionID,blockID,actualKickNote,actualPeakNote,actualEndNote,actualChordNames,actualChordLengths
+﻿songID,sectionID,blockID,kickNote,peakNote,endNote,chordNames,chordLengths
 goodafterbad,intro,vb1,,,,EbMi;BbMi,4;4
 goodafterbad,intro,vb2,,,,Ab;Db,4;4
 goodafterbad,intro,vb3,,,,Gb;Gb/F;EbMi,2;2;4

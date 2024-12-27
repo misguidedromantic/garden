@@ -63,17 +63,7 @@ class navigation {
     }
 
     static async #loadSubMenuSelection(targetItem){
-
         contentControl.update(targetItem)
-
-/*         switch(targetItem.constructor.name){
-            case('plan'):
-                contentControl.loadPlan(targetItem)
-                break;
-
-            case('song'):
-                contentControl.loadSong(targetItem)
-        } */
     }
 
     static #hideSubMenuSelection(targetItem){

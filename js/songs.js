@@ -179,27 +179,30 @@ class songBlockHandling {
     }
 
     #setupSectionBlocks(song){
-        song.sections.forEach(section => {
+        for(let i = 0; i < song.sections.length; i++){
+            const section = song.sections[i]
             const sectionBlocks = this.#getBlockDataForSection(song, section.id)
-            sectionBlocks.forEach(block => {this.#addBlocks(block, song.structureBlocks)})
-        })
+            sectionBlocks.forEach(block => {this.#addBlocks(block, song.structureBlocks, i)})
+        }
         console.log(song.structureBlocks)
     }
 
-    #addBlocks(block, structureBlocks){
-        structureBlocks.push(this.#getMelodyBlock(block))
-        structureBlocks.push(this.#getProgressionBlock(block))
+    #addBlocks(block, structureBlocks, sectionIndex){
+        structureBlocks.push(this.#getMelodyBlock(block, sectionIndex))
+        structureBlocks.push(this.#getProgressionBlock(block, sectionIndex))
     }
 
-    #getMelodyBlock(data){
+    #getMelodyBlock(data, sectionIndex){
         const block = new melodyBlock (data)
         block.sectionID = data.sectionID
+        block.sectionIndex = sectionIndex
         return block
     }
 
-    #getProgressionBlock(data){
+    #getProgressionBlock(data, sectionIndex){
         const block = new progressionBlock (data)
         block.sectionID = data.sectionID
+        block.sectionIndex = sectionIndex
         return block
     }
 
@@ -221,7 +224,7 @@ class blockDataHandling {
 
     static getBlockNumberInGroup(blockID){
         const blockTypeIndex = this.#getBlockTypeIndex(blockID)
-        return blockID.slice(1, blockTypeIndex)
+        return blockID.slice(2, blockTypeIndex)
     }
 
     static #getBlockTypeIndex(blockID){
@@ -494,8 +497,6 @@ class songBlockPositioning {
     static calculateTranslate(d, i){
         const x = this.#getXPos(d)
         const y = this.#getYPos(d)
-        console.log(x)
-        console.log(y)
         return this.#getTranslateString(x, y)
     }
 
@@ -504,35 +505,7 @@ class songBlockPositioning {
     }
 
     static #getYPos(d){
-        console.log()
-        //const groupNum = blockDataHandling.getGroupNumber(d.groupID)
-        return (groupNum * 27) + (d.constructor.name === 'melodyBlock' ? 0 : 11)
-    }
-
-    static #getSectionSequence(sectionID){
-        const sectionType = this.#getSectionSequence(sectionID)
-        switch(sectionType){
-            case 'intro':
-                return 1
-
-            case 'verse':
-                return 
-
-        }
-
-
-    }
-
-    #getSectionSuffixNumber(sectionID){
-        return sectionID.match(/\d+/)
-    }
-
-    #getSectionType(sectionID){
-        for (let sectionType of ['verse','chorus','outro']){
-            if(sectionID.includes(sectionType)){
-                return sectionType
-            }
-        }
+        return (d.sectionIndex * 27) + (d.constructor.name === 'melodyBlock' ? 0 : 11)
     }
 
     static #getTranslateString(x, y){

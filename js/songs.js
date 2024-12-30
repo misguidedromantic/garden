@@ -19,23 +19,26 @@ class songPattern {
 }
 
 class songBlock {
-    constructor(id){
-        this.id = id
+    constructor(item, blockType){
+        this.id = item.blockID + blockType
+        this.songID = item.songID
     }
 }
 
 class melodyBlock extends songBlock {
     constructor(item){
-        super(item.blockID + 'Melody')
+        super(item, 'Melody')
         this.kickNote = new note (item.kickNote)
         this.peakNote = new note (item.peakNote)
         this.endNote = new note (item.endNote)
+        this.patternBlockID = item.patternBlockID + 'Melody'
     }
 }
 
 class progressionBlock extends songBlock {
     constructor(item){
-        super(item.blockID + 'Progression')
+        super(item, 'Progression')
+        this.patternBlockID = item.patternBlockID + 'Progression'
         this.chords = []
         this.setChords(item.chordNames, item.chordLengths)   
     }   
@@ -106,6 +109,10 @@ class songsDataHandling {
 
     static getSong(title){
         return this.songs.find(song => song.title === title)
+    }
+
+    static getSongByID(id){
+        return this.songs.find(song => song.id === id)
     }
 }
 
@@ -259,6 +266,52 @@ class blockDataHandling {
         const iMelody = blockID.indexOf('Melody') 
         const iProgression = blockID.indexOf('Progression')
         return iMelody > 0 ? iMelody : iProgression
+    }
+
+    static getMelodyBlockVariationLevel(actualBlock){
+        const patternBlock = this.#getPatternBlock(actualBlock)
+        let level = 0
+        
+        if(actualBlock.kickNote.id !== patternBlock.kickNote.id){
+            actualBlock.kickNote.id !== '' ? level = level + 1 : level = level
+        }
+
+        if(actualBlock.peakNote.id !== patternBlock.peakNote.id){
+            actualBlock.peakNote.id !== '' ? level = level + 1 : level = level
+        }
+
+        if(actualBlock.endNote.id !== patternBlock.endNote.id){
+            actualBlock.endNote.id !== '' ? level = level + 1 : level = level
+        }
+
+        return level
+
+    }
+
+    static getProgressionBlockVariationLevel(actualBlock){
+        const patternBlock = this.#getPatternBlock(actualBlock)
+        let level = 0
+
+        for(let i = 0; i < patternBlock.chords.length; i++){
+            const thisPatternChord = patternBlock.chords[i]
+            const thisActualChord = actualBlock.chords[i]
+
+            if(thisPatternChord.name !== thisActualChord.name){
+                level = level + 1
+            }
+
+            if(thisPatternChord.length !== thisActualChord.length){
+                level = level + 1
+            }
+
+        }
+
+        return level
+    }
+
+    static #getPatternBlock(actualBlock){
+        const song = songsDataHandling.getSongByID(actualBlock.songID)
+        return song.patternBlocks.find(block =>  block.id === actualBlock.patternBlockID)
     }
 
 }
@@ -535,7 +588,6 @@ class songBlockPositioning {
     }
 
     static #getXPos(d){
-        console.log(d)
         return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 11
     }
 
@@ -545,6 +597,35 @@ class songBlockPositioning {
 
     static #getTranslateString(x, y){
         return 'translate(' + x + ',' + y + ')'
+    }
+}
+
+class songBlockStyling {
+    static calculateFill(d){
+        let variationFactor = this.#getVariationFactor(d)
+        switch(variationFactor){
+            case 0:
+                return 'lightGrey'
+
+            case 1:
+                return 'pink'
+
+            case 2:
+                return 'purple'
+
+            default:
+                return 'red'
+        }
+    }
+
+    static #getVariationFactor(d){
+        if(d.constructor.name === 'melodyBlock'){
+            return blockDataHandling.getMelodyBlockVariationLevel(d) 
+        }
+
+        if(d.constructor.name === 'progressionBlock'){
+            return blockDataHandling.getProgressionBlockVariationLevel(d) 
+        }
     }
 }
 
@@ -585,7 +666,7 @@ class blockEnter {
             .attr('class', d => d.constructor.name)
             .attr('width', 10)
             .attr('height', '10')
-            .attr('fill', 'blue')
+            .attr('fill', d => songBlockStyling.calculateFill(d))
 
 
         return groups

@@ -133,13 +133,19 @@ class songSectionHandling {
     }
 
     #createSongSection (sectionID){
-        const sectionType = this.#getSectionType(sectionID)
+        const sectionType = songSectionHandling.getSectionType(sectionID)
         switch(sectionType){
+            case 'intro':
+                return new intro (sectionID)
+
             case 'verse':
                 return new verse (sectionID)
 
             case 'chorus':
                 return new chorus (sectionID)
+
+            case 'bridge':
+                return new bridge (sectionID)
 
             case 'outro':
                 return new outro (sectionID)  
@@ -149,8 +155,8 @@ class songSectionHandling {
         }
     }
 
-    #getSectionType(sectionID){
-        for (let sectionType of ['verse','chorus','outro']){
+    static getSectionType(sectionID){
+        for (let sectionType of ['intro','verse','chorus','bridge','outro']){
             if(sectionID.includes(sectionType)){
                 return sectionType
             }
@@ -175,17 +181,33 @@ class songBlockHandling {
             song.patternBlocks.push(new melodyBlock(block))
             song.patternBlocks.push(new progressionBlock(block))
         })  
-        console.log(song.patternBlocks)
     }
 
     #setupSectionBlocks(song){
         for(let i = 0; i < song.sections.length; i++){
             const section = song.sections[i]
-            const sectionBlocks = this.#getBlockDataForSection(song, section.id)
-            sectionBlocks.forEach(block => {this.#addBlocks(block, song.structureBlocks, i)})
+            this.#addBlocksInSection(song, section, i)
+            
         }
-        console.log(song.structureBlocks)
     }
+
+    #addBlocksInSection(song, section, sectionIndex){
+        
+        const sectionBlocks = this.#getBlockDataForSection(song, section.id)
+        for(let i = 0; i < sectionBlocks.length; i++){
+            const block = sectionBlocks[i]
+            block.blockID = this.#getStructureBlockID(section, i)
+            this.#addBlocks(block, song.structureBlocks, sectionIndex)
+        }
+    }
+
+    #getStructureBlockID(section, blockIndex){
+        const sectionType = section.constructor.name
+        const sectionSeq = section.id.slice(sectionType.length)
+        const sectionLetter = sectionType.slice(0,1)
+        return sectionLetter + sectionSeq + 'b' + (blockIndex + 1)
+    }
+
 
     #addBlocks(block, structureBlocks, sectionIndex){
         structureBlocks.push(this.#getMelodyBlock(block, sectionIndex))
@@ -222,9 +244,15 @@ class blockDataHandling {
         return groupID.slice(2)
     }
 
-    static getBlockNumberInGroup(blockID){
+    static getBlockNumberInGroup(blockID, sectionID){
+        const sectionRefLength = this.#getSectionReferenceLength(sectionID)
         const blockTypeIndex = this.#getBlockTypeIndex(blockID)
-        return blockID.slice(2, blockTypeIndex)
+        return blockID.slice(sectionRefLength, blockTypeIndex)
+    }
+
+    static #getSectionReferenceLength(sectionID){
+        const sectionType = songSectionHandling.getSectionType(sectionID)
+        return sectionID.length - sectionType.length + 2
     }
 
     static #getBlockTypeIndex(blockID){
@@ -294,7 +322,7 @@ class lyricsHandler{
     }
     
     isSectionMarker(line){
-        const sectionTypes = ['verse','chorus','outro']
+        const sectionTypes = ['intro','verse','chorus','bridge','outro']
         let result = ''
         sectionTypes.forEach(sectionType => {
             this.isLineType(line, sectionType) ? result = sectionType : result
@@ -435,6 +463,12 @@ class chorus extends songSection {
     }
 }
 
+class bridge extends songSection {
+    constructor(id){
+        super(id)
+    }
+}
+
 class outro extends songSection {
     constructor(id){
         super(id)
@@ -501,7 +535,8 @@ class songBlockPositioning {
     }
 
     static #getXPos(d){
-        return blockDataHandling.getBlockNumberInGroup(d.id) * 11
+        console.log(d)
+        return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 11
     }
 
     static #getYPos(d){

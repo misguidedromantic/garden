@@ -216,6 +216,7 @@ class menuItemEnter {
     enterText(groups){
         return groups.append('text')
             .text(d => d.title)
+            .style('font-size','14px')
             .attr('dy', '-.4em')
             .attr('fill', 'transparent')
     }

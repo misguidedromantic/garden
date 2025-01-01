@@ -273,15 +273,15 @@ class blockDataHandling {
         let level = 0
         
         if(actualBlock.kickNote.id !== patternBlock.kickNote.id){
-            actualBlock.kickNote.id !== '' ? level = level + 1 : level = level
+            actualBlock.kickNote.id !== '' ? level = level + 1 : level = level - 1
         }
 
         if(actualBlock.peakNote.id !== patternBlock.peakNote.id){
-            actualBlock.peakNote.id !== '' ? level = level + 1 : level = level
+            actualBlock.peakNote.id !== '' ? level = level + 1 : level = level - 1 
         }
 
         if(actualBlock.endNote.id !== patternBlock.endNote.id){
-            actualBlock.endNote.id !== '' ? level = level + 1 : level = level
+            actualBlock.endNote.id !== '' ? level = level + 1 : level = level - 1
         }
 
         return level
@@ -534,7 +534,7 @@ class songBlockCanvas {
     static blocks = []
     static width = 0
     static height = 0
-    static left = 0
+    static left = 72
     static top = 160
     static position = 'absolute'
     static borderRadius = 20
@@ -564,6 +564,8 @@ class songBlockCanvasRendering {
             .attr('id', 'songBlockCanvasDiv')
             .style('position', songBlockCanvas.position)
             .style('top', songBlockCanvas.top + 'px')
+            .style('left', songBlockCanvas.left + 'px')
+            //.style('background-color', 'white')
 
     }
 
@@ -588,11 +590,11 @@ class songBlockPositioning {
     }
 
     static #getXPos(d){
-        return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 11
+        return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 17
     }
 
     static #getYPos(d){
-        return (d.sectionIndex * 27) + (d.constructor.name === 'melodyBlock' ? 0 : 11)
+        return (d.sectionIndex * 40) + (d.constructor.name === 'melodyBlock' ? 0 : 17)
     }
 
     static #getTranslateString(x, y){
@@ -614,8 +616,18 @@ class songBlockStyling {
                 return 'purple'
 
             default:
-                return 'red'
+                if(variationFactor < 0){
+                    return 'lightYellow'
+                } else {
+                    return 'red'
+                }
+                
         }
+    }
+
+    static calculateStroke(d){
+        const variationFactor = this.#getVariationFactor(d)
+        if(variationFactor < 0){return 'lightGrey'}else{return this.calculateFill(d)}
     }
 
     static #getVariationFactor(d){
@@ -664,9 +676,11 @@ class blockEnter {
 
         groups.append('rect')
             .attr('class', d => d.constructor.name)
-            .attr('width', 10)
-            .attr('height', '10')
+            .attr('width', 14)
+            .attr('height', 14)
             .attr('fill', d => songBlockStyling.calculateFill(d))
+            .attr('stroke', d => songBlockStyling.calculateStroke(d))
+            .attr('stroke-width', 1)
 
 
         return groups

@@ -533,7 +533,7 @@ class songBlockCanvas {
     static svg = {}
     static blocks = []
     static width = 0
-    static height = 0
+    static height = 600
     static left = 72
     static top = 160
     static position = 'absolute'
@@ -565,6 +565,7 @@ class songBlockCanvasRendering {
             .style('position', songBlockCanvas.position)
             .style('top', songBlockCanvas.top + 'px')
             .style('left', songBlockCanvas.left + 'px')
+            .style('height', songBlockCanvas.height + 'px')
             //.style('background-color', 'white')
 
     }
@@ -572,6 +573,7 @@ class songBlockCanvasRendering {
     createSVGCanvas(){
         return songBlockCanvas.div.append('svg')
             .attr('id', 'songBlockCanvasSVG')
+            .attr('height', songBlockCanvas.height)
     }
 
     resize(delay, duration){

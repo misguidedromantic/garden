@@ -14,7 +14,12 @@ goodafterbad,verse1b,vb3,Bb3,Db4,Bb3,Gb;Gb/F;EbMi,2;2;4
 goodafterbad,verse1b,vb4,Gb3,F3,Eb3,EbMi;BbMi;Ab,2;2;4
 goodafterbad,verse1b,vb5,Eb3,F3,Bb3,Ab;Db;Gb,4;4;8
 goodafterbad,verse1b,vb5,Eb3,F3,Bb4,Ab;Db;EbMi,4;4;8
-goodafterbad,chorus1,cb1,Db4,Db4,Ab3,Gb,4
-goodafterbad,chorus1,cb2,Db4,Db4,Ab3,BbMi,4
-goodafterbad,chorus1,cb3,Db4,F4,Bb3,Ab;Db,4;4
-goodafterbad,chorus1,cb4,Eb4,F4,Gb3,EbMi;Db;Gb,8;8;8
+goodafterbad,chorus1a,cb1,Db4,Db4,Ab3,Gb,4
+goodafterbad,chorus1a,cb2,Db4,Db4,Ab3,BbMi,4
+goodafterbad,chorus1a,cb3,Eb4,F4,Bb3,Ab;Db,4;4
+goodafterbad,chorus1b,cb1,Bb3,Ab3,Db4,Gb,4
+goodafterbad,chorus1b,cb2,Bb3,Ab3,Db4,BbMi,4
+goodafterbad,chorus1b,cb3,Db4,F4,Bb3,Ab;Db,4;4
+goodafterbad,chorus1c,cb1,Bb3,Ab3,Db4,Gb,4
+goodafterbad,chorus1c,cb2,Bb3,Bb3,Ab3,BbMi,4
+goodafterbad,chorus1c,cb4,Gb3,F3,Ab2,EbMi;Db;Gb,8;8;8

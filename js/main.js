@@ -1,15 +1,18 @@
 window.onload = async function(){
-
     await loadData()
+    loadControllers()
+}
+
+async function loadData(){
+    await plansDataHandling.load()
+    await songsDataHandling.load()
+    return Promise.resolve()
+}
+
+function loadControllers(){
     navigation.setup()
     contentControl.setup()
 }
-
-function loadData(){
-    plansDataHandling.load()
-    return songsDataHandling.load()
-}
-
 
 function menuItemClicked(){
     const data = d3.select(this).data()
@@ -18,6 +21,7 @@ function menuItemClicked(){
     navigation.toggleSelection(clickedItem)
 
 }
+
 
 class navigation {
 

@@ -2,6 +2,7 @@ class plansDataHandling {
 
     static load(){
         this.#setPlans()
+        return Promise.resolve()
     }
 
     static getPlan(title){

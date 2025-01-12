@@ -8,15 +8,18 @@ class song {
     }
 }
 
-class songSection {
+class structuralSection {
     constructor(id){
         this.id = id
     }
 }
 
-class songPattern {
-
+class formalSection {
+    constructor(id){
+        this.id = id
+    }
 }
+
 
 class songBlock {
     constructor(item, blockType){
@@ -70,15 +73,21 @@ class songsDataHandling {
     }
 
     static async #loadData(){
-        this.songsData = await d3.csv('data/songs.csv')
-        this.songStructures = await d3.csv('data/songStructures.csv')
-        this.songPatterns = await d3.csv('data/songPatterns.csv')
+
+        const tableConnection = new airTableConnector()
+        this.songsData = await tableConnection.getAllRecordsFromTable('songs')
+        console.log(this.songsData)
+        this.formalSectionData = await tableConnection.getAllRecordsFromTable('formal_sections')
+        //this.songsData = await d3.csv('data/songs.csv')
+        //this.songStructures = await d3.csv('data/songStructures.csv')
+        //this.songPatterns = await d3.csv('data/songPatterns.csv')
         return Promise.resolve()
+
     }
 
     static #loadHandlers(){
-        this.sectionHandling = new songSectionHandling(this.songStructures)
-        this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
+        this.sectionHandling = new songSectionHandling(this.formalSectionData)
+        //this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
     }
 
     static #setupSongs(){
@@ -131,6 +140,7 @@ class songSectionHandling {
     }
 
     #getSectionDataForSong(songID){
+        console.log(this.sectionData)
         return this.sectionData.filter(element => element.songID === songID)
     }
 
@@ -158,7 +168,7 @@ class songSectionHandling {
                 return new outro (sectionID)  
 
             default:
-                return new songSection (sectionID)
+                return new structuralSection (sectionID)
         }
     }
 
@@ -498,31 +508,31 @@ class lyricLine {
 
 
 
-class intro extends songSection {
+class intro extends structuralSection {
     constructor(id){
         super(id)
     }
 }
 
-class verse extends songSection {
+class verse extends structuralSection {
     constructor(id){
         super(id)
     }
 }
 
-class chorus extends songSection {
+class chorus extends structuralSection {
     constructor(id){
         super(id)
     }
 }
 
-class bridge extends songSection {
+class bridge extends structuralSection {
     constructor(id){
         super(id)
     }
 }
 
-class outro extends songSection {
+class outro extends structuralSection {
     constructor(id){
         super(id)
     }

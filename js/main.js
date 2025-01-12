@@ -1,13 +1,22 @@
-window.onload = function(){
+window.onload = async function(){
+
+    await loadData()
     navigation.setup()
     contentControl.setup()
 }
+
+function loadData(){
+    plansDataHandling.load()
+    return songsDataHandling.load()
+}
+
 
 function menuItemClicked(){
     const data = d3.select(this).data()
     const clickedItem = data[0]
     navigation.updateNavigator(clickedItem)
     navigation.toggleSelection(clickedItem)
+
 }
 
 class navigation {
@@ -15,12 +24,12 @@ class navigation {
     static windowControl = {}
     static menuControl = {}
 
-    static setup(){
+    static async setup(){
         this.#loadControllers()
         this.#loadNavigator()
     }
 
-    static #loadControllers(){
+    static async #loadControllers(){
         this.windowControl = new navigatorWindowControl
         this.menuControl = new menuControl
     }
@@ -54,14 +63,7 @@ class navigation {
     }
 
     static async #loadSubMenuSelection(targetItem){
-        switch(targetItem.constructor.name){
-            case('plan'):
-                contentControl.loadPlan(targetItem)
-                break;
-
-            case('song'):
-                console.log(targetItem)
-        }
+        contentControl.update(targetItem)
     }
 
     static #hideSubMenuSelection(targetItem){
@@ -84,12 +86,36 @@ class navigation {
 class contentControl {
 
     static docControl = {}
+    static songBlockControl = {}
     
     static setup(){
+        this.setupDocControl()
+        this.setupSongBlockControl()
+    }
+
+    static setupSongBlockControl(){
+        this.songBlockControl = new songBlockControl
+        this.songBlockControl.createSongBlockCanvas()
+    }
+
+    static setupDocControl(){
         this.docControl = new docWindowControl
         this.docControl.createDocWindow()
     }
+    
+    static update(selectedItem){
+        switch(selectedItem.constructor.name){
+            case('plan'):
+                this.loadPlan(selectedItem)
+                break;
 
+            case('song'):
+                this.songBlockControl.loadSong(selectedItem)
+        }
+    }
+
+
+    
     static async loadPlan(plan){
 
         if(this.docControl.checkIfLoaded(plan.fileName)){

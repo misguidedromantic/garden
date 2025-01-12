@@ -21,7 +21,7 @@ class plansDataHandling {
 
     static async getPlanHTML(planTitle){
         const thisPlan = this.getPlan(planTitle)
-        const response = await fetch(thisPlan.fileName)
+        const response = await fetch('docs/' + thisPlan.fileName)
         const responseText = await response.text()
         const parser = new DOMParser()
         return parser.parseFromString(responseText, "text/html")

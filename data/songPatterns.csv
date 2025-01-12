@@ -1,0 +1,12 @@
+﻿songID,blockID,kickNote,peakNote,endNote,chordNames,chordLengths
+goodafterbad,vb1,Eb4,Db3,Bb3,EbMi;BbMi,4;4
+goodafterbad,vb2,C4,Bb3,Ab3,Ab;Db,4;4
+goodafterbad,vb3,Bb3,Db4,Bb3,Gb;Gb/F;EbMi,2;2;4
+goodafterbad,vb4,Gb3,F3,Eb3,EbMi;BbMi;Ab,2;2;4
+goodafterbad,vb5,Eb3,F3,Bb3,Ab;Db;Gb,4;4;8
+goodafterbad,cb1,Db4,Db4,Ab3,Gb,4
+goodafterbad,cb2,Db4,Db4,Ab3,BbMi,4
+goodafterbad,cb3,Db4,F4,Bb3,Ab;Db,4;4
+goodafterbad,cb4,Eb4,F4,Gb3,EbMi;Db;Gb,8;8;8
+goodafterbad,bb1,Gb2,F3,Db3,Gb,8
+goodafterbad,bb2,Gb2,F3,Db3,Db,8

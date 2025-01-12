@@ -123,15 +123,9 @@ class menuDataHandling {
     }
 
     #setSubMenuItems(){
-        this.#setupSubMenuDataHandlers()
         this.mainMenuItems.forEach(item => { 
             item.subMenu = this.#getTargetItems(item.title)    
         })
-    }
-
-    #setupSubMenuDataHandlers(){
-        plansDataHandling.load()
-        songsDataHandling.load()
     }
 
     #getTargetItems(itemTitle){
@@ -222,6 +216,7 @@ class menuItemEnter {
     enterText(groups){
         return groups.append('text')
             .text(d => d.title)
+            .style('font-size','14px')
             .attr('dy', '-.4em')
             .attr('fill', 'transparent')
     }

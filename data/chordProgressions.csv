@@ -1,0 +1,15 @@
+﻿songID,blockID,blockGroupID,chordID,chordName,chordLengthInBeats
+goodafterbad,b1,bg1,c1,EbMi,4
+goodafterbad,b1,bg1,c2,BbMi,4
+goodafterbad,b2,bg1,c1,Ab,4
+goodafterbad,b2,bg1,c2,Db,4
+goodafterbad,b3,bg1,c1,Gb,2
+goodafterbad,b3,bg1,c2,Gb/F,2
+goodafterbad,b3,bg1,c3,EbMi,4
+goodafterbad,b4,bg1,c1,EbMi,2
+goodafterbad,b4,bg1,c2,BbMi,2
+goodafterbad,b4,bg1,c3,Ab,4
+goodafterbad,b5,bg1,c1,Ab,4
+goodafterbad,b5,bg1,c2,Db,4
+goodafterbad,b5,bg1,c3,Gb,8
+toilingavoiding,b1,bg1,c1,C,1

@@ -1,0 +1,8 @@
+﻿songID,blockID,blockGroupID,peakNote,endNote
+goodafterbad,b1,bg1,Eb4,Bb3
+goodafterbad,b2,bg1,C4,Ab3
+goodafterbad,b3,bg1,Db4,Bb3
+goodafterbad,b4,bg1,Gb3,Eb3
+goodafterbad,b5,bg1,F3,Bb3
+goodafterbad,b1,bg2,F3,Bb3
+tonofnothing,b1,bg1,c4,c4

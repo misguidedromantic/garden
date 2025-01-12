@@ -7,17 +7,21 @@ class airTableConnector {
     async getAllRecordsFromTable(tableName){
         const tableID = airTableKeys.getTableID(tableName)
         const tableRecords = await this.base(tableID).select().all()
-        
         const records = []
         tableRecords.forEach(record => {
-            const fieldNames = Object.keys(record.fields)
-            let recordData = {}
-            fieldNames.forEach(fieldName => {
-                recordData[fieldName] = record.fields[fieldName]
-            })
+            const recordData = this.#getRecordData(record)
             records.push(recordData)
         })
         return records
+    }
+
+    #getRecordData(record){
+        const fieldNames = Object.keys(record.fields)
+        let recordData = {id: record.id}
+        fieldNames.forEach(fieldName => {
+            recordData[fieldName] = record.fields[fieldName]
+        })
+        return recordData
     }
 
     #getBase(baseName){
@@ -51,6 +55,9 @@ class airTableKeys {
 
             case 'formal_sections':
                 return 'tblkgwxEtjdA8pcyn'
+
+            case 'structural_sections':
+                return 'tbldd6TRnyiZYC57Y'
         }
     }
 

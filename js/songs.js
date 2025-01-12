@@ -2,23 +2,62 @@ class song {
     constructor(id, title){
         this.id = id
         this.title = title
-        this.sections = []
-        this.patternBlocks = []
-        this.structureBlocks = []
+        this.structure = []
+        this.form = []
+    }
+
+}
+
+class formalSection {
+    constructor(id, title, label){
+        this.id = id
+        this.title = title
+        this.label = label
     }
 }
 
 class structuralSection {
-    constructor(id){
-        this.id = id
+    constructor(sectionData){
+        this.id = sectionData.id
+        this.title = sectionData.title
+        this.sequence = sectionData.sequence_in_song
+        this.formSectionID = sectionData.formal_section_basis[0]
+    }
+
+
+}
+
+class intro extends structuralSection {
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 
-class formalSection {
-    constructor(id){
-        this.id = id
+class verse extends structuralSection {
+    constructor(sectionData){
+        super(sectionData)
     }
 }
+
+class chorus extends structuralSection {
+    constructor(sectionData){
+        super(sectionData)
+    }
+}
+
+class bridge extends structuralSection {
+    constructor(sectionData){
+        super(sectionData)
+    }
+}
+
+class outro extends structuralSection {
+    constructor(sectionData){
+        super(sectionData)
+    }
+}
+
+
 
 
 class songBlock {
@@ -73,38 +112,34 @@ class songsDataHandling {
     }
 
     static async #loadData(){
-
         const tableConnection = new airTableConnector()
         this.songsData = await tableConnection.getAllRecordsFromTable('songs')
-        console.log(this.songsData)
         this.formalSectionData = await tableConnection.getAllRecordsFromTable('formal_sections')
-        //this.songsData = await d3.csv('data/songs.csv')
-        //this.songStructures = await d3.csv('data/songStructures.csv')
-        //this.songPatterns = await d3.csv('data/songPatterns.csv')
+        this.structuralSectionData = await tableConnection.getAllRecordsFromTable('structural_sections')
         return Promise.resolve()
-
     }
 
     static #loadHandlers(){
-        this.sectionHandling = new songSectionHandling(this.formalSectionData)
+        this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
         //this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
     }
 
     static #setupSongs(){
         this.songsData.forEach(song => {
-            const thisSong = this.#createSong(song)
+            const thisSong = this.#createSong(song.id, song.title)
             this.#setupSong(thisSong)
             this.songs.push(thisSong)
         })
+        
     }
 
-    static #createSong(songData){
-        return new song(songData.songID, songData.songTitle)
+    static #createSong(id, title){
+        return new song(id, title)
     }
 
     static #setupSong(thisSong){
         this.sectionHandling.setupSections(thisSong)
-        this.blockHandling.setupBlocks(thisSong)
+        //this.blockHandling.setupBlocks(thisSong)
         return thisSong
     }
 
@@ -127,56 +162,67 @@ class songsDataHandling {
 
 class songSectionHandling {
 
-    constructor(sectionData){
-        this.sectionData = sectionData
+    constructor(formalSectionData, structuralSectionData){
+        this.formalSectionData = formalSectionData
+        this.structuralSectionData = structuralSectionData
     }
 
     setupSections(song){
-        const sectionIDs = this.#getSectionIDs(song.id)
-        sectionIDs.forEach(sectionID => {
-            const thisSection = this.#createSongSection(sectionID)
-            song.sections.push(thisSection)
+        this.#setupFormalSections(song)
+        this.#setupStructuralSections(song)
+        console.log(song.form)
+        console.log(song.structure)
+    }
+
+    #setupFormalSections(song){
+        const sectionData = this.#getSectionDataForSong(this.formalSectionData, song.id)
+        sectionData.forEach(sectionRecord => {
+            const section = this.#createFormalSection(sectionRecord)
+            song.form.push(section)
         })
     }
 
-    #getSectionDataForSong(songID){
-        console.log(this.sectionData)
-        return this.sectionData.filter(element => element.songID === songID)
+    #setupStructuralSections(song){
+        const sectionData = this.#getSectionDataForSong(this.structuralSectionData, song.id)
+        sectionData.forEach(sectionRecord => {
+            const section = this.#createSongSection(sectionRecord)
+            song.structure.push(section)
+        })
+        
     }
 
-    #getSectionIDs(songID){
-        const songSectionData = this.#getSectionDataForSong(songID)
-        return [...new Set (songSectionData.map(element => element.sectionID))]
+    #getSectionDataForSong(data, songID){
+        const filtered = data.filter(element => element.song[0] === songID)
+        return filtered.sort((a, b) => {
+            if(a.label < b.label) return -1
+            if(a.label > b.label) return 1
+            return 0
+        })
     }
 
-    #createSongSection (sectionID){
-        const sectionType = songSectionHandling.getSectionType(sectionID)
-        switch(sectionType){
+    #createFormalSection(sectionData){
+        return new formalSection (sectionData.id, sectionData.title, sectionData.label)
+    }
+
+    #createSongSection (sectionData){
+        switch(sectionData.type){
             case 'intro':
-                return new intro (sectionID)
+                return new intro (sectionData)
 
             case 'verse':
-                return new verse (sectionID)
+                return new verse (sectionData)
 
             case 'chorus':
-                return new chorus (sectionID)
+                return new chorus (sectionData)
 
             case 'bridge':
-                return new bridge (sectionID)
+                return new bridge (sectionData)
 
             case 'outro':
-                return new outro (sectionID)  
+                return new outro (sectionData)  
 
             default:
-                return new structuralSection (sectionID)
-        }
-    }
-
-    static getSectionType(sectionID){
-        for (let sectionType of ['intro','verse','chorus','bridge','outro']){
-            if(sectionID.includes(sectionType)){
-                return sectionType
-            }
+                return new structuralSection (sectionData)
         }
     }
 }
@@ -508,35 +554,7 @@ class lyricLine {
 
 
 
-class intro extends structuralSection {
-    constructor(id){
-        super(id)
-    }
-}
 
-class verse extends structuralSection {
-    constructor(id){
-        super(id)
-    }
-}
-
-class chorus extends structuralSection {
-    constructor(id){
-        super(id)
-    }
-}
-
-class bridge extends structuralSection {
-    constructor(id){
-        super(id)
-    }
-}
-
-class outro extends structuralSection {
-    constructor(id){
-        super(id)
-    }
-}
 
 class songBlockCanvas {
     static div = {}

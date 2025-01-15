@@ -1,8 +1,10 @@
-class airTableConnector {
+/* class airTableConnector {
 
     constructor(){
         this.base = this.#getBase('songs')
     }
+    
+   
 
     async getAllRecordsFromTable(tableName){
         const tableID = airTableKeys.getTableID(tableName)
@@ -14,6 +16,8 @@ class airTableConnector {
         })
         return records
     }
+
+    
 
     #getRecordData(record){
         const fieldNames = Object.keys(record.fields)
@@ -31,7 +35,38 @@ class airTableConnector {
         return new Airtable({apiKey: apiKey}).base(baseID);
     }
 
+} */
+
+class airtableExtractor {
+
+    async getAllRecordsInField(baseName, tableName, fieldName){
+        const base = this.#getBase(baseName)
+        const tableRecords = await this.#getTableRecords(base, tableName)
+        return this.#getFieldRecords(tableRecords, fieldName)
+    }
+
+    #getBase(baseName){
+        const apiKey = airTableKeys.getAPIKey()
+        const baseID = airTableKeys.getBaseID(baseName)
+        const Airtable = require('airtable');
+        return new Airtable({apiKey: apiKey}).base(baseID);
+    }
+
+    #getTableRecords(base, tableName){
+        const tableID = airTableKeys.getTableID(tableName)
+        return base(tableID).select().all()
+    }
+
+    #getFieldRecords(tableRecords, fieldName){
+        const records = []
+        tableRecords.forEach(record => {
+            records.push(record.get(fieldName))
+        })
+        return records
+    }
+
 }
+
 
 class airTableKeys {
 

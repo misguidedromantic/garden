@@ -1,7 +1,60 @@
 window.onload = async function(){
-    await loadData()
-    loadControllers()
+
+    function setupNavigatorWindow(){
+        navigatorWindowControl.initialise()
+        navigatorWindowControl.createContainers()
+    }
+
+    function loadMainMenu(){
+        menuControl.initialise()
+        menuControl.loadMain()
+        navigatorWindowControl.revealAsMainMenu()
+    }
+    
+    setupNavigatorWindow()
+    loadMainMenu()
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async function loadData(){
     await plansDataHandling.load()

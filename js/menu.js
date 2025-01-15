@@ -20,6 +20,20 @@ class subMenuItem extends menuItem {
 }
 
 class menuControl {
+
+    static #dataHandling = {}
+    static #rendering = {}
+
+    static initialise (){
+        this.#dataHandling = new menuDataHandling
+        this.#rendering = new menuRendering
+    }
+
+    static loadMain (){
+        this.#dataHandling.setMenuItems('main')
+        this.#rendering.renderItems(menu.items)
+    }
+
     constructor(){
         this.menuData = new menuDataHandling
         this.rendering = new menuRendering
@@ -64,12 +78,45 @@ class menuControl {
 }
 
 class menuDataHandling {
+
     constructor(){
-        this.mainMenuItems = []
-        this.selections = new menuSelections
-        this.#setMainMenuItems()
-        this.#setSubMenuItems()
+        //this.mainMenuItems = []
+         //this.selections = new menuSelections
+         //this.#setMainMenuItems()
+         //this.#setSubMenuItems()
+     }
+
+    setMenuItems(menuName){
+        switch (menuName){
+            case 'main':
+                menu.items = this.#getMainMenuItems()
+        }
     }
+
+    #getMainMenuItems(){
+        return [
+            new menuItem ('plans'),
+            new menuItem ('songs'),
+            new menuItem ('concepts')
+        ]
+    }
+
+    getSubMenuItems(mainMenuItemName){
+        switch(mainMenuItemName){
+            case 'plans':
+                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+            case 'songs':
+                return songsDataHandling.getTitles()
+            default:
+                return []
+        }
+        
+    }
+
+
+
+
+    
 
     update(clickedMenu, clickedItem){
         switch(clickedMenu){

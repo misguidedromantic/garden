@@ -8,19 +8,22 @@ class navigatorWindow {
     static top = 0
     static position = 'fixed'
     static borderRadius = 20
+    static divID = 'navigatorDiv'
+    static svgID = 'navigatorSVG'
 }
 
 class navigatorWindowControl {
-    constructor(){
+
+    static #settings = {}
+    static #rendering = {}
+
+/*     constructor(){
         this.settings = new navigatorWindowSettings
         this.rendering = new navigatorRendering
-    }
+    } */
 
-    createNavigator(){
-        navigatorWindow.div = this.rendering.createDiv()
-        navigatorWindow.svg = this.rendering.createSVGCanvas()
-    }
-
+    
+ 
     update(clickedMenu, clickedItem){
         switch(clickedMenu){
             case 'main':
@@ -51,11 +54,21 @@ class navigatorWindowControl {
         }
     }
 
-    revealAsMainMenu(){
-        this.settings.setForMainMenu()
-        this.rendering.resize(0, 0)
-        this.rendering.move(0, 0)
-        this.rendering.float(100, 300)
+    static initialise(){
+        this.#settings = new navigatorWindowSettings
+        this.#rendering = new navigatorRendering
+    }
+
+    static createContainers(){
+        navigatorWindow.div = this.#rendering.createDiv()
+        navigatorWindow.svg = this.#rendering.createSVGCanvas()
+    }
+
+    static revealAsMainMenu(){
+        this.#settings.setForMainMenu()
+        this.#rendering.resize(0, 0)
+        this.#rendering.move(0, 0)
+        this.#rendering.float(100, 300)
     }
 
     transitionSubToMain(){
@@ -107,14 +120,13 @@ class navigatorRendering {
     createDiv(){
         return d3.select('body')
             .append('div')
-            .attr('id', 'navigatorDiv')
-            .style('position', 'fixed')
-            .style('border-radius', '20px')
+            .attr('id', navigatorWindow.divID)
+            .style('position', navigatorWindow.position)
     }
 
     createSVGCanvas(){
         return navigatorWindow.div.append('svg')
-            .attr('id', 'navigatorSVG')
+        .attr('id', navigatorWindow.svgID)
     }
 
     resize(delay, duration){

@@ -1,3 +1,11 @@
+class navigatorWindow {
+
+    constructor(){
+
+    }
+
+}
+
 class navigatorWindowControl {
 
     #settings = {}
@@ -8,8 +16,9 @@ class navigatorWindowControl {
         this.#rendering = new navigatorRendering(navigator)
     }
 
-    update(notification){
-        switch(notification.newState){
+    update(data){
+        console.log(data)
+        switch(data.newConfigration){
             case 'main':
                 this.#transitionSubToMain()
                 break;

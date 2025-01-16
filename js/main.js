@@ -40,7 +40,7 @@ window.onload = function(){
         
         function renderMenuItems(){
             const navMenuRendering = new menuRendering(navigator.svg)
-            navMenuRendering.renderItems(navigatorMenu.items)
+            navMenuRendering.renderItems(navigatorMenu.items, navigatorMenu.configuration)
         }
     
         function renderNavigator(){
@@ -72,66 +72,80 @@ window.onload = function(){
 
 function onMenuItemClick(){
     const clickedItem = d3.select(this).data()[0]
-    navigation.menu.update(clickedItem)
-
+    navigation.menuSelectionChange(clickedItem)
 }
-
- 
 
 class notification {
-    constructor(source, previousState, newState){
-        this.source = source
-        this.previousState = previousState
-        this.newState = newState
-    }
-}
-
-
-class menuItem {
-    constructor(title){
-        this.title = title
-        this.selected = false
-    }
-}
-
-class mainMenuItem extends menuItem{
-    constructor(title){
-        super(title)
+    constructor(data, recipients){
+        this.data = data
+        this.recipients = recipients
+        this.send()
     }
 
-}
-
-class subMenuItem extends menuItem {
-    constructor(title, target){
-        super(title)
-        this.target = target
+    send(){
+        const message = this.compileMessage()
+        console.log(this.recipients)
+        this.recipients.forEach(recipient => recipient.update(data))
     }
-}
-
-class navigatorWindow {
-
-    constructor(){
-
-    }
-
-
-
-
-
 }
 
 
 class navigation {
 
     static #navigatorControl  = {}
+    static #menuSelections = {}
+    static #menuListMgmt = {}
+    static #menuConfigMgmt = {}
+
+    static #menuRendering = {}
 
     static initalise (navigator, menu){
-        this.navigator = navigator
-        this.menu = menu
-        this.#navigatorControl = new navigatorWindowControl(navigator, menu)
-        this.menu.subscribe(this.#navigatorControl)
+        this.#assignNavigationObjects(navigator, menu)
+        this.#initialiseControllers()
+        this.#setupSubscriptions()
     }
 
+    static menuSelectionChange(clickedItem){
+        this.#menuSelections.update(clickedItem, this.menu.configuration)
+    }
+
+    static #assignNavigationObjects(navigator, menu){
+        this.navigator = navigator
+        this.menu = menu
+    }
+
+    static #initialiseControllers(){
+        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.menu)
+        this.#menuSelections = new menuSelections(this.menu.items)
+        this.#menuListMgmt = new menuListManagement (this.menu.items)
+        this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
+        this.#menuRendering = new menuRendering (this.navigator.svg)
+    }
+
+    static #setupSubscriptions(){
+        this.#menuSelections.subscribe(this.#menuListMgmt)
+        this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
+        this.#menuConfigMgmt.subscribe(this.#menuRendering)
+        this.#menuConfigMgmt.subscribe(this.#navigatorControl)
+    }
+
+
+
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
     static updateNavigator(clickedItem){
         const clickedMenu =  this.menuControl.getMenuState()
         this.menuControl.update(clickedMenu, clickedItem)

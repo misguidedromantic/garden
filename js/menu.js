@@ -10,35 +10,253 @@ class menu {
     }
     
     update(clickedItem){ 
-        this.updateItemSelections(clickedItem)
-        this.updateConfiguration()
+
+        //update selections
+        //update list
+        //load or unload content
+        //render list
+        //transition layout
+
+        const config = this.configuration
+        const type = clickedItem.constructor.name
+        const selected = clickedItem.selected
+
+        if(config === 'main' && type === 'mainMenuItem'){
+            console.log('select item')
+            console.log('load sub menu items')
+            console.log('transition to sub config')
+        }
+
+        if(config !== 'main' && type === 'mainMenuItem'){
+            console.log('deselect all items')
+            console.log('load main menu items')
+            console.log('transition to main config')
+        }
+
+        if(config === 'sub' && type === 'subMenuItem'){
+            console.log('select subMenuItem')
+            console.log('load subMenuItem  content')
+        }
+
+        if(config === 'subSelect' && type === 'subMenuItem' && selected){
+            console.log('deselect subMenuItem')
+            console.log('unload subMenuItem content')
+        }
+
+        if(config === 'subSelect' && type === 'subMenuItem' && !selected){
+            console.log('select subMenuItem')
+            console.log('deselect previously selected subMenuItem')
+            console.log('unload previously selected sebmenuitem content')
+            console.log('load subMenuItem content')
+        }
+
+        //select target
+        //deselect target
+        //deselect all of target type except target
+        //deselect all
+
+        //load main menu items
+        //load selected main menu item + all its subMenu items
+        
+        //load selected subMenuItem content
+        //unload deselected subMenuItem content
+
+        //transition to main layout
+        //transition to sub layout
+        //transition to subSelect layout
+
+        //states: 
+        //  main->sub
+        //  sub->main
+        //  sub->subSelect
+        //  subSelect->sub
+        //  subSelect->main
+
+        //this.updateItemSelections(clickedItem)
+        //this.updateConfiguration()
+
+        
+        
+    }
+
+
+
+
+
+
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(sourceFunction, data){
+        new notification(sourceFunction, data, this.observers)
+    }
+
+    updateItemSelections(clickedItem){
+        const selections = new menuSelections (this.items)
+        this.configuration === 'main' ? selections.updateFromMain(clickedItem) : selections.updateFromSub(clickedItem)
+        this.notify('updateItemSelections', this.items)
+    }
+
+    
+    updateItemList(){
+
+    }
+
+    
+
+
+
+    getRenderedItemWidth(itemTitle){
+        return this.items.find(item => item.title === itemTitle).renderedWidth
+     }
+
+}
+
+
+class menuSelections {
+
+    constructor(items){
+        this.items = items
+        this.observers = []
     }
 
     subscribe(observer){
         this.observers.push(observer)
     }
 
-    notify(notification){
-        this.observers.forEach(observer => observer.update(notification))
+    notify(data){
+        this.observers.forEach(observer => observer.update(data))
     }
 
-    checkItemTypeSelection(itemType){
-        return this.items.some(item => item.constructor.name === itemType && item.selected)
+    update(clickedItem, clickedMenuConfig){
+
+        let updatedItems = []
+
+        switch(clickedMenuConfig){
+            case 'main':
+                clickedItem.selected = true
+                break;
+            case 'sub':
+                if(clickedItem.constructor.name === 'mainMenuItem'){
+                    updatedItems = this.#deslectAllItems() 
+                } else {
+                    updatedItems = this.#selectExclusive(clickedItem)
+                }
+                break;
+            case 'subSelect':
+                clickedItem.selected = false
+        }
+
+        updatedItems.push(clickedItem)
+        this.notify({updatedItems: updatedItems, previousConfig: clickedMenuConfig})
+
     }
 
-    updateItemSelections(clickedItem){
-        const selections = new menuSelections (this.items)
-        this.configuration === 'main' ? selections.updateFromMain(clickedItem) : selections.updateFromSub(clickedItem)
+    #deslectAllItems(){
+        const items = this.#getSelectedItems(this.items)
+        this.#deslectItems(items)
+        return items
     }
 
-    updateConfiguration(){
-        const prevConfig = this.configuration
-        const newConfig = this.#determineConfiguration()
-        if(newConfig !== prevConfig){
-            this.configuration = newConfig
-            this.notify(new notification(this.constructor.name, prevConfig, newConfig))
+    #selectExclusive(itemToSelect){
+        const itemsInClass = this.#getItemsInClass(itemToSelect)
+        const itemsToDeselect = this.#getSelectedItems(itemsInClass)
+        this.#deslectItems(itemsToDeselect)
+        itemToSelect.selected = true
+        return itemsToDeselect
+    }
+
+    #deslectItems(items){
+        items.forEach(item => item.selected = false)
+    }
+
+    #getItemsInClass(item){
+        const itemClass = item.constructor.name
+        return this.items.filter(item => item.constructor.name === itemClass)
+    }
+
+    #getSelectedItems(items){
+        return items.filter(item => item.selected)
+    }
+}
+
+class menuListManagement {
+
+    constructor(items){
+        this.items = items
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data){
+        this.observers.forEach(observer => observer.update(data))
+    }
+
+    async update(data){
+
+        if(data.updatedItems.length === 1){
+            const item = data.updatedItems[0]
+            if(item.constructor.name === 'mainMenuItem'){
+                item.selected ? data.updatedItems = await this.loadSubMenu(item) : data.updatedItems = this.loadMainMenu()
+                
+            }
+        }
+
+        this.notify(data)
+
+    }
+
+    loadMainMenu(){
+        return [
+            new mainMenuItem ('plans'),
+            new mainMenuItem ('songs'),
+            new mainMenuItem ('concepts')
+        ]
+    }
+
+    async loadSubMenu(mainMenuItem){
+        const subMenuItems = await this.getSubMenuItems(mainMenuItem.title)
+        return [...[mainMenuItem], ...subMenuItems]
+    }
+
+    async getSubMenuItems(mainMenuItemName){
+        switch(mainMenuItemName){
+            case 'plans':
+                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+            case 'songs':
+                const songTitles = await songsDataHandling.getTitles()
+                return songTitles.map(songTitle => new subMenuItem(songTitle))
+            default:
+                return []
         }
     }
+}
+
+class menuConfigurationManagement {
+
+    constructor(menu){
+        this.menu = menu
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data){
+        this.observers.forEach(observer => observer.update(data))
+    }
+
+    update(data){
+        data.newConfiguration = this.#determineConfiguration()
+        this.notify(data)
+    }
+
 
     #determineConfiguration(){
         if(!this.checkItemTypeSelection('mainMenuItem')){
@@ -52,6 +270,38 @@ class menu {
         return 'subSelect'
     }
 
+    checkItemTypeSelection(itemType){
+        return this.menu.items.some(item => item.constructor.name === itemType && item.selected)
+    }
+
+}
+
+
+
+
+
+
+
+
+class menuItem {
+    constructor(title){
+        this.title = title
+        this.selected = false
+    }
+}
+
+class mainMenuItem extends menuItem{
+    constructor(title){
+        super(title)
+    }
+
+}
+
+class subMenuItem extends menuItem {
+    constructor(title, target){
+        super(title)
+        this.target = target
+    }
 }
 
 class menuControl {
@@ -113,9 +363,7 @@ class menuControl {
         this.rendering.setRenderedItemWidths()
     } */
 
-    getRenderedItemWidth(itemTitle){
-       return menu.items.find(item => item.title === itemTitle).renderedWidth
-    }
+    
 
     setMenuState(){
         menu.state = this.getMenuState()
@@ -153,66 +401,6 @@ class menuDataHandling {
          //this.#setSubMenuItems()
      }
 
-    setMenuItems(menuName){
-        switch (menuName){
-            case 'main':
-                menu.items = this.#getMainMenuItems()
-        }
-    }
-
-    updateMenu(clickedItem){
-        
-        switch(clickedItem.constructor.name){
-            case 'mainMenuItem':
-
-                break;
-        }
-
-    }
-
-    #getMainMenuItems(){
-        return [
-            new mainMenuItem ('plans'),
-            new mainMenuItem ('songs'),
-            new mainMenuItem ('concepts')
-        ]
-    }
-
-
-
-    getSubMenuItems(mainMenuItemName){
-        switch(mainMenuItemName){
-            case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
-            case 'songs':
-                return songsDataHandling.getTitles()
-            default:
-                return []
-        }
-        
-    }
-
-
-
-
-    
-
-    /* update(clickedMenu, clickedItem){
-        switch(clickedMenu){
-            case 'main':
-                this.#updateFromMain(clickedItem)
-                break;
-
-            case 'sub':
-            case 'subSelect':
-                this.#updateFromSub(clickedItem)
-                break;
-
-            default:
-                this.#setToMainMenu()
-
-        }
-    } */
 
     #updateFromMain(clickedItem){
         if(clickedItem.subMenu.length > 0){
@@ -266,45 +454,7 @@ class menuDataHandling {
     }
 }
 
-class menuSelections {
 
-    constructor(items){
-        this.items = items
-    }
-
-    updateFromMain(clickedItem){
-        clickedItem.selected = true
-    }
-    
-    updateFromSub(clickedItem){
-        clickedItem.constructor.name === 'mainMenuItem' ? this.#updateMainItemOnSub() : this.#updateSubItemOnSub(clickedItem) 
-    }
-
-    #updateMainItemOnSub(){
-        this.#deslectAllItems()    
-    }
-    
-    #updateSubItemOnSub(clickedItem){
-        clickedItem.selected ? clickedItem.selected = false : this.#selectExclusive(clickedItem)
-    }
-
-    #selectExclusive(itemToSelect){
-        const itemsInClass = this.#getItemsInClass(itemToSelect)
-        itemsInClass.forEach(item => {
-            item === itemToSelect ? item.selected = true : item.selected = false
-        });
-
-    }
-
-    #getItemsInClass(item){
-        const itemClass = item.constructor.name
-        return this.items.filter(item => item.constructor.name === itemClass)
-    }
-
-    #deslectAllItems(){
-        this.items.forEach(item => item.selected = false)
-    }
-}
 
 
 class menuRendering {
@@ -313,8 +463,9 @@ class menuRendering {
         this.svg = svg
     }
 
-    update(menu){
-        this.renderItems(menu.items, menu.configuration)
+    update(data){
+        console.log(data.updatedItems)
+        this.renderItems(data.updatedItems, data.newConfiguration)
     }
 
     renderItems(data, menuConfig){
@@ -326,7 +477,7 @@ class menuRendering {
             .data(data, d => d.title)
             .join(
                 enter => enterControl.enterItems(enter),
-                update => updateControl.updateItems(update),
+                update => updateControl.updateItems(update, menuConfig),
                 exit => exitControl.exitItems(exit)
             )
     }

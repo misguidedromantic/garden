@@ -1,102 +1,85 @@
-class navigatorWindow {
-    static div = {}
-    static svg = {}
-    static items = []
-    static width = 0
-    static height = 0
-    static left = 0
-    static top = 0
-    static position = 'fixed'
-    static borderRadius = 20
-    static divID = 'navigatorDiv'
-    static svgID = 'navigatorSVG'
-}
-
 class navigatorWindowControl {
 
-    static #settings = {}
-    static #rendering = {}
+    #settings = {}
+    #rendering = {}
 
-/*     constructor(){
-        this.settings = new navigatorWindowSettings
-        this.rendering = new navigatorRendering
-    } */
+    constructor(navigator, menu){
+        this.#settings = new navigatorWindowSettings(navigator, menu)
+        this.#rendering = new navigatorRendering(navigator)
+    }
 
-    
- 
-    update(clickedMenu, clickedItem){
-        switch(clickedMenu){
+    update(notification){
+        switch(notification.newState){
             case 'main':
-                this.updateFromMain(clickedItem)
+                this.#transitionSubToMain()
                 break;
-
             case 'sub':
-            case 'subSelect':
-                this.updateFromSub(clickedItem)
+                this.#transitionMainToSub()
                 break;
-
-            default:
-                this.revealAsMainMenu()
+            case 'subSelect':
+                this.#transitionSubToSubSelect()
         }
     }
 
-    updateFromMain(clickedItem){
-        if (clickedItem.subMenu.length > 0){
-            this.transitionMainToSub()
-        }
-    }
-
-    updateFromSub(clickedItem){
-        if(clickedItem.constructor.name === 'menuItem'){
-            this.transitionSubToMain()
-        } else {
-            this.transitionSubToSubSelect()
-        }
-    }
-
-    static initialise(){
-        this.#settings = new navigatorWindowSettings
-        this.#rendering = new navigatorRendering
-    }
-
-    static createContainers(){
-        navigatorWindow.div = this.#rendering.createDiv()
-        navigatorWindow.svg = this.#rendering.createSVGCanvas()
-    }
-
-    static revealAsMainMenu(){
+    #transitionSubToMain(){
         this.#settings.setForMainMenu()
-        this.#rendering.resize(0, 0)
-        this.#rendering.move(0, 0)
+        this.#rendering.resize(0, 400)
+        this.#rendering.move(0, 400)
         this.#rendering.float(100, 300)
     }
 
-    transitionSubToMain(){
-        this.settings.setForMainMenu()
-        this.rendering.resize(0, 400)
-        this.rendering.move(0, 400)
-        this.rendering.float(100, 300)
-
+    #transitionSubToSubSelect(){
+        this.#settings.setForSubSelectMenu()
+        this.#rendering.resize(0, 0)
     }
 
-    transitionSubToSubSelect(){
-        this.settings.setForSubSelectMenu()
-        this.rendering.resize(0, 0)
+    #transitionMainToSub(){
+        this.#settings.setForSubMenu()
+        this.#rendering.resize(0, 400)
+        this.#rendering.move(0, 400)
+        this.#rendering.float(100, 300)
     }
 
-    transitionMainToSub(){
-        this.settings.setForSubMenu()
-        this.rendering.resize(0, 400)
-        this.rendering.move(0, 400)
-        this.rendering.float(100, 300)
+}
+
+class navigatorRendering {
+
+    constructor(navigator){
+        this.navigator = navigator
+    }
+
+    resize(delay, duration){
+        this.navigator.div.transition('tSizing').delay(delay).duration(duration)
+            .style('width', this.navigator.width + 'px')
+            .style('height', this.navigator.height + 'px')
+    }
+
+    float(delay, duration){
+        this.navigator.div.transition('tFloat')
+            .delay(delay)
+            .duration(duration)
+                .style('background-color', this.navigator.backgroundColour)
+                .style('border-radius', this.navigator.borderRadius + 'px')
+                .style('box-shadow', this.navigator.boxShadow)
+    }
+
+    move(delay, duration){
+        this.navigator.div.transition('tMove')
+            .delay(delay)
+            .duration(duration)
+            .style('left', this.navigator.left + "px")
+            .style('top', this.navigator.top + "px")
     }
 }
 
 class navigatorWindowSettings{
-    constructor(){
-        this.sizing = new navigatorSizing
-        this.positioning = new navigatorPositioning
-        this.float = new navigatorFloat
+    
+    constructor(navigator, menu){
+        this.navigator = navigator
+        this.menu = menu
+        this.sizing = new navigatorSizing(navigator, menu)
+        this.positioning = new navigatorPositioning(navigator)
+        this.float = new navigatorFloat(navigator)
     }
 
     setForMainMenu(){
@@ -116,62 +99,30 @@ class navigatorWindowSettings{
     }
 }
 
-class navigatorRendering {
-    createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', navigatorWindow.divID)
-            .style('position', navigatorWindow.position)
-    }
-
-    createSVGCanvas(){
-        return navigatorWindow.div.append('svg')
-        .attr('id', navigatorWindow.svgID)
-    }
-
-    resize(delay, duration){
-        navigatorWindow.div.transition('tSizing').delay(delay).duration(duration)
-            .style('width', navigatorWindow.width + 'px')
-            .style('height', navigatorWindow.height + 'px')
-    }
-
-    float(delay, duration){
-        navigatorWindow.div.transition('tFloat')
-            .delay(delay)
-            .duration(duration)
-                .style('background-color', navigatorWindow.backgroundColour)
-                .style('border-radius', navigatorWindow.borderRadius + 'px')
-                .style('box-shadow', navigatorWindow.boxShadow)
-    }
-
-    move(delay, duration){
-        navigatorWindow.div.transition('tMove')
-            .delay(delay)
-            .duration(duration)
-            .style('left', navigatorWindow.left + "px")
-            .style('top', navigatorWindow.top + "px")
-    }
-}
-
 class navigatorSizing{
 
+    constructor(navigator, menu){
+        this.navigator = navigator
+        this.menu = menu
+    }
+
     fitToContents(){
-        navigatorWindow.width = this.#setWidthToContents()
-        navigatorWindow.height = this.#setHeightToContents()
+        this.navigator.width = this.#setWidthToContents()
+        this.navigator.height = this.#setHeightToContents()
     }
 
     #setWidthToContents(){
         const widestItemWidth = this.#getWidestItemWidth()
-        return widestItemWidth + (menu.padding * 2)
+        return widestItemWidth + (this.menu.padding * 2)
     }
 
     #setHeightToContents(){
-        const itemCount = menu.items.length - (menu.state === 'subSelect' ? 1 : 0)
-        return (itemCount) * menu.ySpacing + (menu.padding * 2)
+        const itemCount = this.menu.items.length - (this.menu.state === 'subSelect' ? 1 : 0)
+        return (itemCount) * this.menu.ySpacing + (this.menu.padding * 2)
     }
 
     #getWidestItemWidth(){
-        const groups = navigatorWindow.svg.selectAll('g')
+        const groups = this.navigator.svg.selectAll('g')
         let widestWidth = 0
         
         groups.each(function(){
@@ -186,9 +137,14 @@ class navigatorSizing{
 }
 
 class navigatorPositioning{
+
+    constructor(navigator){
+        this.navigator = navigator
+    }
+
     positionCentre(){
-        const left = window.innerWidth / 2 - navigatorWindow.width / 2
-        const top = window.innerHeight / 2 - navigatorWindow.height / 2
+        const left = window.innerWidth / 2 - this.navigator.width / 2
+        const top = window.innerHeight / 2 - this.navigator.height / 2
         this.set(left, top)
     }
 
@@ -199,12 +155,17 @@ class navigatorPositioning{
     }
 
     set(left, top){
-        navigatorWindow.left = left
-        navigatorWindow.top = top
+        this.navigator.left = left
+        this.navigator.top = top
     }
 }
 
 class navigatorFloat {
+
+    constructor(navigator){
+        this.navigator = navigator
+    }
+
     floatOffBackground(){
         this.#setStyles('white', 20, '0 4px 8px rgba(0, 0, 0, 0.2)')
     }
@@ -214,8 +175,8 @@ class navigatorFloat {
     }
 
     #setStyles(backgroundColour, borderRadius, boxShadow){
-        navigatorWindow.backgroundColour = backgroundColour
-        navigatorWindow.borderRadius = borderRadius
-        navigatorWindow.boxShadow = boxShadow
+        this.navigator.backgroundColour = backgroundColour
+        this.navigator.borderRadius = borderRadius
+        this.navigator.boxShadow = boxShadow
     }
 }

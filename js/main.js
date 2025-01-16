@@ -1,100 +1,135 @@
-window.onload = async function(){
+window.onload = function(){
+    
+    function createNavigator (){
 
-    function setupNavigatorWindow(){
-        navigatorWindowControl.initialise()
-        navigatorWindowControl.createContainers()
-    }
-
-    function loadMainMenu(){
-        menuControl.initialise()
-        menuControl.loadMain()
-        navigatorWindowControl.revealAsMainMenu()
+        function createDiv(id, position){
+            return d3.select('body')
+                .append('div')
+                .attr('id', id)
+                .style('position', position)
+        }
+    
+        function createSVGCanvas(id, div){
+            return div.append('svg')
+            .attr('id', id)
+        }
+    
+        const nav = new navigatorWindow
+        nav.div = createDiv('navigatorDiv', 'fixed')
+        nav.svg = createSVGCanvas('navigatorSVG', nav.div)
+        return nav
+    
     }
     
-    setupNavigatorWindow()
-    loadMainMenu()
+    function createMenu (){
+        
+        function getMainMenuItems(){
+            return [
+                new mainMenuItem ('plans'),
+                new mainMenuItem ('songs'),
+                new mainMenuItem ('concepts')
+            ]
+        }
+       
+        const navMenu = new menu ('main')
+        navMenu.items = getMainMenuItems()
+        return navMenu
+    }
+    
+    function loadMenuInNavigator (navigator, navigatorMenu){
+        
+        function renderMenuItems(){
+            const navMenuRendering = new menuRendering(navigator.svg)
+            navMenuRendering.renderItems(navigatorMenu.items)
+        }
+    
+        function renderNavigator(){
+            const settings = new navigatorWindowSettings(navigator, navigatorMenu)
+            const rendering = new navigatorRendering(navigator)
+    
+            settings.setForMainMenu()
+            rendering.resize(0, 0)
+            rendering.move(0, 0)
+            rendering.float(100, 300)
+    
+        }
+    
+        renderMenuItems()
+        renderNavigator()
+    
+    }
+
+    function handoverControl(navigator, menu){
+        navigation.initalise(navigator, menu)
+    }
+
+    const navigator = createNavigator()
+    const navigatorMenu = createMenu()
+    loadMenuInNavigator(navigator, navigatorMenu)
+    handoverControl(navigator, navigatorMenu)
 
 }
 
+function onMenuItemClick(){
+    const clickedItem = d3.select(this).data()[0]
+    navigation.menu.update(clickedItem)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async function loadData(){
-    await plansDataHandling.load()
-    await songsDataHandling.load()
-    return Promise.resolve()
 }
 
-function loadControllers(){
-    navigation.setup()
-    contentControl.setup()
+ 
+
+class notification {
+    constructor(source, previousState, newState){
+        this.source = source
+        this.previousState = previousState
+        this.newState = newState
+    }
 }
 
-function menuItemClicked(){
-    const data = d3.select(this).data()
-    const clickedItem = data[0]
-    navigation.updateNavigator(clickedItem)
-    navigation.toggleSelection(clickedItem)
+
+class menuItem {
+    constructor(title){
+        this.title = title
+        this.selected = false
+    }
+}
+
+class mainMenuItem extends menuItem{
+    constructor(title){
+        super(title)
+    }
+
+}
+
+class subMenuItem extends menuItem {
+    constructor(title, target){
+        super(title)
+        this.target = target
+    }
+}
+
+class navigatorWindow {
+
+    constructor(){
+
+    }
+
+
+
+
 
 }
 
 
 class navigation {
 
-    static windowControl = {}
-    static menuControl = {}
+    static #navigatorControl  = {}
 
-    static async setup(){
-        this.#loadControllers()
-        this.#loadNavigator()
-    }
-
-    static async #loadControllers(){
-        this.windowControl = new navigatorWindowControl
-        this.menuControl = new menuControl
-    }
-
-    static #loadNavigator(){
-        this.windowControl.createNavigator()
-        this.menuControl.update()
-        this.windowControl.update()
+    static initalise (navigator, menu){
+        this.navigator = navigator
+        this.menu = menu
+        this.#navigatorControl = new navigatorWindowControl(navigator, menu)
+        this.menu.subscribe(this.#navigatorControl)
     }
 
     static updateNavigator(clickedItem){

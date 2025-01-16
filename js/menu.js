@@ -1,32 +1,76 @@
 class menu {
-    static items = []
-    static state = 'main'
-    static ySpacing = 20
-    static padding = 20
-}
 
-class menuItem {
-    constructor(title){
-        this.title = title
-        this.selected = false
-    }
-}
+    constructor(configuration){
+        this.configuration = configuration
+        this.items = []
+        this.observers = []
+        this.ySpacing = 20
+        this.padding = 20
 
-class subMenuItem extends menuItem {
-    constructor(title, target){
-        super(title)
-        this.target = target
     }
+    
+    update(clickedItem){ 
+        this.updateItemSelections(clickedItem)
+        this.updateConfiguration()
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(notification){
+        this.observers.forEach(observer => observer.update(notification))
+    }
+
+    checkItemTypeSelection(itemType){
+        return this.items.some(item => item.constructor.name === itemType && item.selected)
+    }
+
+    updateItemSelections(clickedItem){
+        const selections = new menuSelections (this.items)
+        this.configuration === 'main' ? selections.updateFromMain(clickedItem) : selections.updateFromSub(clickedItem)
+    }
+
+    updateConfiguration(){
+        const prevConfig = this.configuration
+        const newConfig = this.#determineConfiguration()
+        if(newConfig !== prevConfig){
+            this.configuration = newConfig
+            this.notify(new notification(this.constructor.name, prevConfig, newConfig))
+        }
+    }
+
+    #determineConfiguration(){
+        if(!this.checkItemTypeSelection('mainMenuItem')){
+            return 'main'
+        }
+
+        if(!this.checkItemTypeSelection('subMenuItem')){
+            return 'sub'
+        }
+
+        return 'subSelect'
+    }
+
 }
 
 class menuControl {
 
+    static #menu = {}
     static #dataHandling = {}
     static #rendering = {}
+    static #selections = {}
+    static #subscribers = []
 
-    static initialise (){
+    static initialise (menu){
+        this.#menu = menu
         this.#dataHandling = new menuDataHandling
         this.#rendering = new menuRendering
+        this.#selections = new menuSelections
+    }
+
+    static getMenu (){
+        return this.#menu
     }
 
     static loadMain (){
@@ -34,17 +78,40 @@ class menuControl {
         this.#rendering.renderItems(menu.items)
     }
 
+
+
+    static update(clickedItem){
+
+        this.#selections.update('main', clickedItem)
+
+
+        //make selection changes
+            //data
+            //render
+
+
+        //transition menu
+            //load/unload submenu
+            //
+        //transition navigator
+        //load target
+    }
+
+    static notify(){
+        //menu
+    }
+
     constructor(){
         this.menuData = new menuDataHandling
         this.rendering = new menuRendering
     }
 
-    update(clickedMenu, clickedItem){
+/*     update(clickedMenu, clickedItem){
         this.menuData.update(clickedMenu, clickedItem)
         this.setMenuState()
         this.rendering.renderItems(menu.items)
         this.rendering.setRenderedItemWidths()
-    }
+    } */
 
     getRenderedItemWidth(itemTitle){
        return menu.items.find(item => item.title === itemTitle).renderedWidth
@@ -93,13 +160,25 @@ class menuDataHandling {
         }
     }
 
+    updateMenu(clickedItem){
+        
+        switch(clickedItem.constructor.name){
+            case 'mainMenuItem':
+
+                break;
+        }
+
+    }
+
     #getMainMenuItems(){
         return [
-            new menuItem ('plans'),
-            new menuItem ('songs'),
-            new menuItem ('concepts')
+            new mainMenuItem ('plans'),
+            new mainMenuItem ('songs'),
+            new mainMenuItem ('concepts')
         ]
     }
+
+
 
     getSubMenuItems(mainMenuItemName){
         switch(mainMenuItemName){
@@ -118,7 +197,7 @@ class menuDataHandling {
 
     
 
-    update(clickedMenu, clickedItem){
+    /* update(clickedMenu, clickedItem){
         switch(clickedMenu){
             case 'main':
                 this.#updateFromMain(clickedItem)
@@ -133,7 +212,7 @@ class menuDataHandling {
                 this.#setToMainMenu()
 
         }
-    }
+    } */
 
     #updateFromMain(clickedItem){
         if(clickedItem.subMenu.length > 0){
@@ -188,16 +267,25 @@ class menuDataHandling {
 }
 
 class menuSelections {
-    updateSubMenuSelection(clickedItem){
-        clickedItem.selected ? this.deselect(clickedItem) : this.#selectExclusive(clickedItem)
+
+    constructor(items){
+        this.items = items
     }
 
-    select(item){
-        item.selected = true
+    updateFromMain(clickedItem){
+        clickedItem.selected = true
+    }
+    
+    updateFromSub(clickedItem){
+        clickedItem.constructor.name === 'mainMenuItem' ? this.#updateMainItemOnSub() : this.#updateSubItemOnSub(clickedItem) 
     }
 
-    deselect(item){
-        item.selected = false
+    #updateMainItemOnSub(){
+        this.#deslectAllItems()    
+    }
+    
+    #updateSubItemOnSub(clickedItem){
+        clickedItem.selected ? clickedItem.selected = false : this.#selectExclusive(clickedItem)
     }
 
     #selectExclusive(itemToSelect){
@@ -210,22 +298,31 @@ class menuSelections {
 
     #getItemsInClass(item){
         const itemClass = item.constructor.name
-        return menu.items.filter(item => item.constructor.name === itemClass)
+        return this.items.filter(item => item.constructor.name === itemClass)
     }
 
-    deslectAllItems(){
-        menu.items.forEach(item => item.selected = false)
+    #deslectAllItems(){
+        this.items.forEach(item => item.selected = false)
     }
 }
 
 
 class menuRendering {
-    renderItems(data){
+
+    constructor(svg){
+        this.svg = svg
+    }
+
+    update(menu){
+        this.renderItems(menu.items, menu.configuration)
+    }
+
+    renderItems(data, menuConfig){
         const enterControl = new menuItemEnter
         const updateControl = new menuItemUpdate
         const exitControl = new menuItemExit
         
-        const groups = navigatorWindow.svg.selectAll('g')
+        const groups = this.svg.selectAll('g')
             .data(data, d => d.title)
             .join(
                 enter => enterControl.enterItems(enter),
@@ -257,7 +354,7 @@ class menuItemEnter {
         return selection.append('g')
             .attr('id', d => d.title)
             .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i))
-            .on('click', menuItemClicked)
+            .on('click', onMenuItemClick)
     }
 
     enterText(groups){
@@ -289,9 +386,9 @@ class menuItemEnter {
 
 class menuItemUpdate {
 
-    updateItems(selection){
+    updateItems(selection, menuConfig){
         const groups = this.updateGroups(selection)
-        const text = this.updateText(groups)
+        const text = this.updateText(groups, menuConfig)
     }
 
     updateGroups(selection){
@@ -305,7 +402,7 @@ class menuItemUpdate {
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menu.state === 'subSelect' ? 'grey' : 'black')
+            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menuConfig === 'subSelect' ? 'grey' : 'black')
     }
 }
 

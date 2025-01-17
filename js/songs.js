@@ -57,9 +57,6 @@ class outro extends structuralSection {
     }
 }
 
-
-
-
 class songBlock {
     constructor(item, blockType){
         this.id = item.blockID + blockType

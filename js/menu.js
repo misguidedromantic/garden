@@ -117,8 +117,8 @@ class menu {
 
 class menuSelections {
 
-    constructor(items){
-        this.items = items
+    constructor(menu){
+        this.menu = menu
         this.observers = []
     }
 
@@ -137,25 +137,29 @@ class menuSelections {
         switch(clickedMenuConfig){
             case 'main':
                 clickedItem.selected = true
+                updatedItems.push(clickedItem)
                 break;
             case 'sub':
                 if(clickedItem.constructor.name === 'mainMenuItem'){
                     updatedItems = this.#deslectAllItems() 
                 } else {
                     updatedItems = this.#selectExclusive(clickedItem)
+                    console.log(updatedItems)
                 }
                 break;
             case 'subSelect':
                 clickedItem.selected = false
+                updatedItems.push(clickedItem)
         }
 
-        updatedItems.push(clickedItem)
+        console.log(updatedItems)
+        console.log(this.menu.items)
         this.notify({updatedItems: updatedItems, previousConfig: clickedMenuConfig})
 
     }
 
     #deslectAllItems(){
-        const items = this.#getSelectedItems(this.items)
+        const items = this.#getSelectedItems(this.menu.items)
         this.#deslectItems(items)
         return items
     }
@@ -165,7 +169,7 @@ class menuSelections {
         const itemsToDeselect = this.#getSelectedItems(itemsInClass)
         this.#deslectItems(itemsToDeselect)
         itemToSelect.selected = true
-        return itemsToDeselect
+        return [...[itemToSelect],...itemsToDeselect]
     }
 
     #deslectItems(items){
@@ -174,7 +178,7 @@ class menuSelections {
 
     #getItemsInClass(item){
         const itemClass = item.constructor.name
-        return this.items.filter(item => item.constructor.name === itemClass)
+        return this.menu.items.filter(item => item.constructor.name === itemClass)
     }
 
     #getSelectedItems(items){
@@ -184,8 +188,8 @@ class menuSelections {
 
 class menuListManagement {
 
-    constructor(items){
-        this.items = items
+    constructor(menu){
+        this.menu = menu
         this.observers = []
     }
 
@@ -194,6 +198,7 @@ class menuListManagement {
     }
 
     notify(data){
+        data.updatedItems = this.menu.items
         this.observers.forEach(observer => observer.update(data))
     }
 
@@ -201,14 +206,16 @@ class menuListManagement {
 
         if(data.updatedItems.length === 1){
             const item = data.updatedItems[0]
+            console.log(item)
             if(item.constructor.name === 'mainMenuItem'){
-                item.selected ? data.updatedItems = await this.loadSubMenu(item) : data.updatedItems = this.loadMainMenu()
+                item.selected ? this.menu.items = await this.loadSubMenu(item) : this.menu.items = this.loadMainMenu()
                 
             }
         }
 
-        this.notify(data)
+        console.log(this.menu.items)
 
+        this.notify(data)
     }
 
     loadMainMenu(){
@@ -265,26 +272,28 @@ class menuConfigurationManagement {
         this.observers.push(observer)
     }
 
-    notify(data){
+    notify(data, newConfig){
+        data.newConfiguration = newConfig
         this.observers.forEach(observer => observer.update(data))
     }
 
     update(data){
-        data.newConfiguration = this.#determineConfiguration()
-        this.notify(data)
+        this.menu.configuration = this.#determineConfiguration()
+        this.notify(data, this.menu.configuration)
     }
 
-
     #determineConfiguration(){
-        if(!this.checkItemTypeSelection('mainMenuItem')){
-            return 'main'
-        }
+        const mainSelected = this.checkItemTypeSelection('mainMenuItem')
+        const subSelected = this.checkItemTypeSelection('subMenuItem')
 
-        if(!this.checkItemTypeSelection('subMenuItem')){
+        if(subSelected && mainSelected){
+            return 'subSelect'
+        } else if (!mainSelected && !subSelected) {
+            return 'main'
+        } else if (mainSelected){
             return 'sub'
         }
 
-        return 'subSelect'
     }
 
     checkItemTypeSelection(itemType){
@@ -343,15 +352,15 @@ class menuRendering {
     }
 
     renderItems(data, menuConfig){
-        const enterControl = new menuItemEnter
-        const updateControl = new menuItemUpdate
-        const exitControl = new menuItemExit
+        const enterControl = new menuItemEnter(menuConfig)
+        const updateControl = new menuItemUpdate(menuConfig)
+        const exitControl = new menuItemExit(menuConfig)
         
         const groups = this.svg.selectAll('g')
             .data(data, d => d.title)
             .join(
                 enter => enterControl.enterItems(enter),
-                update => updateControl.updateItems(update, menuConfig),
+                update => updateControl.updateItems(update),
                 exit => exitControl.exitItems(exit)
             )
     }
@@ -368,6 +377,10 @@ class menuRendering {
 
 class menuItemEnter {
 
+    constructor(menuConfig){
+        this.menuConfig = menuConfig
+    }
+
     enterItems(selection){
         const groups = this.enterGroups(selection)
         const text = this.enterText(groups)
@@ -378,7 +391,7 @@ class menuItemEnter {
     enterGroups(selection){
         return selection.append('g')
             .attr('id', d => d.title)
-            .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i))
+            .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i, this.menuConfig))
             .on('click', onMenuItemClick)
     }
 
@@ -411,27 +424,35 @@ class menuItemEnter {
 
 class menuItemUpdate {
 
-    updateItems(selection, menuConfig){
+    constructor(menuConfig){
+        this.menuConfig = menuConfig
+    }
+
+    updateItems(selection){
         const groups = this.updateGroups(selection)
-        const text = this.updateText(groups, menuConfig)
+        const text = this.updateText(groups)
     }
 
     updateGroups(selection){
         return selection.transition()
             .duration(400)
             .attr('transform', (d, i) => {
-                return menuItemPositioning.calculateTranslate(d, i)
+                return menuItemPositioning.calculateTranslate(d, i, this.menuConfig)
             })
     }
 
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menuConfig === 'subSelect' ? 'grey' : 'black')
+            .attr('fill', d => d.selected && d.constructor.name === 'mainMenuItem' && this.menuConfig === 'subSelect' ? 'grey' : 'black')
     }
 }
 
 class menuItemExit {
+
+    constructor(menuConfig){
+        this.menuConfig = menuConfig
+    }
 
     exitItems(selection){
 
@@ -454,8 +475,8 @@ class menuItemPositioning {
 
     static #parentItemWidth = {}
 
-    static calculateTranslate(d, i){
-        return menu.state === 'subSelect' ? this.#calculateSlimlineLayout(d, i) : this.#calculateStandardLayout(i) 
+    static calculateTranslate(d, i, menuConfig){
+        return menuConfig === 'subSelect' ? this.#calculateSlimlineLayout(d, i) : this.#calculateStandardLayout(i) 
     }
 
     static #calculateStandardLayout(i){
@@ -469,7 +490,7 @@ class menuItemPositioning {
         let y = 0
 
         switch(d.constructor.name){
-            case 'menuItem':
+            case 'mainMenuItem':
                 this.#parentItemWidth = d.renderedWidth
                 return this.#getTranslateString(20, 40)
 

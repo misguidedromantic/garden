@@ -121,8 +121,8 @@ class navigation {
 
     static #initialiseControllers(){
         this.#navigatorControl = new navigatorWindowControl(this.navigator, this.menu)
-        this.#menuSelections = new menuSelections(this.menu.items)
-        this.#menuListMgmt = new menuListManagement (this.menu.items)
+        this.#menuSelections = new menuSelections(this.menu)
+        this.#menuListMgmt = new menuListManagement (this.menu)
         this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
         this.#menuRendering = new menuRendering (this.navigator.svg)
     }

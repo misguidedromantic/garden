@@ -103,24 +103,21 @@ class progressionBlock extends songBlock {
 
 
 class songsDataHandling {
-    static songs = []
+    static songsData = []
 
     static getTitles(){
-        const extractor = new airtableExtractor
-        return extractor.getAllRecordsInField('songs', 'songs', 'title')
+        const loader = new airtableExtractedDataLoader(this.songsData)
+        return loader.getAllRecordsInField('title')
     }
 
     static async load(){
-        await this.#loadData()
-        this.#loadHandlers()
-        this.#setupSongs()
+        const extractor = new airtableExtractor
+        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
     }
 
     static async #loadData(){
-/*         const tableConnection = new airTableConnector()
-        this.songsData = await tableConnection.getAllRecordsFromTable('songs') */
-        this.formalSectionData = await tableConnection.getAllRecordsFromTable('formal_sections')
-        this.structuralSectionData = await tableConnection.getAllRecordsFromTable('structural_sections')
+        const extractor = new airtableExtractor
+        this.songsData = await extractor.getAllRecordsFromTable('songs')
         return Promise.resolve()
     }
 

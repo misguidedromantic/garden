@@ -17,8 +17,7 @@ class navigatorWindowControl {
     }
 
     update(data){
-        console.log(data)
-        switch(data.newConfigration){
+        switch(data.newConfiguration){
             case 'main':
                 this.#transitionSubToMain()
                 break;
@@ -126,7 +125,7 @@ class navigatorSizing{
     }
 
     #setHeightToContents(){
-        const itemCount = this.menu.items.length - (this.menu.state === 'subSelect' ? 1 : 0)
+        const itemCount = this.menu.items.length - (this.menu.configuration === 'subSelect' ? 1 : 0)
         return (itemCount) * this.menu.ySpacing + (this.menu.padding * 2)
     }
 
@@ -141,6 +140,7 @@ class navigatorSizing{
                 widestWidth = width
             }  
         })
+
         return widestWidth
     }
 }

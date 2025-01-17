@@ -235,6 +235,23 @@ class menuListManagement {
                 return []
         }
     }
+
+    #setSubMenuItems(){
+        this.mainMenuItems.forEach(item => { 
+            item.subMenu = this.#getTargetItems(item.title)    
+        })
+    }
+
+    #getTargetItems(itemTitle){
+        switch(itemTitle){
+            case 'plans':
+                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+            case 'songs':
+                return songsDataHandling.getSongs().map(song => new subMenuItem(song.title, song))
+            default:
+                return []
+        }
+    }
 }
 
 class menuConfigurationManagement {
@@ -304,168 +321,25 @@ class subMenuItem extends menuItem {
     }
 }
 
-class menuControl {
-
-    static #menu = {}
-    static #dataHandling = {}
-    static #rendering = {}
-    static #selections = {}
-    static #subscribers = []
-
-    static initialise (menu){
-        this.#menu = menu
-        this.#dataHandling = new menuDataHandling
-        this.#rendering = new menuRendering
-        this.#selections = new menuSelections
-    }
-
-    static getMenu (){
-        return this.#menu
-    }
-
-    static loadMain (){
-        this.#dataHandling.setMenuItems('main')
-        this.#rendering.renderItems(menu.items)
-    }
-
-
-
-    static update(clickedItem){
-
-        this.#selections.update('main', clickedItem)
-
-
-        //make selection changes
-            //data
-            //render
-
-
-        //transition menu
-            //load/unload submenu
-            //
-        //transition navigator
-        //load target
-    }
-
-    static notify(){
-        //menu
-    }
-
-    constructor(){
-        this.menuData = new menuDataHandling
-        this.rendering = new menuRendering
-    }
-
-/*     update(clickedMenu, clickedItem){
-        this.menuData.update(clickedMenu, clickedItem)
-        this.setMenuState()
-        this.rendering.renderItems(menu.items)
-        this.rendering.setRenderedItemWidths()
-    } */
-
-    
-
-    setMenuState(){
-        menu.state = this.getMenuState()
-    }
-
-    getMenuState(){
-        if(this.#getSubMenuItemSelectedCount() > 0){
-            return 'subSelect'
-        }
-
-        if(this.#getSubMenuItemCount() > 0){
-            return 'sub'
-        }
-
-        return 'main'
-    }
-
-    #getSubMenuItemCount(){
-        const subMenuItems = menu.items.filter(item => item.constructor.name === 'subMenuItem')
-        return subMenuItems.length
-    }
-
-    #getSubMenuItemSelectedCount(){
-        const subMenuItemsSelected = menu.items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
-        return subMenuItemsSelected.length
-    }
-}
-
-class menuDataHandling {
-
-    constructor(){
-        //this.mainMenuItems = []
-         //this.selections = new menuSelections
-         //this.#setMainMenuItems()
-         //this.#setSubMenuItems()
-     }
-
-
-    #updateFromMain(clickedItem){
-        if(clickedItem.subMenu.length > 0){
-            this.#setToSubMenu(clickedItem)
-        }
-    }
-
-    #updateFromSub(clickedItem){
-        switch(clickedItem.constructor.name){
-            case 'menuItem':
-                this.#setToMainMenu()
-                break;
-            case 'subMenuItem':
-                this.selections.updateSubMenuSelection(clickedItem)
-        }
-    }
-
-    #setToMainMenu(){
-        this.selections.deslectAllItems()
-        menu.items = this.mainMenuItems
-    }
-
-    #setToSubMenu(parentItem){
-        this.selections.select(parentItem)
-        menu.items = [...[parentItem], ...parentItem.subMenu]
-    }
-
-    #setMainMenuItems(){
-        this.mainMenuItems = [
-            new menuItem ('plans'),
-            new menuItem ('songs'),
-            new menuItem ('concepts')
-        ]
-    }
-
-    #setSubMenuItems(){
-        this.mainMenuItems.forEach(item => { 
-            item.subMenu = this.#getTargetItems(item.title)    
-        })
-    }
-
-    #getTargetItems(itemTitle){
-        switch(itemTitle){
-            case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
-            case 'songs':
-                return songsDataHandling.getSongs().map(song => new subMenuItem(song.title, song))
-            default:
-                return []
-        }
-    }
-}
-
-
-
-
 class menuRendering {
 
     constructor(svg){
         this.svg = svg
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data){
+        this.observers.forEach(observer => observer.update(data))
     }
 
     update(data){
-        console.log(data.updatedItems)
         this.renderItems(data.updatedItems, data.newConfiguration)
+        data.renderedWidth = this.getRenderedItemWidths(data.updatedItems) 
+        this.notify(data)
     }
 
     renderItems(data, menuConfig){
@@ -482,11 +356,11 @@ class menuRendering {
             )
     }
 
-    setRenderedItemWidths(){
-        const groups = navigatorWindow.svg.selectAll('g')
+    getRenderedItemWidths(items){
+        const groups = this.svg.selectAll('g')
         groups.each(function(){
             const elem = d3.select(this)
-            const item = menu.items.find(item => item.title === elem.attr('id'))
+            const item = items.find(item => item.title === elem.attr('id'))
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
     }

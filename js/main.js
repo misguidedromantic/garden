@@ -1,4 +1,8 @@
 window.onload = function(){
+
+    function loadExternalData (){
+        songsDataHandling.load()
+    }
     
     function createNavigator (){
 
@@ -63,6 +67,7 @@ window.onload = function(){
         navigation.initalise(navigator, menu)
     }
 
+    loadExternalData()
     const navigator = createNavigator()
     const navigatorMenu = createMenu()
     loadMenuInNavigator(navigator, navigatorMenu)
@@ -126,7 +131,7 @@ class navigation {
         this.#menuSelections.subscribe(this.#menuListMgmt)
         this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
         this.#menuConfigMgmt.subscribe(this.#menuRendering)
-        this.#menuConfigMgmt.subscribe(this.#navigatorControl)
+        this.#menuRendering.subscribe(this.#navigatorControl)
     }
 
 

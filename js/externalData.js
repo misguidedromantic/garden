@@ -39,6 +39,11 @@
 
 class airtableExtractor {
 
+    async getAllRecordsFromTable(baseName, tableName){
+        const base = this.#getBase(baseName)
+        return this.#getTableRecords(base, tableName)
+    }
+
     async getAllRecordsInField(baseName, tableName, fieldName){
         const base = this.#getBase(baseName)
         const tableRecords = await this.#getTableRecords(base, tableName)
@@ -65,6 +70,21 @@ class airtableExtractor {
         return records
     }
 
+}
+
+class airtableExtractedDataLoader {
+
+    constructor(tableRecords){
+        this.tableRecords = tableRecords
+    }
+
+    getAllRecordsInField(fieldName){
+        const records = []
+        this.tableRecords.forEach(record => {
+            records.push(record.get(fieldName))
+        })
+        return records
+    }
 }
 
 

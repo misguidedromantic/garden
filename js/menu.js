@@ -8,6 +8,27 @@ class menu {
     }
 }
 
+class menuItem {
+    constructor(title){
+        this.title = title
+        this.selected = false
+    }
+}
+
+class mainMenuItem extends menuItem{
+    constructor(title){
+        super(title)
+    }
+
+}
+
+class subMenuItem extends menuItem {
+    constructor(title, target){
+        super(title)
+        this.target = target
+    }
+}
+
 
 class menuSelections {
 
@@ -199,34 +220,6 @@ class menuConfigurationManagement {
         return this.menu.items.some(item => item.constructor.name === itemType && item.selected)
     }
 
-}
-
-
-
-
-
-
-
-
-class menuItem {
-    constructor(title){
-        this.title = title
-        this.selected = false
-    }
-}
-
-class mainMenuItem extends menuItem{
-    constructor(title){
-        super(title)
-    }
-
-}
-
-class subMenuItem extends menuItem {
-    constructor(title, target){
-        super(title)
-        this.target = target
-    }
 }
 
 class menuRendering {
@@ -431,12 +424,3 @@ class menuTextTransitions {
 
 
 }
-
-
-
-
-
-
-
-
-

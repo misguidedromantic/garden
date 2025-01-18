@@ -96,6 +96,25 @@ class progressionBlock extends songBlock {
     }
 }
 
+class songsContentControl {
+    
+    update(data){
+        if(this.#isSongsMenuLoaded(data.updatedItems)){
+            const songToLoad = this.#getSongSelection(data.updatedItems)
+            console.log(songToLoad)
+            //code to load song
+        }
+    }
+
+    #isSongsMenuLoaded(items){
+        return items.some(item => item.title === 'songs' && item.selected)
+    }
+
+    #getSongSelection(items){
+        return items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
+    }
+
+}
 
 
 
@@ -111,6 +130,10 @@ class songsDataHandling {
         const extractor = new airtableExtractor
         this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
     }
+
+    
+
+
 
     static async #loadData(){
         const extractor = new airtableExtractor

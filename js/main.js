@@ -101,8 +101,8 @@ class navigation {
     static #menuSelections = {}
     static #menuListMgmt = {}
     static #menuConfigMgmt = {}
-
     static #menuRendering = {}
+    static #songsContent = {}
 
     static initalise (navigator, menu){
         this.#assignNavigationObjects(navigator, menu)
@@ -125,73 +125,16 @@ class navigation {
         this.#menuListMgmt = new menuListManagement (this.menu)
         this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
         this.#menuRendering = new menuRendering (this.navigator.svg)
+        this.#songsContent = new songsContentControl ()
     }
 
     static #setupSubscriptions(){
         this.#menuSelections.subscribe(this.#menuListMgmt)
         this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
+        this.#menuListMgmt.subscribe(this.#songsContent)
         this.#menuConfigMgmt.subscribe(this.#menuRendering)
         this.#menuRendering.subscribe(this.#navigatorControl)
     }
-
-
-
-
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-    static updateNavigator(clickedItem){
-        const clickedMenu =  this.menuControl.getMenuState()
-        this.menuControl.update(clickedMenu, clickedItem)
-        this.windowControl.update(clickedMenu, clickedItem)
-    }
-
-    static toggleSelection(clickedItem){
-        if(clickedItem.constructor.name === 'subMenuItem'){
-            this.#toggleSubMenuItemSelection(clickedItem)
-        } else if (clickedItem.constructor.name === 'menuItem' && menu.state === 'subSelect'){
-            this.#unloadSubSelectMenu()
-        }
-    }
-
-    static #toggleSubMenuItemSelection(clickedItem){
-        if(clickedItem.selected){
-            this.#loadSubMenuSelection(clickedItem.target)
-        } else {
-            this.#hideSubMenuSelection(clickedItem.target)
-        }
-    }
-
-    static async #loadSubMenuSelection(targetItem){
-        contentControl.update(targetItem)
-    }
-
-    static #hideSubMenuSelection(targetItem){
-        switch(targetItem.constructor.name){
-            case('plan'):
-                contentControl.hidePlan()
-                break;
-
-            case('song'):
-                console.log(targetItem)
-        }
-    }
-
-    static #unloadSubSelectMenu(){
-        this.contentControl.unloadPlan()
-    }
-
 }
 
 class contentControl {

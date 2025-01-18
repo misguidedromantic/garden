@@ -2,10 +2,10 @@ class songBlockCanvas {
     static div = {}
     static svg = {}
     static blocks = []
-    static width = 0
-    static height = 600
+    static width = 300
+    static height = 300
     static left = 72
-    static top = 160
+    static top = 120
     static position = 'absolute'
     static borderRadius = 20
 }
@@ -37,6 +37,7 @@ class songBlockCanvasRendering {
             .style('top', songBlockCanvas.top + 'px')
             .style('left', songBlockCanvas.left + 'px')
             .style('height', songBlockCanvas.height + 'px')
+            .style('border-top', '1px solid black')
             //.style('background-color', 'white')
 
     }
@@ -54,6 +55,7 @@ class songBlockCanvasRendering {
     }
 }
 
+
 class songBlockPositioning {
 
     static calculateTranslate(d, i){
@@ -63,11 +65,11 @@ class songBlockPositioning {
     }
 
     static #getXPos(d){
-        return d.sequence * 17
+        return 17
     }
 
     static #getYPos(d){
-        return 17
+        return d.sequence * 17
     }
 
     static #getTranslateString(x, y){

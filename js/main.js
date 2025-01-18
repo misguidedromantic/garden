@@ -80,21 +80,6 @@ function onMenuItemClick(){
     navigation.menuSelectionChange(clickedItem)
 }
 
-class notification {
-    constructor(data, recipients){
-        this.data = data
-        this.recipients = recipients
-        this.send()
-    }
-
-    send(){
-        const message = this.compileMessage()
-        console.log(this.recipients)
-        this.recipients.forEach(recipient => recipient.update(data))
-    }
-}
-
-
 class navigation {
 
     static #navigatorControl  = {}
@@ -135,59 +120,6 @@ class navigation {
         this.#menuConfigMgmt.subscribe(this.#menuRendering)
         this.#menuRendering.subscribe(this.#navigatorControl)
     }
-}
-
-class contentControl {
-
-    static docControl = {}
-    static songBlockControl = {}
-    
-    static setup(){
-        this.setupDocControl()
-        this.setupSongBlockControl()
-    }
-
-    static setupSongBlockControl(){
-        this.songBlockControl = new songBlockControl
-        this.songBlockControl.createSongBlockCanvas()
-    }
-
-    static setupDocControl(){
-        this.docControl = new docWindowControl
-        this.docControl.createDocWindow()
-    }
-    
-    static update(selectedItem){
-        switch(selectedItem.constructor.name){
-            case('plan'):
-                this.loadPlan(selectedItem)
-                break;
-
-            case('song'):
-                this.songBlockControl.loadSong(selectedItem)
-        }
-    }
-
-
-    
-    static async loadPlan(plan){
-
-        if(this.docControl.checkIfLoaded(plan.fileName)){
-            this.docControl.showWindow(plan.fileName)
-        } else {
-            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.title)
-            this.docControl.loadDoc(plan)
-        }
-    }
-
-    static hidePlan(){
-        this.docControl.hideWindow()
-    }
-
-    static unloadPlan(){
-        this.docControl.unloadDoc()
-    }
-
 }
 
 

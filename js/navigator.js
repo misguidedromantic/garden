@@ -1,8 +1,7 @@
 class navigatorWindow {
 
-    constructor(){
+    width = 0
 
-    }
 
 }
 
@@ -125,9 +124,27 @@ class navigatorSizing{
     }
 
     #setHeightToContents(){
-        const itemCount = this.menu.items.length - (this.menu.configuration === 'subSelect' ? 1 : 0)
-        return (itemCount) * this.menu.ySpacing + (this.menu.padding * 2)
+        const mutliplier = this.#getHeightMultiplier(this.menu.configuration, this.menu.items.length)
+        return mutliplier * this.menu.ySpacing + (this.menu.padding * 2)
     }
+
+    #getHeightMultiplier(configuration, itemCount){
+        if(configuration === 'subSelect'){
+            return this.#getHeightMultiplerSubSelect(itemCount)
+        } else {
+            return itemCount
+        }
+    }
+
+    #getHeightMultiplerSubSelect(itemCount){
+        if(itemCount < 4){
+            return itemCount - 1
+        } else {
+            return 3
+        }
+    }
+
+    
 
     #getWidestItemWidth(){
         const groups = this.navigator.svg.selectAll('g')

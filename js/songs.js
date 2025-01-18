@@ -18,44 +18,46 @@ class formalSection {
 
 class structuralSection {
     constructor(id, sectionData){
+        console.log(sectionData)
         this.id = id
         this.title = sectionData.title
         this.sequence = sectionData.sequence_in_song
         this.repeatNum = sectionData.repeat_number
         this.type = sectionData.type
         this.formalSectionID = sectionData.formal_section_basis[0]
+        this.formVariations = sectionData.formal_section_variation_types
     }
 
 
 }
 
 class intro extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class verse extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class chorus extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class bridge extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class outro extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
@@ -102,6 +104,7 @@ class songsContentControl {
 
     constructor(){
         this.structuring = new songStructuring()
+        this.blockControl = new songBlockControl()
     }
 
     update(data){
@@ -109,7 +112,9 @@ class songsContentControl {
             let songToLoad = ''
             try{songToLoad = this.#getSongSelection(data.updatedItems)}
             catch {return}
-            this.structuring.setupSong(songToLoad.title)
+            const thisSong = this.structuring.setupSong(songToLoad.title)
+            this.blockControl.loadSong(thisSong)
+
         }
     }
 
@@ -122,7 +127,6 @@ class songsContentControl {
         if(filtered.length === 1){return filtered[0]}else{throw error}
     }
 
-    
 
 }
 
@@ -136,8 +140,11 @@ class songStructuring {
         const thisSong = songsDataHandling.getSong(songTitle)
         thisSong.form = songsDataHandling.getFormalSections(thisSong.id)
         thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
-        console.log(thisSong)
+        return thisSong
     }
+
+
+
 
     
 
@@ -184,10 +191,31 @@ class songsDataHandling {
         const sectionsData = this.structuralSectionData.filter(section => section.fields.song[0] === songID)
         const sections = []
         sectionsData.forEach(section => {
-            console.log()
-            sections.push(new structuralSection (section.id, section.fields))
+            sections.push(this.#getStructuralSection(section))
         })
         return sections
+    }
+
+    static #getStructuralSection(sectionData){
+        switch(sectionData.fields.type){
+            case 'intro':
+                return new intro (sectionData.id, sectionData.fields)
+
+            case 'verse':
+                return new verse (sectionData.id, sectionData.fields)
+
+            case 'chorus':
+                return new chorus (sectionData.id, sectionData.fields)
+
+            case 'bridge':
+                return new bridge (sectionData.id, sectionData.fields)
+
+            case 'outro':
+                return new outro (sectionData.id, sectionData.fields)  
+
+            default:
+                return new structuralSection (sectionData.id, sectionData.fields)
+        }
     }
 
 
@@ -644,196 +672,3 @@ class lyricLine {
 
 
 
-class songBlockCanvas {
-    static div = {}
-    static svg = {}
-    static blocks = []
-    static width = 0
-    static height = 600
-    static left = 72
-    static top = 160
-    static position = 'absolute'
-    static borderRadius = 20
-}
-
-class songBlockControl {
-    constructor(){
-        this.canvasRendering = new songBlockCanvasRendering
-        this.blockRendering = new songBlockRendering
-    }
-
-    createSongBlockCanvas(){
-        songBlockCanvas.div = this.canvasRendering.createDiv()
-        songBlockCanvas.svg = this.canvasRendering.createSVGCanvas()
-    }
-
-    loadSong(song){
-        this.blockRendering.renderBlocks(song.structureBlocks)
-    }
-
-}
-
-class songBlockCanvasRendering {
-    createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', 'songBlockCanvasDiv')
-            .style('position', songBlockCanvas.position)
-            .style('top', songBlockCanvas.top + 'px')
-            .style('left', songBlockCanvas.left + 'px')
-            .style('height', songBlockCanvas.height + 'px')
-            //.style('background-color', 'white')
-
-    }
-
-    createSVGCanvas(){
-        return songBlockCanvas.div.append('svg')
-            .attr('id', 'songBlockCanvasSVG')
-            .attr('height', songBlockCanvas.height)
-    }
-
-    resize(delay, duration){
-        songBlockCanvas.div.transition('tSizing').delay(delay).duration(duration)
-            .style('width', songBlockCanvas.width + 'px')
-            .style('height', songBlockCanvas.height + 'px')
-    }
-}
-
-class songBlockPositioning {
-
-    static calculateTranslate(d, i){
-        const x = this.#getXPos(d)
-        const y = this.#getYPos(d)
-        return this.#getTranslateString(x, y)
-    }
-
-    static #getXPos(d){
-        return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 17
-    }
-
-    static #getYPos(d){
-        return (d.sectionIndex * 40) + (d.constructor.name === 'melodyBlock' ? 0 : 17)
-    }
-
-    static #getTranslateString(x, y){
-        return 'translate(' + x + ',' + y + ')'
-    }
-}
-
-class songBlockStyling {
-    static calculateFill(d){
-        let variationFactor = this.#getVariationFactor(d)
-        switch(variationFactor){
-            case 0:
-                return 'lightGrey'
-
-            case 1:
-                return 'pink'
-
-            case 2:
-                return 'purple'
-
-            default:
-                if(variationFactor < 0){
-                    return 'lightYellow'
-                } else {
-                    return 'red'
-                }
-                
-        }
-    }
-
-    static calculateStroke(d){
-        const variationFactor = this.#getVariationFactor(d)
-        if(variationFactor < 0){return 'lightGrey'}else{return this.calculateFill(d)}
-    }
-
-    static #getVariationFactor(d){
-        if(d.constructor.name === 'melodyBlock'){
-            return blockDataHandling.getMelodyBlockVariationLevel(d) 
-        }
-
-        if(d.constructor.name === 'progressionBlock'){
-            return blockDataHandling.getProgressionBlockVariationLevel(d) 
-        }
-    }
-}
-
-class songBlockRendering {
-
-    renderBlocks(data){
-        console.log(data)
-        const enterControl = new blockEnter
-        const updateControl = new blockUpdate
-        const exitControl = new blockExit
-        
-        songBlockCanvas.svg.selectAll('g')
-            .data(data, d => d.title)
-            .join(
-                enter => enterControl.enterBlocks(enter),
-                update => updateControl.updateBlocks(update),
-                exit => exitControl.exitBlocks(exit)
-            )
-    }
-}
-
-class blockEnter {
-
-    enterBlocks(selection){
-        const groups = this.enterGroups(selection)
-        const rectangles = this.enterRects(groups)
-    }
-
-    enterGroups(selection){
-        return selection.append('g')
-            .attr('id', d => d.title)
-            .attr('transform', (d, i) => songBlockPositioning.calculateTranslate(d, i))
-    }
-
-    enterRects(groups){
-
-        groups.append('rect')
-            .attr('class', d => d.constructor.name)
-            .attr('width', 14)
-            .attr('height', 14)
-            .attr('fill', d => songBlockStyling.calculateFill(d))
-            .attr('stroke', d => songBlockStyling.calculateStroke(d))
-            .attr('stroke-width', 1)
-
-
-        return groups
-    }
-
-
-}
-
-
-class blockUpdate {
-
-    updateBlocks(selection){
-        const groups = this.updateGroups(selection)
-        const rectangles = this.updateRects(groups)
-    }
-
-    updateGroups(selection){
-        return selection.transition()
-            .duration(400)
-            .attr('transform', (d, i) => {
-                return menuItemPositioning.calculateTranslate(d, i)
-            })
-    }
-
-    updateRects(groups){
-        return groups.select('rect')
-            .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menu.state === 'subSelect' ? 'grey' : 'black')
-    }
-
-}
-
-class blockExit {
-    exitBlocks(selection){
-        selection.remove()
-        return selection
-    }
-}

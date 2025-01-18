@@ -1,117 +1,11 @@
 class menu {
-
     constructor(configuration){
         this.configuration = configuration
         this.items = []
         this.observers = []
         this.ySpacing = 20
         this.padding = 20
-
     }
-    
-    update(clickedItem){ 
-
-        //update selections
-        //update list
-        //load or unload content
-        //render list
-        //transition layout
-
-        const config = this.configuration
-        const type = clickedItem.constructor.name
-        const selected = clickedItem.selected
-
-        if(config === 'main' && type === 'mainMenuItem'){
-            console.log('select item')
-            console.log('load sub menu items')
-            console.log('transition to sub config')
-        }
-
-        if(config !== 'main' && type === 'mainMenuItem'){
-            console.log('deselect all items')
-            console.log('load main menu items')
-            console.log('transition to main config')
-        }
-
-        if(config === 'sub' && type === 'subMenuItem'){
-            console.log('select subMenuItem')
-            console.log('load subMenuItem  content')
-        }
-
-        if(config === 'subSelect' && type === 'subMenuItem' && selected){
-            console.log('deselect subMenuItem')
-            console.log('unload subMenuItem content')
-        }
-
-        if(config === 'subSelect' && type === 'subMenuItem' && !selected){
-            console.log('select subMenuItem')
-            console.log('deselect previously selected subMenuItem')
-            console.log('unload previously selected sebmenuitem content')
-            console.log('load subMenuItem content')
-        }
-
-        //select target
-        //deselect target
-        //deselect all of target type except target
-        //deselect all
-
-        //load main menu items
-        //load selected main menu item + all its subMenu items
-        
-        //load selected subMenuItem content
-        //unload deselected subMenuItem content
-
-        //transition to main layout
-        //transition to sub layout
-        //transition to subSelect layout
-
-        //states: 
-        //  main->sub
-        //  sub->main
-        //  sub->subSelect
-        //  subSelect->sub
-        //  subSelect->main
-
-        //this.updateItemSelections(clickedItem)
-        //this.updateConfiguration()
-
-        
-        
-    }
-
-
-
-
-
-
-
-    subscribe(observer){
-        this.observers.push(observer)
-    }
-
-    notify(sourceFunction, data){
-        new notification(sourceFunction, data, this.observers)
-    }
-
-    updateItemSelections(clickedItem){
-        const selections = new menuSelections (this.items)
-        this.configuration === 'main' ? selections.updateFromMain(clickedItem) : selections.updateFromSub(clickedItem)
-        this.notify('updateItemSelections', this.items)
-    }
-
-    
-    updateItemList(){
-
-    }
-
-    
-
-
-
-    getRenderedItemWidth(itemTitle){
-        return this.items.find(item => item.title === itemTitle).renderedWidth
-     }
-
 }
 
 
@@ -126,36 +20,45 @@ class menuSelections {
         this.observers.push(observer)
     }
 
-    notify(data){
-        this.observers.forEach(observer => observer.update(data))
+    notify(updatedItems){
+        this.observers.forEach(observer => observer.update({updatedItems: updatedItems}))
     }
 
     update(clickedItem, clickedMenuConfig){
-
         let updatedItems = []
-
         switch(clickedMenuConfig){
             case 'main':
-                clickedItem.selected = true
-                updatedItems.push(clickedItem)
+                updatedItems = this.#updateFromMain(clickedItem)
                 break;
             case 'sub':
-                if(clickedItem.constructor.name === 'mainMenuItem'){
-                    updatedItems = this.#deslectAllItems() 
-                } else {
-                    updatedItems = this.#selectExclusive(clickedItem)
-                    console.log(updatedItems)
-                }
+                updatedItems = this.#updateFromSub(clickedItem)
                 break;
             case 'subSelect':
-                clickedItem.selected = false
-                updatedItems.push(clickedItem)
+                updatedItems = this.#updateFromSubSelect(clickedItem)
         }
+        this.notify(updatedItems)
+    }
 
-        console.log(updatedItems)
-        console.log(this.menu.items)
-        this.notify({updatedItems: updatedItems, previousConfig: clickedMenuConfig})
+    #updateFromMain(clickedItem){
+        clickedItem.selected = true
+        return [clickedItem]
+    }
 
+    #updateFromSub(clickedItem){
+        if(clickedItem.constructor.name === 'mainMenuItem'){
+            return this.#deslectAllItems() 
+        } else {
+            return this.#selectExclusive(clickedItem)
+        }
+    }
+
+    #updateFromSubSelect(clickedItem){
+        if(clickedItem.selected){
+            clickedItem.selected = false
+            return [clickedItem]
+        } else {
+            return this.#selectExclusive(clickedItem)
+        }
     }
 
     #deslectAllItems(){
@@ -206,14 +109,10 @@ class menuListManagement {
 
         if(data.updatedItems.length === 1){
             const item = data.updatedItems[0]
-            console.log(item)
             if(item.constructor.name === 'mainMenuItem'){
-                item.selected ? this.menu.items = await this.loadSubMenu(item) : this.menu.items = this.loadMainMenu()
-                
+                item.selected ? this.menu.items = await this.loadSubMenu(item) : this.menu.items = this.loadMainMenu() 
             }
         }
-
-        console.log(this.menu.items)
 
         this.notify(data)
     }

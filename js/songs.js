@@ -17,11 +17,13 @@ class formalSection {
 }
 
 class structuralSection {
-    constructor(sectionData){
-        this.id = sectionData.id
+    constructor(id, sectionData){
+        this.id = id
         this.title = sectionData.title
         this.sequence = sectionData.sequence_in_song
-        this.formSectionID = sectionData.formal_section_basis[0]
+        this.repeatNum = sectionData.repeat_number
+        this.type = sectionData.type
+        this.formalSectionID = sectionData.formal_section_basis[0]
     }
 
 
@@ -97,12 +99,17 @@ class progressionBlock extends songBlock {
 }
 
 class songsContentControl {
-    
+
+    constructor(){
+        this.structuring = new songStructuring()
+    }
+
     update(data){
         if(this.#isSongsMenuLoaded(data.updatedItems)){
-            const songToLoad = this.#getSongSelection(data.updatedItems)
-            console.log(songToLoad)
-            //code to load song
+            let songToLoad = ''
+            try{songToLoad = this.#getSongSelection(data.updatedItems)}
+            catch {return}
+            this.structuring.setupSong(songToLoad.title)
         }
     }
 
@@ -111,27 +118,95 @@ class songsContentControl {
     }
 
     #getSongSelection(items){
-        return items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
+        const filtered = items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
+        if(filtered.length === 1){return filtered[0]}else{throw error}
     }
 
+    
+
 }
+
+class songStructuring {
+
+    constructor(){
+        this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
+    }
+
+    setupSong(songTitle){
+        const thisSong = songsDataHandling.getSong(songTitle)
+        thisSong.form = songsDataHandling.getFormalSections(thisSong.id)
+        thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
+        console.log(thisSong)
+    }
+
+    
+
+
+
+
+
+}
+
+
 
 
 
 class songsDataHandling {
     static songsData = []
 
+    static async load(){
+        const extractor = new airtableExtractor
+        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
+        this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
+        this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
+    }
+
     static getTitles(){
         const loader = new airtableExtractedDataLoader(this.songsData)
         return loader.getAllRecordsInField('title')
     }
 
-    static async load(){
-        const extractor = new airtableExtractor
-        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
+    static getSong(songTitle){
+        const songData = this.songsData.find(song => song.fields.title === songTitle)
+        return new song (songData.id, songData.fields.title)
     }
 
-    
+    static getFormalSections(songID){
+        const sectionsData = this.formalSectionData.filter(section => section.fields.song[0] === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            sections.push(new formalSection (section.id, section.fields.title, section.fields.label))
+        })
+        return sections
+    }
+
+    static getStructuralSections(songID){
+        const sectionsData = this.structuralSectionData.filter(section => section.fields.song[0] === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            console.log()
+            sections.push(new structuralSection (section.id, section.fields))
+        })
+        return sections
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static #setupSong(thisSong){
+        this.sectionHandling.setupSections(thisSong)
+        //this.blockHandling.setupBlocks(thisSong)
+        return thisSong
+    }
 
 
 
@@ -159,11 +234,7 @@ class songsDataHandling {
         return new song(id, title)
     }
 
-    static #setupSong(thisSong){
-        this.sectionHandling.setupSections(thisSong)
-        //this.blockHandling.setupBlocks(thisSong)
-        return thisSong
-    }
+    
 
     static filterForSong(data, songID){
         return data.filter(item => item.songID === songID)
@@ -173,9 +244,6 @@ class songsDataHandling {
         return this.songs
     }
 
-    static getSong(title){
-        return this.songs.find(song => song.title === title)
-    }
 
     static getSongByID(id){
         return this.songs.find(song => song.id === id)
@@ -192,8 +260,6 @@ class songSectionHandling {
     setupSections(song){
         this.#setupFormalSections(song)
         this.#setupStructuralSections(song)
-        console.log(song.form)
-        console.log(song.structure)
     }
 
     #setupFormalSections(song){

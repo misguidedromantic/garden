@@ -18,7 +18,6 @@ class formalSection {
 
 class structuralSection {
     constructor(id, sectionData){
-        console.log(sectionData)
         this.id = id
         this.title = sectionData.title
         this.sequence = sectionData.sequence_in_song

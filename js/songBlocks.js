@@ -37,9 +37,8 @@ class songBlockCanvasRendering {
             .style('top', songBlockCanvas.top + 'px')
             .style('left', songBlockCanvas.left + 'px')
             .style('height', songBlockCanvas.height + 'px')
-            .style('border-top', '1px solid black')
+            //.style('border-top', '1px solid black')
             //.style('background-color', 'white')
-
     }
 
     createSVGCanvas(){
@@ -80,7 +79,6 @@ class songBlockPositioning {
 class songBlockStyling {
     static calculateFill(d){
         const varCount = this.#getFormVariationCount(d)
-        console.log(varCount)
         switch(varCount){
             case 0:
                 return 'lightGrey'
@@ -93,10 +91,7 @@ class songBlockStyling {
 
             default:
                 return 'red'
- 
         }
-
-        
     }
 
     static #getFormVariationCount(d){
@@ -106,7 +101,6 @@ class songBlockStyling {
         catch{
             return 0
         }
-
     }
 
     static calculateStroke(d){

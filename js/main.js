@@ -11,6 +11,7 @@ window.onload = function(){
                 .append('div')
                 .attr('id', id)
                 .style('position', position)
+                .style('z-index', displays.getZIndex('navigator'))
         }
     
         function createSVGCanvas(id, div){
@@ -119,6 +120,19 @@ class navigation {
         this.#menuListMgmt.subscribe(this.#songsContent)
         this.#menuConfigMgmt.subscribe(this.#menuRendering)
         this.#menuRendering.subscribe(this.#navigatorControl)
+    }
+}
+
+class displays {
+    static getZIndex(divID){
+        switch(divID){
+            case 'songBlockCanvasDiv':
+                return 1
+            case 'navigatorDiv':
+                return 2
+            default:
+                return 99
+        }
     }
 }
 

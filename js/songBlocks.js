@@ -37,6 +37,7 @@ class songBlockCanvasRendering {
             .style('top', songBlockCanvas.top + 'px')
             .style('left', songBlockCanvas.left + 'px')
             .style('height', songBlockCanvas.height + 'px')
+            .style('z-index', displays.getZIndex('songBlockCanvasDiv'))
             //.style('border-top', '1px solid black')
             //.style('background-color', 'white')
     }

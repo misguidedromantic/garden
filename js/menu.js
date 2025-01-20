@@ -162,23 +162,6 @@ class menuListManagement {
                 return []
         }
     }
-
-    #setSubMenuItems(){
-        this.mainMenuItems.forEach(item => { 
-            item.subMenu = this.#getTargetItems(item.title)    
-        })
-    }
-
-    #getTargetItems(itemTitle){
-        switch(itemTitle){
-            case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
-            case 'songs':
-                return songsDataHandling.getSongs().map(song => new subMenuItem(song.title, song))
-            default:
-                return []
-        }
-    }
 }
 
 class menuConfigurationManagement {
@@ -244,9 +227,11 @@ class menuRendering {
     }
 
     renderItems(data, menuConfig){
-        const enterControl = new menuItemEnter(menuConfig)
-        const updateControl = new menuItemUpdate(menuConfig)
-        const exitControl = new menuItemExit(menuConfig)
+
+        const selectedIndex = this.#getSelectedIndex(data, menuConfig)
+        const enterControl = new menuItemEnter(menuConfig, selectedIndex)
+        const updateControl = new menuItemUpdate(menuConfig, selectedIndex)
+        const exitControl = new menuItemExit(menuConfig, selectedIndex)
         
         const groups = this.svg.selectAll('g')
             .data(data, d => d.title)
@@ -265,12 +250,22 @@ class menuRendering {
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
     }
+
+    #getSelectedIndex(data, menuConfig){
+        return menuConfig === 'subSelect' ?
+            data.findIndex(item => 
+                item.constructor.name === 'subMenuItem' && 
+                item.selected) 
+            :
+            undefined
+    }
 }
 
 class menuItemEnter {
 
-    constructor(menuConfig){
+    constructor(menuConfig, selectedIndex){
         this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
     }
 
     enterItems(selection){
@@ -283,7 +278,8 @@ class menuItemEnter {
     enterGroups(selection){
         return selection.append('g')
             .attr('id', d => d.title)
-            .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i, this.menuConfig))
+            .attr('transform', (d, i) => 
+                menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
             .on('click', onMenuItemClick)
     }
 
@@ -299,7 +295,7 @@ class menuItemEnter {
         text.transition('tColour')
             .delay((d, i) => i * 100) 
             .duration(100)
-            .attr('fill', 'black')
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
 
     enterTextTransitionTween(text){
@@ -316,9 +312,11 @@ class menuItemEnter {
 
 class menuItemUpdate {
 
-    constructor(menuConfig){
+    constructor(menuConfig, selectedIndex){
         this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
     }
+
 
     updateItems(selection){
         const groups = this.updateGroups(selection)
@@ -328,23 +326,25 @@ class menuItemUpdate {
     updateGroups(selection){
         return selection.transition()
             .duration(400)
-            .attr('transform', (d, i) => {
-                return menuItemPositioning.calculateTranslate(d, i, this.menuConfig)
-            })
+            .attr('transform', (d, i) => 
+                menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
+            
     }
 
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'mainMenuItem' && this.menuConfig === 'subSelect' ? 'grey' : 'black')
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
 }
 
 class menuItemExit {
 
-    constructor(menuConfig){
+    constructor(menuConfig, selectedIndex){
         this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
     }
+
 
     exitItems(selection){
 
@@ -367,8 +367,8 @@ class menuItemPositioning {
 
     static #parentItemWidth = {}
 
-    static calculateTranslate(d, i, menuConfig){
-        return menuConfig === 'subSelect' ? this.#calculateSlimlineLayout(d, i) : this.#calculateStandardLayout(i) 
+    static calculateTranslate(d, i, menuConfig, selectedIndex){
+        return menuConfig === 'subSelect' ? this.#calculateSlimlineLayout(d, i, selectedIndex) : this.#calculateStandardLayout(i) 
     }
 
     static #calculateStandardLayout(i){
@@ -377,7 +377,7 @@ class menuItemPositioning {
         return this.#getTranslateString(x, y)
     }
 
-    static #calculateSlimlineLayout(d, i){
+    static #calculateSlimlineLayout(d, i, selectedIndex){
         let x = 0
         let y = 0
 
@@ -387,7 +387,8 @@ class menuItemPositioning {
                 return this.#getTranslateString(20, 40)
 
             case 'subMenuItem':
-                return this.#getTranslateString(this.#parentItemWidth + 30, i * 20 + 20)
+                const distanceFromSelected = i - selectedIndex + 1
+                return this.#getTranslateString(this.#parentItemWidth + 30, distanceFromSelected * 20 + 20)
         }
 
         return this.#getTranslateString(x, y)
@@ -395,6 +396,38 @@ class menuItemPositioning {
 
     static #getTranslateString(x, y){
         return 'translate(' + x + ',' + y + ')'
+    }
+}
+
+class menuItemStyling {
+    static calculateTextColour(d, i, menuConfig, selectedIndex){
+        if(menuConfig === 'subSelect'){
+            return this.#colourOnSubSelect(d, i, selectedIndex)
+        } else {
+            return 'black'
+        }
+    }
+
+    static #colourOnSubSelect(d, i, selectedIndex){
+        if(d.constructor.name === 'mainMenuItem'){
+            return 'grey'
+        } else {
+            const colour = this.#colourForDistance(i - selectedIndex)
+            return colour
+        }
+    }
+
+    static #colourForDistance(distanceFromSelected){
+        switch(Math.abs(distanceFromSelected)){
+            case 0:
+                return 'black'
+            case 1:
+                return 'darkgrey'
+            case 2:
+                return 'lightgrey'
+            default:
+                return 'lightyellow'
+        }
     }
 }
 

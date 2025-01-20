@@ -141,20 +141,7 @@ class songStructuring {
         thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
         return thisSong
     }
-
-
-
-
-    
-
-
-
-
-
 }
-
-
-
 
 
 class songsDataHandling {

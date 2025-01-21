@@ -145,7 +145,7 @@ class songStructuring {
 
 
 class songsDataHandling {
-    static #source = 'airtable'
+    static #source = 'csv'
     static songsData = []
     static formalSectionData = []
     static structuralSectionData = []
@@ -170,8 +170,7 @@ class songsDataHandling {
     }
 
     static getTitles(){
-        const loader = this.#getLoader(this.songsData)
-        return loader.getAllRecordsInField('title')
+        return this.songsData.map(song => song.title)
     }
 
     static #getLoader(table){
@@ -179,9 +178,10 @@ class songsDataHandling {
     }
 
     static getSong(songTitle){
-        const loader = this.#getLoader(this.songsData)
-        const songData = loader.getRecord('title', songTitle) 
-        return new song (songData.id, songData.fields.title)
+        //const loader = this.#getLoader(this.songsData)
+        const songData = this.songsData.find(song => song.title === songTitle)
+        console.log(songData) 
+        return new song (songData.id, songData.title)
     }
 
     static getFormalSections(songID){

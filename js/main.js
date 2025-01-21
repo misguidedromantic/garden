@@ -1,7 +1,7 @@
 window.onload = function(){
 
     function loadExternalData (){
-        songsDataHandling.load()
+        songsDataHandling.load('csv')
     }
     
     function createNavigator (){

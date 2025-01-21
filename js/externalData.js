@@ -1,47 +1,36 @@
-/* class airTableConnector {
-
-    constructor(){
-        this.base = this.#getBase('songs')
-    }
-    
-   
-
-    async getAllRecordsFromTable(tableName){
-        const tableID = airTableKeys.getTableID(tableName)
-        const tableRecords = await this.base(tableID).select().all()
-        const records = []
-        tableRecords.forEach(record => {
-            const recordData = this.#getRecordData(record)
-            records.push(recordData)
-        })
-        return records
+class csvExtractLoadTransform {
+    constructor(tableRecords){
+        this.tableRecords = tableRecords
     }
 
-    
-
-    #getRecordData(record){
-        const fieldNames = Object.keys(record.fields)
-        let recordData = {id: record.id}
-        fieldNames.forEach(fieldName => {
-            recordData[fieldName] = record.fields[fieldName]
-        })
-        return recordData
+    getAllRecordsFromFile(filePath){
+        return d3.csv(filePath)
     }
 
-    #getBase(baseName){
-        const apiKey = airTableKeys.getAPIKey()
-        const baseID = airTableKeys.getBaseID(baseName)
-        const Airtable = require('airtable');
-        return new Airtable({apiKey: apiKey}).base(baseID);
+    getAllRecordsInField(fieldName){
+        return this.tableRecords.map(record => record[fieldName])
     }
 
-} */
+    getRecord(fieldToSearch, valueToMatch){
+        this.tableRecords.find(record => record[fieldToSearch] === valueToMatch)
+    }
+}
 
 class airtableExtractor {
 
     async getAllRecordsFromTable(baseName, tableName){
-        const base = this.#getBase(baseName)
-        return this.#getTableRecords(base, tableName)
+        const base = await this.#getBase(baseName)
+        const tableRecords = await this.#getTableRecords(base, tableName)
+        const records = []
+        tableRecords.forEach(sourceRecord => {
+            let record = {}
+            record['id'] = sourceRecord.id
+            for (let field of Object.keys(sourceRecord.fields)){
+                record[field] = sourceRecord.get(field)
+            }
+            records.push(record)
+        });
+        return records
     }
 
     async getAllRecordsInField(baseName, tableName, fieldName){
@@ -84,6 +73,13 @@ class airtableExtractedDataLoader {
             records.push(record.get(fieldName))
         })
         return records
+    }
+
+    getRecord(fieldToSearch, valueToMatch){
+        const record = this.tableRecords.find(record => record.fields[fieldToSearch] === valueToMatch)
+        return {
+            
+        }
     }
 
 }

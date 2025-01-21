@@ -145,22 +145,42 @@ class songStructuring {
 
 
 class songsDataHandling {
+    static #source = 'airtable'
     static songsData = []
+    static formalSectionData = []
+    static structuralSectionData = []
 
     static async load(){
-        const extractor = new airtableExtractor
+        this.#source === 'csv' ? await this.#loadFromCSV(new csvExtractLoadTransform) : await this.#loadFromAirtable(new airtableExtractor)
+        console.log(this.songsData)
+    }
+
+    static async #loadFromAirtable(extractor){
         this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
         this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
         this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
+        return Promise.resolve()
+    }
+
+    static async #loadFromCSV(extractor){
+        this.songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
+        this.formalSectionData = await extractor.getAllRecordsFromFile('data/formal_sections.csv')
+        this.structuralSectionData = await extractor.getAllRecordsFromFile('data/structural_sections.csv')
+        return Promise.resolve()
     }
 
     static getTitles(){
-        const loader = new airtableExtractedDataLoader(this.songsData)
+        const loader = this.#getLoader(this.songsData)
         return loader.getAllRecordsInField('title')
     }
 
+    static #getLoader(table){
+        return this.#source === 'airtable' ? new airtableExtractedDataLoader(table) : new csvExtractLoadTransform(table)
+    }
+
     static getSong(songTitle){
-        const songData = this.songsData.find(song => song.fields.title === songTitle)
+        const loader = this.#getLoader(this.songsData)
+        const songData = loader.getRecord('title', songTitle) 
         return new song (songData.id, songData.fields.title)
     }
 

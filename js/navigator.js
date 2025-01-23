@@ -56,9 +56,14 @@ class navigatorRendering {
     }
 
     resize(delay, duration){
-        this.navigator.div.transition('tSizing').delay(delay).duration(duration)
-            .style('width', this.navigator.width + 'px')
-            .style('height', this.navigator.height + 'px')
+        this.navigator.div.transition('tSizingDIV').delay(delay).duration(duration)
+            .style('width', this.navigator.divWidth + 'px')
+            .style('height', this.navigator.divHeight + 'px')
+
+
+        this.navigator.svg
+            .attr('width', this.navigator.svgWidth)
+            .attr('height', this.navigator.svgHeight)
     }
 
     float(delay, duration){
@@ -114,37 +119,34 @@ class navigatorSizing{
     }
 
     fitToContents(){
-        this.navigator.width = this.#setWidthToContents()
-        this.navigator.height = this.#setHeightToContents()
+        const contentWidth = this.#setWidthToContents()
+        const contentHeight = this.#setHeightToContents()
+        this.#setDivDimensions(contentHeight, contentWidth)
+        this.#setSVGDimensions(contentHeight, contentWidth)
+    }
+
+    #setDivDimensions(contentHeight, contentWidth){
+        this.navigator.divWidth = contentWidth
+        this.navigator.divHeight = this.#calculateDivHeight(contentHeight) 
+    }
+
+    #calculateDivHeight(contentHeight){
+        if(this.menu.configuration === 'sub'){
+            return this.menu.items.length > 8 ? 8 * this.menu.ySpacing : contentHeight
+        } else {
+            return contentHeight
+        }
+    }
+
+    #setSVGDimensions(contentHeight, contentWidth){
+        this.navigator.svgWidth = contentWidth
+        this.navigator.svgHeight = contentHeight
     }
 
     #setWidthToContents(){
         const widestItemWidth = this.#getWidestItemWidth()
         return widestItemWidth + (this.menu.padding * 2)
     }
-
-    #setHeightToContents(){
-        const mutliplier = this.#getHeightMultiplier(this.menu.configuration, this.menu.items.length)
-        return mutliplier * this.menu.ySpacing + (this.menu.padding * 2)
-    }
-
-    #getHeightMultiplier(configuration, itemCount){
-        if(configuration === 'subSelect'){
-            return this.#getHeightMultiplerSubSelect(itemCount)
-        } else {
-            return itemCount
-        }
-    }
-
-    #getHeightMultiplerSubSelect(itemCount){
-        if(itemCount < 4){
-            return itemCount - 1
-        } else {
-            return 3
-        }
-    }
-
-    
 
     #getWidestItemWidth(){
         const groups = this.navigator.svg.selectAll('g')
@@ -160,6 +162,12 @@ class navigatorSizing{
 
         return widestWidth
     }
+
+    #setHeightToContents(){
+        return this.menu.items.length * this.menu.ySpacing + (this.menu.padding * 2)
+
+    }
+
 }
 
 class navigatorPositioning{
@@ -169,8 +177,8 @@ class navigatorPositioning{
     }
 
     positionCentre(){
-        const left = window.innerWidth / 2 - this.navigator.width / 2
-        const top = window.innerHeight / 2 - this.navigator.height / 2
+        const left = window.innerWidth / 2 - this.navigator.divWidth / 2
+        const top = window.innerHeight / 2 - this.navigator.divHeight / 2
         this.set(left, top)
     }
 

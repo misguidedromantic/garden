@@ -9,22 +9,23 @@ class menu {
 }
 
 class menuItem {
-    constructor(title){
+    constructor(id, title){
+        this.id = id
         this.title = title
         this.selected = false
     }
 }
 
 class mainMenuItem extends menuItem{
-    constructor(title){
-        super(title)
+    constructor(id, title){
+        super(id, title)
     }
 
 }
 
 class subMenuItem extends menuItem {
-    constructor(title, target){
-        super(title)
+    constructor(id, title, target){
+        super(id, title)
         this.target = target
     }
 }
@@ -140,9 +141,9 @@ class menuListManagement {
 
     loadMainMenu(){
         return [
-            new mainMenuItem ('plans'),
-            new mainMenuItem ('songs'),
-            new mainMenuItem ('concepts')
+            new mainMenuItem ('plans', 'plans'),
+            new mainMenuItem ('songs', 'songs'),
+            new mainMenuItem ('concepts', 'concepts')
         ]
     }
 
@@ -156,8 +157,8 @@ class menuListManagement {
             case 'plans':
                 return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
             case 'songs':
-                const songTitles = await songsDataHandling.getTitles()
-                return songTitles.map(songTitle => new subMenuItem(songTitle))
+                const songTitles = songsDataHandling.getTitles()
+                return songTitles.map(song => new subMenuItem(song.short_title, song.title))
             default:
                 return []
         }
@@ -221,12 +222,21 @@ class menuRendering {
     }
 
     update(data){
+        this.stopActiveTween()
         this.renderItems(data.updatedItems, data.newConfiguration)
         data.renderedWidth = this.getRenderedItemWidths(data.updatedItems) 
         this.notify(data)
     }
 
+    stopActiveTween(){
+        const svg = d3.select('navigatorSVG')
+        const groups = svg.selectAll('g').interrupt()
+
+    }
+
     renderItems(data, menuConfig){
+
+        console.log(data)
 
         const selectedIndex = this.#getSelectedIndex(data, menuConfig)
         const enterControl = new menuItemEnter(menuConfig, selectedIndex)
@@ -246,7 +256,7 @@ class menuRendering {
         const groups = this.svg.selectAll('g')
         groups.each(function(){
             const elem = d3.select(this)
-            const item = items.find(item => item.title === elem.attr('id'))
+            const item = items.find(item => item.id === elem.attr('id'))
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
     }
@@ -277,7 +287,7 @@ class menuItemEnter {
 
     enterGroups(selection){
         return selection.append('g')
-            .attr('id', d => d.title)
+            .attr('id', d => d.id)
             .attr('transform', (d, i) => 
                 menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
             .on('click', onMenuItemClick)
@@ -293,14 +303,14 @@ class menuItemEnter {
 
     enterTextTransitionColour(text){
         text.transition('tColour')
-            .delay((d, i) => i * 100) 
+            .delay((d, i) => i * 50) 
             .duration(100)
             .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
 
     enterTextTransitionTween(text){
         text.transition('tTween')
-            .delay((d, i) => i * 100)
+            .delay((d, i) => i * 50)
             .duration(200)
             .textTween(d => {
             return function(t) {
@@ -336,6 +346,7 @@ class menuItemUpdate {
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
             .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
+
 }
 
 class menuItemExit {

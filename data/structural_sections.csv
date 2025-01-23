@@ -1,4 +1,4 @@
-﻿title,title (from formal_section_basis),type,sequence_in_song,formal_section_variation_types,short_title (from song)
+﻿title,formal_section_id,type,sequence_in_song,formal_section_variation_types,song_id
 gab1,gabA,intro,1,instrumental,gab
 gab2,gabA,verse,2,"sub-structure,minor transitional",gab
 gab3,gabB,chorus,3,,gab

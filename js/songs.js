@@ -1,6 +1,6 @@
 class song {
-    constructor(id, title){
-        this.id = id
+    constructor(shortTitle, title){
+        this.id = shortTitle
         this.title = title
         this.structure = []
         this.form = []
@@ -9,21 +9,18 @@ class song {
 }
 
 class formalSection {
-    constructor(id, title, label){
-        this.id = id
-        this.title = title
-        this.label = label
+    constructor(title, type){
+        this.id = title
+        this.type = type
     }
 }
 
 class structuralSection {
-    constructor(id, sectionData){
-        this.id = id
-        this.title = sectionData.title
-        this.sequence = sectionData.sequence_in_song
-        this.repeatNum = sectionData.repeat_number
+    constructor(sectionData){
+        this.id = sectionData.title
+        this.formalSectionID = sectionData.formal_section_id
         this.type = sectionData.type
-        this.formalSectionID = sectionData.formal_section_basis[0]
+        this.sequence = sectionData.sequence_in_song
         this.formVariations = sectionData.formal_section_variation_types
     }
 
@@ -137,6 +134,7 @@ class songStructuring {
 
     setupSong(songTitle){
         const thisSong = songsDataHandling.getSong(songTitle)
+        console.log(thisSong)
         thisSong.form = songsDataHandling.getFormalSections(thisSong.id)
         thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
         return thisSong
@@ -152,7 +150,6 @@ class songsDataHandling {
 
     static async load(){
         this.#source === 'csv' ? await this.#loadFromCSV(new csvExtractLoadTransform) : await this.#loadFromAirtable(new airtableExtractor)
-        console.log(this.songsData)
     }
 
     static async #loadFromAirtable(extractor){
@@ -169,8 +166,16 @@ class songsDataHandling {
         return Promise.resolve()
     }
 
+
     static getTitles(){
-        return this.songsData.map(song => song.title)
+        console.log(this.songsData)
+        return this.songsData.map(({short_title, title}) => ({short_title, title}))
+    }
+
+    static getSongs(){
+        console.log(this.songsData)
+        console.log(this.songsData.map(song => song.id))
+        return 'test' //this.songsData.map(song => {song.id, song.title})
     }
 
     static #getLoader(table){
@@ -178,23 +183,21 @@ class songsDataHandling {
     }
 
     static getSong(songTitle){
-        //const loader = this.#getLoader(this.songsData)
         const songData = this.songsData.find(song => song.title === songTitle)
-        console.log(songData) 
-        return new song (songData.id, songData.title)
+        return new song (songData.short_title, songData.title)
     }
 
     static getFormalSections(songID){
-        const sectionsData = this.formalSectionData.filter(section => section.fields.song[0] === songID)
+        const sectionsData = this.formalSectionData.filter(section => section.song === songID)
         const sections = []
         sectionsData.forEach(section => {
-            sections.push(new formalSection (section.id, section.fields.title, section.fields.label))
+            sections.push(new formalSection (section.title, section.type))
         })
         return sections
     }
 
     static getStructuralSections(songID){
-        const sectionsData = this.structuralSectionData.filter(section => section.fields.song[0] === songID)
+        const sectionsData = this.structuralSectionData.filter(section => section.song_id === songID)
         const sections = []
         sectionsData.forEach(section => {
             sections.push(this.#getStructuralSection(section))
@@ -203,37 +206,26 @@ class songsDataHandling {
     }
 
     static #getStructuralSection(sectionData){
-        switch(sectionData.fields.type){
+        switch(sectionData.type){
             case 'intro':
-                return new intro (sectionData.id, sectionData.fields)
+                return new intro (sectionData)
 
             case 'verse':
-                return new verse (sectionData.id, sectionData.fields)
+                return new verse (sectionData)
 
             case 'chorus':
-                return new chorus (sectionData.id, sectionData.fields)
+                return new chorus (sectionData)
 
             case 'bridge':
-                return new bridge (sectionData.id, sectionData.fields)
+                return new bridge (sectionData)
 
             case 'outro':
-                return new outro (sectionData.id, sectionData.fields)  
+                return new outro (sectionData)  
 
             default:
-                return new structuralSection (sectionData.id, sectionData.fields)
+                return new structuralSection (sectionData)
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
 
     static #setupSong(thisSong){

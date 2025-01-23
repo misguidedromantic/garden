@@ -30,9 +30,9 @@ window.onload = function(){
         
         function getMainMenuItems(){
             return [
-                new mainMenuItem ('plans'),
-                new mainMenuItem ('songs'),
-                new mainMenuItem ('concepts')
+                new mainMenuItem ('plans', 'plans'),
+                new mainMenuItem ('songs', 'songs'),
+                new mainMenuItem ('concepts', 'concepts')
             ]
         }
        

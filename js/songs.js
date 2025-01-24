@@ -134,7 +134,6 @@ class songStructuring {
 
     setupSong(songTitle){
         const thisSong = songsDataHandling.getSong(songTitle)
-        console.log(thisSong)
         thisSong.form = songsDataHandling.getFormalSections(thisSong.id)
         thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
         return thisSong
@@ -168,7 +167,6 @@ class songsDataHandling {
 
 
     static getTitles(){
-        console.log(this.songsData)
         return this.songsData.map(({short_title, title}) => ({short_title, title}))
     }
 

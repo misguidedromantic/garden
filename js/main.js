@@ -74,6 +74,8 @@ window.onload = function(){
     loadMenuInNavigator(navigator, navigatorMenu)
     handoverControl(navigator, navigatorMenu)
 
+    
+
 }
 
 function onMenuItemClick(){

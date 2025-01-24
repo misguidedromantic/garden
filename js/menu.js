@@ -47,12 +47,18 @@ class menuSelections {
     }
 
     update(clickedItem, clickedMenuConfig){
+        
+        const dispatch = d3.dispatch('stopTextTransitions')
+        dispatch.call('stopTextTransitions', this)
+        
+        
         let updatedItems = []
         switch(clickedMenuConfig){
             case 'main':
                 updatedItems = this.#updateFromMain(clickedItem)
                 break;
             case 'sub':
+                
                 updatedItems = this.#updateFromSub(clickedItem)
                 break;
             case 'subSelect':
@@ -62,6 +68,7 @@ class menuSelections {
     }
 
     #updateFromMain(clickedItem){
+        
         clickedItem.selected = true
         return [clickedItem]
     }
@@ -127,19 +134,19 @@ class menuListManagement {
         this.observers.forEach(observer => observer.update(data))
     }
 
-    async update(data){
+    update(data){
 
         if(data.updatedItems.length === 1){
             const item = data.updatedItems[0]
             if(item.constructor.name === 'mainMenuItem'){
-                item.selected ? this.menu.items = await this.loadSubMenu(item) : this.menu.items = this.loadMainMenu() 
+                item.selected ? this.menu.items = this.#getSubMenuItems(item) : this.menu.items = this.#getMainMenuItems() 
             }
         }
 
         this.notify(data)
     }
 
-    loadMainMenu(){
+    #getMainMenuItems(){
         return [
             new mainMenuItem ('plans', 'plans'),
             new mainMenuItem ('songs', 'songs'),
@@ -147,22 +154,33 @@ class menuListManagement {
         ]
     }
 
-    async loadSubMenu(mainMenuItem){
-        const subMenuItems = await this.getSubMenuItems(mainMenuItem.title)
+    #getSubMenuItems(mainMenuItem){
+        const subMenuItems = this.#getSubMenuSourceData(mainMenuItem.title)
         return [...[mainMenuItem], ...subMenuItems]
     }
 
-    async getSubMenuItems(mainMenuItemName){
+    #getSubMenuSourceData(mainMenuItemName){
         switch(mainMenuItemName){
             case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+                return this.#getPlansSubMenu()
             case 'songs':
-                const songTitles = songsDataHandling.getTitles()
-                return songTitles.map(song => new subMenuItem(song.short_title, song.title))
+                return this.#getSongsSubMenu()
             default:
                 return []
         }
     }
+
+    #getPlansSubMenu(){
+        //plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+        return [new subMenuItem('tp1','test plan one'), new subMenuItem('tp2', 'test plan two')]
+    
+    }
+
+    #getSongsSubMenu(){
+        const songs = songsDataHandling.getTitles()
+        return songs.map(song => new subMenuItem(song.short_title, song.title))
+    }
+
 }
 
 class menuConfigurationManagement {
@@ -222,22 +240,19 @@ class menuRendering {
     }
 
     update(data){
-        this.stopActiveTween()
+        this.interruptTransitions()
         this.renderItems(data.updatedItems, data.newConfiguration)
         data.renderedWidth = this.getRenderedItemWidths(data.updatedItems) 
         this.notify(data)
     }
 
-    stopActiveTween(){
-        const svg = d3.select('navigatorSVG')
-        const groups = svg.selectAll('g').interrupt()
-
+    interruptTransitions(){
+        const text = this.svg.selectAll('text')
+        text.interrupt('tColour')
+        text.interrupt('tWeen')
     }
 
     renderItems(data, menuConfig){
-
-        console.log(data)
-
         const selectedIndex = this.#getSelectedIndex(data, menuConfig)
         const enterControl = new menuItemEnter(menuConfig, selectedIndex)
         const updateControl = new menuItemUpdate(menuConfig, selectedIndex)
@@ -315,8 +330,9 @@ class menuItemEnter {
             .textTween(d => {
             return function(t) {
                 return d.title.slice(0, Math.round(t * d.title.length));
-            };
+            }
         })
+
     }
 }
 

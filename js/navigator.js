@@ -28,6 +28,11 @@ class navigatorWindowControl {
         }
     }
 
+    adjustToWindowResize(){
+        this.#settings.setForMainMenu()
+        this.#rendering.move(0, 50)
+    }
+
     #transitionSubToMain(){
         this.#settings.setForMainMenu()
         this.#rendering.resize(0, 400)

@@ -68,6 +68,7 @@ window.onload = function(){
 
     function handoverControl(navigator, menu){
         navigation.initalise(navigator, menu)
+        
     }
 
     loadExternalData()
@@ -75,10 +76,24 @@ window.onload = function(){
     const navigatorMenu = createMenu()
     loadMenuInNavigator(navigator, navigatorMenu)
     handoverControl(navigator, navigatorMenu)
+    const throttledResize = throttle(navigation.moveOnWindowResize, 50)
+    window.onresize = throttledResize
 
-    
 
 }
+
+function throttle(func, delay){
+    let lastCall = 0;
+    return function (...args) {
+        const now = new Date().getTime();
+        if (now - lastCall < delay) {
+            return;
+        }
+        lastCall = now;
+        return func(...args);
+    };
+}
+
 
 function onMenuItemClick(){
     const clickedItem = d3.select(this).data()[0]
@@ -93,6 +108,8 @@ function onMenuMouseOut(){
     navigation.menuContract()
 }
 
+
+
 class navigation {
 
     static #navigatorControl  = {}
@@ -106,6 +123,10 @@ class navigation {
         this.#assignNavigationObjects(navigator, menu)
         this.#initialiseControllers()
         this.#setupSubscriptions()
+    }
+
+    static moveOnWindowResize(){
+        navigation.#navigatorControl.adjustToWindowResize()
     }
 
     static menuSelectionChange(clickedItem){
@@ -146,6 +167,8 @@ class navigation {
         this.#menuRendering.subscribe(this.#navigatorControl)
     }
 }
+
+
 
 class displays {
     static getZIndex(divID){

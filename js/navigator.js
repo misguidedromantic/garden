@@ -35,6 +35,16 @@ class navigatorWindowControl {
         this.#rendering.float(100, 300)
     }
 
+    transitionSubToSubExpanded(){
+        this.#settings.setForSubExpanded()
+        this.#rendering.resize(0, 200)
+    }
+
+    transitionSubExpandedToSub(){
+        this.#settings.setForSubMenu()
+        this.#rendering.resize(0, 200)
+    }
+
     #transitionSubToSubSelect(){
         this.#settings.setForSubSelectMenu()
         this.#rendering.resize(0, 0)
@@ -46,6 +56,8 @@ class navigatorWindowControl {
         this.#rendering.move(0, 400)
         this.#rendering.float(100, 300)
     }
+
+    
 
 }
 
@@ -101,14 +113,19 @@ class navigatorWindowSettings{
     }
 
     setForSubMenu(){
-        this.sizing.fitToContents()
+        this.sizing.fitToContents(8)
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
+    }
+
+    setForSubExpanded(){
+        this.sizing.fitToContents()
     }
 
     setForSubSelectMenu(){
         this.sizing.fitToContents()
     }
+
 }
 
 class navigatorSizing{
@@ -118,34 +135,20 @@ class navigatorSizing{
         this.menu = menu
     }
 
-    fitToContents(){
-        const contentWidth = this.#setWidthToContents()
-        const contentHeight = this.#setHeightToContents()
-        this.#setDivDimensions(contentHeight, contentWidth)
-        this.#setSVGDimensions(contentHeight, contentWidth)
+    fitToContents(itemLimit = this.menu.items.length, widestItemWidth = this.#getWidestItemWidth()){
+        const itemCount = this.menu.items.length
+        this.#setDivDimensions(widestItemWidth, itemLimit)
+        this.#setSVGDimensions(widestItemWidth, itemCount)
     }
 
-    #setDivDimensions(contentHeight, contentWidth){
-        this.navigator.divWidth = contentWidth
-        this.navigator.divHeight = this.#calculateDivHeight(contentHeight) 
+    #setDivDimensions(widestItemWidth, itemLimit){
+        this.navigator.divWidth = widestItemWidth + (this.menu.padding * 2)
+        this.navigator.divHeight = itemLimit * this.menu.ySpacing + (this.menu.padding * 2)
     }
 
-    #calculateDivHeight(contentHeight){
-        if(this.menu.configuration === 'sub'){
-            return this.menu.items.length > 8 ? 8 * this.menu.ySpacing : contentHeight
-        } else {
-            return contentHeight
-        }
-    }
-
-    #setSVGDimensions(contentHeight, contentWidth){
-        this.navigator.svgWidth = contentWidth
-        this.navigator.svgHeight = contentHeight
-    }
-
-    #setWidthToContents(){
-        const widestItemWidth = this.#getWidestItemWidth()
-        return widestItemWidth + (this.menu.padding * 2)
+    #setSVGDimensions(widestItemWidth, itemCount){
+        this.navigator.svgWidth = widestItemWidth + (this.menu.padding * 2)
+        this.navigator.svgHeight = itemCount * this.menu.ySpacing + (this.menu.padding * 2)
     }
 
     #getWidestItemWidth(){
@@ -163,10 +166,7 @@ class navigatorSizing{
         return widestWidth
     }
 
-    #setHeightToContents(){
-        return this.menu.items.length * this.menu.ySpacing + (this.menu.padding * 2)
-
-    }
+    
 
 }
 

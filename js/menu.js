@@ -51,14 +51,12 @@ class menuSelections {
         const dispatch = d3.dispatch('stopTextTransitions')
         dispatch.call('stopTextTransitions', this)
         
-        
         let updatedItems = []
         switch(clickedMenuConfig){
             case 'main':
                 updatedItems = this.#updateFromMain(clickedItem)
                 break;
             case 'sub':
-                
                 updatedItems = this.#updateFromSub(clickedItem)
                 break;
             case 'subSelect':
@@ -477,10 +475,7 @@ class menuTextTransitions {
     }
 
     static calculateColour(selection){
-        
-
         return selection.transition(t).attr('fill', newColour)
     }
-
 
 }

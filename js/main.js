@@ -16,7 +16,9 @@ window.onload = function(){
     
         function createSVGCanvas(id, div){
             return div.append('svg')
-            .attr('id', id)
+                .attr('id', id)
+                .on('mouseover', onMenuMouseOver)
+                .on('mouseout', onMenuMouseOut)
         }
     
         const nav = new navigatorWindow
@@ -83,6 +85,14 @@ function onMenuItemClick(){
     navigation.menuSelectionChange(clickedItem)
 }
 
+function onMenuMouseOver(){
+    navigation.menuExpand()
+}
+
+function onMenuMouseOut(){
+    navigation.menuContract()
+}
+
 class navigation {
 
     static #navigatorControl  = {}
@@ -100,6 +110,18 @@ class navigation {
 
     static menuSelectionChange(clickedItem){
         this.#menuSelections.update(clickedItem, this.menu.configuration)
+    }
+
+    static menuExpand(){
+        if(this.menu.configuration === 'sub'){
+            this.#navigatorControl.transitionSubToSubExpanded()
+        }
+    }
+
+    static menuContract(){
+        if(this.menu.configuration === 'sub'){
+            this.#navigatorControl.transitionSubExpandedToSub()
+        }
     }
 
     static #assignNavigationObjects(navigator, menu){

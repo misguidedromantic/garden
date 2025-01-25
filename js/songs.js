@@ -1,6 +1,6 @@
 class song {
-    constructor(id, title){
-        this.id = id
+    constructor(shortTitle, title){
+        this.id = shortTitle
         this.title = title
         this.structure = []
         this.form = []
@@ -9,56 +9,53 @@ class song {
 }
 
 class formalSection {
-    constructor(id, title, label){
-        this.id = id
-        this.title = title
-        this.label = label
+    constructor(title, type){
+        this.id = title
+        this.type = type
     }
 }
 
 class structuralSection {
     constructor(sectionData){
-        this.id = sectionData.id
-        this.title = sectionData.title
+        this.id = sectionData.title
+        this.formalSectionID = sectionData.formal_section_id
+        this.type = sectionData.type
         this.sequence = sectionData.sequence_in_song
-        this.formSectionID = sectionData.formal_section_basis[0]
+        this.formVariations = sectionData.formal_section_variation_types
     }
 
 
 }
 
 class intro extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class verse extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class chorus extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class bridge extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
 
 class outro extends structuralSection {
-    constructor(sectionData){
-        super(sectionData)
+    constructor(id, sectionData){
+        super(id, sectionData)
     }
 }
-
-
-
 
 class songBlock {
     constructor(item, blockType){
@@ -99,23 +96,147 @@ class progressionBlock extends songBlock {
     }
 }
 
+class songsContentControl {
 
+    constructor(){
+        this.structuring = new songStructuring()
+        this.blockControl = new songBlockControl()
+    }
+
+    update(data){
+        if(this.#isSongsMenuLoaded(data.updatedItems)){
+            let songToLoad = ''
+            try{songToLoad = this.#getSongSelection(data.updatedItems)}
+            catch {return}
+            const thisSong = this.structuring.setupSong(songToLoad.title)
+            this.blockControl.loadSong(thisSong)
+
+        }
+    }
+
+    #isSongsMenuLoaded(items){
+        return items.some(item => item.title === 'songs' && item.selected)
+    }
+
+    #getSongSelection(items){
+        const filtered = items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
+        if(filtered.length === 1){return filtered[0]}else{throw error}
+    }
+
+
+}
+
+class songStructuring {
+
+    constructor(){
+        this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
+    }
+
+    setupSong(songTitle){
+        const thisSong = songsDataHandling.getSong(songTitle)
+        thisSong.form = songsDataHandling.getFormalSections(thisSong.id)
+        thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
+        return thisSong
+    }
+}
 
 
 class songsDataHandling {
-    static songs = []
+    static #source = 'csv'
+    static songsData = []
+    static formalSectionData = []
+    static structuralSectionData = []
 
     static async load(){
-        await this.#loadData()
-        this.#loadHandlers()
-        this.#setupSongs()
+        this.#source === 'csv' ? await this.#loadFromCSV(new csvExtractLoadTransform) : await this.#loadFromAirtable(new airtableExtractor)
     }
 
+    static async #loadFromAirtable(extractor){
+        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
+        this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
+        this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
+        return Promise.resolve()
+    }
+
+    static async #loadFromCSV(extractor){
+        this.songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
+        this.formalSectionData = await extractor.getAllRecordsFromFile('data/formal_sections.csv')
+        this.structuralSectionData = await extractor.getAllRecordsFromFile('data/structural_sections.csv')
+        return Promise.resolve()
+    }
+
+
+    static getTitles(){
+        return this.songsData.map(({short_title, title}) => ({short_title, title}))
+    }
+
+    static getSongs(){
+        console.log(this.songsData)
+        console.log(this.songsData.map(song => song.id))
+        return 'test' //this.songsData.map(song => {song.id, song.title})
+    }
+
+    static #getLoader(table){
+        return this.#source === 'airtable' ? new airtableExtractedDataLoader(table) : new csvExtractLoadTransform(table)
+    }
+
+    static getSong(songTitle){
+        const songData = this.songsData.find(song => song.title === songTitle)
+        return new song (songData.short_title, songData.title)
+    }
+
+    static getFormalSections(songID){
+        const sectionsData = this.formalSectionData.filter(section => section.song === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            sections.push(new formalSection (section.title, section.type))
+        })
+        return sections
+    }
+
+    static getStructuralSections(songID){
+        const sectionsData = this.structuralSectionData.filter(section => section.song_id === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            sections.push(this.#getStructuralSection(section))
+        })
+        return sections
+    }
+
+    static #getStructuralSection(sectionData){
+        switch(sectionData.type){
+            case 'intro':
+                return new intro (sectionData)
+
+            case 'verse':
+                return new verse (sectionData)
+
+            case 'chorus':
+                return new chorus (sectionData)
+
+            case 'bridge':
+                return new bridge (sectionData)
+
+            case 'outro':
+                return new outro (sectionData)  
+
+            default:
+                return new structuralSection (sectionData)
+        }
+    }
+
+
+    static #setupSong(thisSong){
+        this.sectionHandling.setupSections(thisSong)
+        //this.blockHandling.setupBlocks(thisSong)
+        return thisSong
+    }
+
+
+
     static async #loadData(){
-        const tableConnection = new airTableConnector()
-        this.songsData = await tableConnection.getAllRecordsFromTable('songs')
-        this.formalSectionData = await tableConnection.getAllRecordsFromTable('formal_sections')
-        this.structuralSectionData = await tableConnection.getAllRecordsFromTable('structural_sections')
+        const extractor = new airtableExtractor
+        this.songsData = await extractor.getAllRecordsFromTable('songs')
         return Promise.resolve()
     }
 
@@ -137,11 +258,7 @@ class songsDataHandling {
         return new song(id, title)
     }
 
-    static #setupSong(thisSong){
-        this.sectionHandling.setupSections(thisSong)
-        //this.blockHandling.setupBlocks(thisSong)
-        return thisSong
-    }
+    
 
     static filterForSong(data, songID){
         return data.filter(item => item.songID === songID)
@@ -151,9 +268,6 @@ class songsDataHandling {
         return this.songs
     }
 
-    static getSong(title){
-        return this.songs.find(song => song.title === title)
-    }
 
     static getSongByID(id){
         return this.songs.find(song => song.id === id)
@@ -170,8 +284,6 @@ class songSectionHandling {
     setupSections(song){
         this.#setupFormalSections(song)
         this.#setupStructuralSections(song)
-        console.log(song.form)
-        console.log(song.structure)
     }
 
     #setupFormalSections(song){
@@ -556,196 +668,3 @@ class lyricLine {
 
 
 
-class songBlockCanvas {
-    static div = {}
-    static svg = {}
-    static blocks = []
-    static width = 0
-    static height = 600
-    static left = 72
-    static top = 160
-    static position = 'absolute'
-    static borderRadius = 20
-}
-
-class songBlockControl {
-    constructor(){
-        this.canvasRendering = new songBlockCanvasRendering
-        this.blockRendering = new songBlockRendering
-    }
-
-    createSongBlockCanvas(){
-        songBlockCanvas.div = this.canvasRendering.createDiv()
-        songBlockCanvas.svg = this.canvasRendering.createSVGCanvas()
-    }
-
-    loadSong(song){
-        this.blockRendering.renderBlocks(song.structureBlocks)
-    }
-
-}
-
-class songBlockCanvasRendering {
-    createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', 'songBlockCanvasDiv')
-            .style('position', songBlockCanvas.position)
-            .style('top', songBlockCanvas.top + 'px')
-            .style('left', songBlockCanvas.left + 'px')
-            .style('height', songBlockCanvas.height + 'px')
-            //.style('background-color', 'white')
-
-    }
-
-    createSVGCanvas(){
-        return songBlockCanvas.div.append('svg')
-            .attr('id', 'songBlockCanvasSVG')
-            .attr('height', songBlockCanvas.height)
-    }
-
-    resize(delay, duration){
-        songBlockCanvas.div.transition('tSizing').delay(delay).duration(duration)
-            .style('width', songBlockCanvas.width + 'px')
-            .style('height', songBlockCanvas.height + 'px')
-    }
-}
-
-class songBlockPositioning {
-
-    static calculateTranslate(d, i){
-        const x = this.#getXPos(d)
-        const y = this.#getYPos(d)
-        return this.#getTranslateString(x, y)
-    }
-
-    static #getXPos(d){
-        return blockDataHandling.getBlockNumberInGroup(d.id, d.sectionID) * 17
-    }
-
-    static #getYPos(d){
-        return (d.sectionIndex * 40) + (d.constructor.name === 'melodyBlock' ? 0 : 17)
-    }
-
-    static #getTranslateString(x, y){
-        return 'translate(' + x + ',' + y + ')'
-    }
-}
-
-class songBlockStyling {
-    static calculateFill(d){
-        let variationFactor = this.#getVariationFactor(d)
-        switch(variationFactor){
-            case 0:
-                return 'lightGrey'
-
-            case 1:
-                return 'pink'
-
-            case 2:
-                return 'purple'
-
-            default:
-                if(variationFactor < 0){
-                    return 'lightYellow'
-                } else {
-                    return 'red'
-                }
-                
-        }
-    }
-
-    static calculateStroke(d){
-        const variationFactor = this.#getVariationFactor(d)
-        if(variationFactor < 0){return 'lightGrey'}else{return this.calculateFill(d)}
-    }
-
-    static #getVariationFactor(d){
-        if(d.constructor.name === 'melodyBlock'){
-            return blockDataHandling.getMelodyBlockVariationLevel(d) 
-        }
-
-        if(d.constructor.name === 'progressionBlock'){
-            return blockDataHandling.getProgressionBlockVariationLevel(d) 
-        }
-    }
-}
-
-class songBlockRendering {
-
-    renderBlocks(data){
-        console.log(data)
-        const enterControl = new blockEnter
-        const updateControl = new blockUpdate
-        const exitControl = new blockExit
-        
-        songBlockCanvas.svg.selectAll('g')
-            .data(data, d => d.title)
-            .join(
-                enter => enterControl.enterBlocks(enter),
-                update => updateControl.updateBlocks(update),
-                exit => exitControl.exitBlocks(exit)
-            )
-    }
-}
-
-class blockEnter {
-
-    enterBlocks(selection){
-        const groups = this.enterGroups(selection)
-        const rectangles = this.enterRects(groups)
-    }
-
-    enterGroups(selection){
-        return selection.append('g')
-            .attr('id', d => d.title)
-            .attr('transform', (d, i) => songBlockPositioning.calculateTranslate(d, i))
-    }
-
-    enterRects(groups){
-
-        groups.append('rect')
-            .attr('class', d => d.constructor.name)
-            .attr('width', 14)
-            .attr('height', 14)
-            .attr('fill', d => songBlockStyling.calculateFill(d))
-            .attr('stroke', d => songBlockStyling.calculateStroke(d))
-            .attr('stroke-width', 1)
-
-
-        return groups
-    }
-
-
-}
-
-
-class blockUpdate {
-
-    updateBlocks(selection){
-        const groups = this.updateGroups(selection)
-        const rectangles = this.updateRects(groups)
-    }
-
-    updateGroups(selection){
-        return selection.transition()
-            .duration(400)
-            .attr('transform', (d, i) => {
-                return menuItemPositioning.calculateTranslate(d, i)
-            })
-    }
-
-    updateRects(groups){
-        return groups.select('rect')
-            .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menu.state === 'subSelect' ? 'grey' : 'black')
-    }
-
-}
-
-class blockExit {
-    exitBlocks(selection){
-        selection.remove()
-        return selection
-    }
-}

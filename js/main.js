@@ -1,143 +1,159 @@
-window.onload = async function(){
-    await loadData()
-    loadControllers()
+window.onload = function(){
+
+    function loadData(){
+        songsDataHandling.load('csv')
+    }
+    function setupNavigation(){
+        new navigationSetup
+    }
+    function initialiseEventHandlers(){
+        events.initaliseWindowResizeHandling()
+    }
+
+    loadData()
+    setupNavigation()
+    initialiseEventHandlers() 
 }
 
-async function loadData(){
-    await plansDataHandling.load()
-    await songsDataHandling.load()
-    return Promise.resolve()
+class events {
+
+    static initaliseWindowResizeHandling(){
+        window.onresize = throttles.throttleWithFinalCall(navigation.moveOnWindowResize, 100)
+    }
+
+    static waitForWindowLoad(){
+        return new Promise(resolve => {window.onload = resolve})
+    }
+
+    static onMenuItemClick(){
+        const clickedItem = d3.select(this).data()[0]
+        navigation.menuSelectionChange(clickedItem)
+    }
+
+    static onMenuMouseOver(){
+        navigation.menuExpand()
+    }
+    
+    static onMenuMouseOut(){
+        navigation.menuContract()
+    }
+    
 }
 
-function loadControllers(){
-    navigation.setup()
-    contentControl.setup()
-}
+class throttles {
+    static throttle(func, delay){
+        let lastCall = 0;
+        return function (...args) {
+            const now = new Date().getTime();
+            if (now - lastCall < delay) {
+                return;
+            }
+            lastCall = now;
+            return func(...args);
+        }
+    }
 
-function menuItemClicked(){
-    const data = d3.select(this).data()
-    const clickedItem = data[0]
-    navigation.updateNavigator(clickedItem)
-    navigation.toggleSelection(clickedItem)
-
+    static throttleWithFinalCall(func, delay) {
+        let timeoutId;
+        let lastExec = 0;
+        let finalCall = false;
+      
+        return function(...args) {
+          const context = this;
+          const now = Date.now();
+      
+          if (now - lastExec >= delay) {
+            func.apply(context, args);
+            lastExec = now;
+            finalCall = false;
+          } else {
+            clearTimeout(timeoutId);
+            finalCall = true;
+      
+            timeoutId = setTimeout(() => {
+              if (finalCall) {
+                func.apply(context, args);
+                lastExec = now;
+                finalCall = false;
+              }
+            }, delay);
+          }
+        };
+      }
 }
 
 
 class navigation {
 
-    static windowControl = {}
-    static menuControl = {}
+    static #navigatorControl  = {}
+    static #menuSelections = {}
+    static #menuListMgmt = {}
+    static #menuConfigMgmt = {}
+    static #menuRendering = {}
+    static #songsContent = {}
 
-    static async setup(){
-        this.#loadControllers()
-        this.#loadNavigator()
+    static initalise (navigator, menu){
+        this.#assignNavigationObjects(navigator, menu)
+        this.#initialiseControllers()
+        this.#setupSubscriptions()
     }
 
-    static async #loadControllers(){
-        this.windowControl = new navigatorWindowControl
-        this.menuControl = new menuControl
+    static moveOnWindowResize(){
+        navigation.#navigatorControl.adjustToWindowResize()
     }
 
-    static #loadNavigator(){
-        this.windowControl.createNavigator()
-        this.menuControl.update()
-        this.windowControl.update()
+    static menuSelectionChange(clickedItem){
+        this.#menuSelections.update(clickedItem, this.menu.configuration)
     }
 
-    static updateNavigator(clickedItem){
-        const clickedMenu =  this.menuControl.getMenuState()
-        this.menuControl.update(clickedMenu, clickedItem)
-        this.windowControl.update(clickedMenu, clickedItem)
-    }
-
-    static toggleSelection(clickedItem){
-        if(clickedItem.constructor.name === 'subMenuItem'){
-            this.#toggleSubMenuItemSelection(clickedItem)
-        } else if (clickedItem.constructor.name === 'menuItem' && menu.state === 'subSelect'){
-            this.#unloadSubSelectMenu()
+    static menuExpand(){
+        if(this.menu.configuration === 'sub'){
+            this.#navigatorControl.transitionSubToSubExpanded()
         }
     }
 
-    static #toggleSubMenuItemSelection(clickedItem){
-        if(clickedItem.selected){
-            this.#loadSubMenuSelection(clickedItem.target)
-        } else {
-            this.#hideSubMenuSelection(clickedItem.target)
+    static menuContract(){
+        if(this.menu.configuration === 'sub'){
+            this.#navigatorControl.transitionSubExpandedToSub()
         }
     }
 
-    static async #loadSubMenuSelection(targetItem){
-        contentControl.update(targetItem)
+    static #assignNavigationObjects(navigator, menu){
+        this.navigator = navigator
+        this.menu = menu
     }
 
-    static #hideSubMenuSelection(targetItem){
-        switch(targetItem.constructor.name){
-            case('plan'):
-                contentControl.hidePlan()
-                break;
-
-            case('song'):
-                console.log(targetItem)
-        }
+    static #initialiseControllers(){
+        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.menu)
+        this.#menuSelections = new menuSelections(this.menu)
+        this.#menuListMgmt = new menuListManagement (this.menu)
+        this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
+        this.#menuRendering = new menuRendering (this.navigator.svg)
+        this.#songsContent = new songsContentControl ()
     }
 
-    static #unloadSubSelectMenu(){
-        this.contentControl.unloadPlan()
+    static #setupSubscriptions(){
+        this.#menuSelections.subscribe(this.#menuListMgmt)
+        this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
+        this.#menuListMgmt.subscribe(this.#songsContent)
+        this.#menuConfigMgmt.subscribe(this.#menuRendering)
+        this.#menuRendering.subscribe(this.#navigatorControl)
     }
-
 }
 
-class contentControl {
 
-    static docControl = {}
-    static songBlockControl = {}
-    
-    static setup(){
-        this.setupDocControl()
-        this.setupSongBlockControl()
-    }
 
-    static setupSongBlockControl(){
-        this.songBlockControl = new songBlockControl
-        this.songBlockControl.createSongBlockCanvas()
-    }
-
-    static setupDocControl(){
-        this.docControl = new docWindowControl
-        this.docControl.createDocWindow()
-    }
-    
-    static update(selectedItem){
-        switch(selectedItem.constructor.name){
-            case('plan'):
-                this.loadPlan(selectedItem)
-                break;
-
-            case('song'):
-                this.songBlockControl.loadSong(selectedItem)
+class displays {
+    static getZIndex(divID){
+        switch(divID){
+            case 'songBlockCanvasDiv':
+                return 1
+            case 'navigatorDiv':
+                return 2
+            default:
+                return 99
         }
     }
-
-
-    
-    static async loadPlan(plan){
-
-        if(this.docControl.checkIfLoaded(plan.fileName)){
-            this.docControl.showWindow(plan.fileName)
-        } else {
-            plan.htmlDoc = await plansDataHandling.getPlanHTML(plan.title)
-            this.docControl.loadDoc(plan)
-        }
-    }
-
-    static hidePlan(){
-        this.docControl.hideWindow()
-    }
-
-    static unloadPlan(){
-        this.docControl.unloadDoc()
-    }
-
 }
 
 

@@ -1,0 +1,43 @@
+﻿title,formal_section_id,type,sequence_in_song,formal_section_variation_types,song_id
+gab1,gabA,intro,1,instrumental,gab
+gab2,gabA,verse,2,"sub-structure,minor transitional",gab
+gab3,gabB,chorus,3,,gab
+gab4,gabA,verse,4,,gab
+gab5,gabB,chorus,5,"sub-structure,melody shape",gab
+gab6,gabB,chorus,6,"sub-structure,instrumental",gab
+intention1,intentionA,verse,1,,intention
+intention2,intentionB,chorus,2,,intention
+intention3,intentionA,verse,3,,intention
+intention4,intentionB,chorus,4,,intention
+intention5,intentionC,bridge,5,,intention
+intention6,intentionA,verse,6,,intention
+intention7,intentionB,chorus,7,,intention
+ye1,yeA,intro,1,instrumental,ye
+ye2,yeA,verse,2,,ye
+ye3,yeB,chorus,3,,ye
+ye4,yeA,verse,4,,ye
+ye5,yeB,chorus,5,sub-structure,ye
+ye6,yeA,outro,6,"instrumental,melody shape,sub-structure",ye
+hurdle1,hurdleA,intro,1,instrumental,hurdle
+hurdle2,hurdleA,verse,2,sub-structure,hurdle
+hurdle3,hurdleB,chorus,3,,hurdle
+hurdle4,hurdleA,bridge,4,,hurdle
+hurdle5,hurdleA,verse,5,,hurdle
+hurdle6,hurdleB,chorus,6,,hurdle
+hurdle7,hurdleA,verse,7,melody shape,hurdle
+hurdle8,hurdleB,chorus,8,,hurdle
+hurdle9,hurdleB,chorus,9,,hurdle
+filling1,fillingA,verse,1,,filling
+filling2,fillingA,verse,2,,filling
+filling3,fillingA,bridge,3,instrumental,filling
+filling4,fillingA,verse,4,sub-structure,filling
+damage1,damageA,verse,1,,damage
+damage2,damageA,verse,2,,damage
+damage3,damageB,chorus,3,,damage
+damage1,toilingA,intro,1,instrumental,damage
+damage2,toilingA,verse,2,,damage
+damage3,toilingA,bridge,3,instrumental,damage
+damage4,toilingA,verse,4,,damage
+damage5,toilingA,bridge,5,"instrumental,sub-structure,chords,minor transitional",damage
+damage6,toilingA,verse,6,melody pitch,damage
+damage7,toilingA,outro,7,"sub-structure,instrumental,melody pitch",damage

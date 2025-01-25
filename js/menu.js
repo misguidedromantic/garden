@@ -1,184 +1,262 @@
 class menu {
-    static items = []
-    static state = 'main'
-    static ySpacing = 20
-    static padding = 20
+    constructor(configuration){
+        this.configuration = configuration
+        this.items = []
+        this.observers = []
+        this.ySpacing = 20
+        this.padding = 20
+    }
 }
 
 class menuItem {
-    constructor(title){
+    constructor(id, title){
+        this.id = id
         this.title = title
         this.selected = false
     }
 }
 
+class mainMenuItem extends menuItem{
+    constructor(id, title){
+        super(id, title)
+    }
+
+}
+
 class subMenuItem extends menuItem {
-    constructor(title, target){
-        super(title)
+    constructor(id, title, target){
+        super(id, title)
         this.target = target
     }
 }
 
-class menuControl {
-    constructor(){
-        this.menuData = new menuDataHandling
-        this.rendering = new menuRendering
+
+class menuSelections {
+
+    constructor(menu){
+        this.menu = menu
+        this.observers = []
     }
 
-    update(clickedMenu, clickedItem){
-        this.menuData.update(clickedMenu, clickedItem)
-        this.setMenuState()
-        this.rendering.renderItems(menu.items)
-        this.rendering.setRenderedItemWidths()
+    subscribe(observer){
+        this.observers.push(observer)
     }
 
-    getRenderedItemWidth(itemTitle){
-       return menu.items.find(item => item.title === itemTitle).renderedWidth
+    notify(updatedItems){
+        this.observers.forEach(observer => observer.update({updatedItems: updatedItems}))
     }
 
-    setMenuState(){
-        menu.state = this.getMenuState()
-    }
-
-    getMenuState(){
-        if(this.#getSubMenuItemSelectedCount() > 0){
-            return 'subSelect'
-        }
-
-        if(this.#getSubMenuItemCount() > 0){
-            return 'sub'
-        }
-
-        return 'main'
-    }
-
-    #getSubMenuItemCount(){
-        const subMenuItems = menu.items.filter(item => item.constructor.name === 'subMenuItem')
-        return subMenuItems.length
-    }
-
-    #getSubMenuItemSelectedCount(){
-        const subMenuItemsSelected = menu.items.filter(item => item.constructor.name === 'subMenuItem' && item.selected)
-        return subMenuItemsSelected.length
-    }
-}
-
-class menuDataHandling {
-    constructor(){
-        this.mainMenuItems = []
-        this.selections = new menuSelections
-        this.#setMainMenuItems()
-        this.#setSubMenuItems()
-    }
-
-    update(clickedMenu, clickedItem){
-        switch(clickedMenu){
+    update(clickedItem, clickedMenuConfig){
+        
+        const dispatch = d3.dispatch('stopTextTransitions')
+        dispatch.call('stopTextTransitions', this)
+        
+        let updatedItems = []
+        switch(clickedMenuConfig){
             case 'main':
-                this.#updateFromMain(clickedItem)
+                updatedItems = this.#updateFromMain(clickedItem)
                 break;
-
             case 'sub':
-            case 'subSelect':
-                this.#updateFromSub(clickedItem)
+                updatedItems = this.#updateFromSub(clickedItem)
                 break;
-
-            default:
-                this.#setToMainMenu()
-
+            case 'subSelect':
+                updatedItems = this.#updateFromSubSelect(clickedItem)
         }
+        this.notify(updatedItems)
     }
 
     #updateFromMain(clickedItem){
-        if(clickedItem.subMenu.length > 0){
-            this.#setToSubMenu(clickedItem)
-        }
+        
+        clickedItem.selected = true
+        return [clickedItem]
     }
 
     #updateFromSub(clickedItem){
-        switch(clickedItem.constructor.name){
-            case 'menuItem':
-                this.#setToMainMenu()
-                break;
-            case 'subMenuItem':
-                this.selections.updateSubMenuSelection(clickedItem)
+        if(clickedItem.constructor.name === 'mainMenuItem'){
+            return this.#deslectAllItems() 
+        } else {
+            return this.#selectExclusive(clickedItem)
         }
     }
 
-    #setToMainMenu(){
-        this.selections.deslectAllItems()
-        menu.items = this.mainMenuItems
-    }
-
-    #setToSubMenu(parentItem){
-        this.selections.select(parentItem)
-        menu.items = [...[parentItem], ...parentItem.subMenu]
-    }
-
-    #setMainMenuItems(){
-        this.mainMenuItems = [
-            new menuItem ('plans'),
-            new menuItem ('songs'),
-            new menuItem ('concepts')
-        ]
-    }
-
-    #setSubMenuItems(){
-        this.mainMenuItems.forEach(item => { 
-            item.subMenu = this.#getTargetItems(item.title)    
-        })
-    }
-
-    #getTargetItems(itemTitle){
-        switch(itemTitle){
-            case 'plans':
-                return plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
-            case 'songs':
-                return songsDataHandling.getSongs().map(song => new subMenuItem(song.title, song))
-            default:
-                return []
+    #updateFromSubSelect(clickedItem){
+        if(clickedItem.selected){
+            clickedItem.selected = false
+            return [clickedItem]
+        } else {
+            return this.#selectExclusive(clickedItem)
         }
     }
-}
 
-class menuSelections {
-    updateSubMenuSelection(clickedItem){
-        clickedItem.selected ? this.deselect(clickedItem) : this.#selectExclusive(clickedItem)
-    }
-
-    select(item){
-        item.selected = true
-    }
-
-    deselect(item){
-        item.selected = false
+    #deslectAllItems(){
+        const items = this.#getSelectedItems(this.menu.items)
+        this.#deslectItems(items)
+        return items
     }
 
     #selectExclusive(itemToSelect){
         const itemsInClass = this.#getItemsInClass(itemToSelect)
-        itemsInClass.forEach(item => {
-            item === itemToSelect ? item.selected = true : item.selected = false
-        });
+        const itemsToDeselect = this.#getSelectedItems(itemsInClass)
+        this.#deslectItems(itemsToDeselect)
+        itemToSelect.selected = true
+        return [...[itemToSelect],...itemsToDeselect]
+    }
 
+    #deslectItems(items){
+        items.forEach(item => item.selected = false)
     }
 
     #getItemsInClass(item){
         const itemClass = item.constructor.name
-        return menu.items.filter(item => item.constructor.name === itemClass)
+        return this.menu.items.filter(item => item.constructor.name === itemClass)
     }
 
-    deslectAllItems(){
-        menu.items.forEach(item => item.selected = false)
+    #getSelectedItems(items){
+        return items.filter(item => item.selected)
     }
 }
 
+class menuListManagement {
+
+    constructor(menu){
+        this.menu = menu
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data){
+        data.updatedItems = this.menu.items
+        this.observers.forEach(observer => observer.update(data))
+    }
+
+    update(data){
+
+        if(data.updatedItems.length === 1){
+            const item = data.updatedItems[0]
+            if(item.constructor.name === 'mainMenuItem'){
+                item.selected ? this.menu.items = this.#getSubMenuItems(item) : this.menu.items = this.#getMainMenuItems() 
+            }
+        }
+
+        this.notify(data)
+    }
+
+    #getMainMenuItems(){
+        return [
+            new mainMenuItem ('plans', 'plans'),
+            new mainMenuItem ('songs', 'songs'),
+            new mainMenuItem ('concepts', 'concepts')
+        ]
+    }
+
+    #getSubMenuItems(mainMenuItem){
+        const subMenuItems = this.#getSubMenuSourceData(mainMenuItem.title)
+        return [...[mainMenuItem], ...subMenuItems]
+    }
+
+    #getSubMenuSourceData(mainMenuItemName){
+        switch(mainMenuItemName){
+            case 'plans':
+                return this.#getPlansSubMenu()
+            case 'songs':
+                return this.#getSongsSubMenu()
+            default:
+                return []
+        }
+    }
+
+    #getPlansSubMenu(){
+        //plansDataHandling.getPlans().map(plan => new subMenuItem(plan.title, plan))
+        return [new subMenuItem('tp1','test plan one'), new subMenuItem('tp2', 'test plan two')]
+    
+    }
+
+    #getSongsSubMenu(){
+        const songs = songsDataHandling.getTitles()
+        return songs.map(song => new subMenuItem(song.short_title, song.title))
+    }
+
+}
+
+class menuConfigurationManagement {
+
+    constructor(menu){
+        this.menu = menu
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data, newConfig){
+        data.newConfiguration = newConfig
+        this.observers.forEach(observer => observer.update(data))
+    }
+
+    update(data){
+        this.menu.configuration = this.#determineConfiguration()
+        this.notify(data, this.menu.configuration)
+    }
+
+    #determineConfiguration(){
+        const mainSelected = this.checkItemTypeSelection('mainMenuItem')
+        const subSelected = this.checkItemTypeSelection('subMenuItem')
+
+        if(subSelected && mainSelected){
+            return 'subSelect'
+        } else if (!mainSelected && !subSelected) {
+            return 'main'
+        } else if (mainSelected){
+            return 'sub'
+        }
+
+    }
+
+    checkItemTypeSelection(itemType){
+        return this.menu.items.some(item => item.constructor.name === itemType && item.selected)
+    }
+
+}
 
 class menuRendering {
-    renderItems(data){
-        const enterControl = new menuItemEnter
-        const updateControl = new menuItemUpdate
-        const exitControl = new menuItemExit
+
+    constructor(svg){
+        this.svg = svg
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(data){
+        this.observers.forEach(observer => observer.update(data))
+    }
+
+    update(data){
+        this.interruptTransitions()
+        this.renderItems(data.updatedItems, data.newConfiguration)
+        data.renderedWidth = this.getRenderedItemWidths(data.updatedItems) 
+        this.notify(data)
+    }
+
+    interruptTransitions(){
+        const text = this.svg.selectAll('text')
+        text.interrupt('tColour')
+        text.interrupt('tWeen')
+    }
+
+    renderItems(data, menuConfig){
+        const selectedIndex = this.#getSelectedIndex(data, menuConfig)
+        const enterControl = new menuItemEnter(menuConfig, selectedIndex)
+        const updateControl = new menuItemUpdate(menuConfig, selectedIndex)
+        const exitControl = new menuItemExit(menuConfig, selectedIndex)
         
-        const groups = navigatorWindow.svg.selectAll('g')
+        const groups = this.svg.selectAll('g')
             .data(data, d => d.title)
             .join(
                 enter => enterControl.enterItems(enter),
@@ -187,17 +265,31 @@ class menuRendering {
             )
     }
 
-    setRenderedItemWidths(){
-        const groups = navigatorWindow.svg.selectAll('g')
+    getRenderedItemWidths(items){
+        const groups = this.svg.selectAll('g')
         groups.each(function(){
             const elem = d3.select(this)
-            const item = menu.items.find(item => item.title === elem.attr('id'))
+            const item = items.find(item => item.id === elem.attr('id'))
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
+    }
+
+    #getSelectedIndex(data, menuConfig){
+        return menuConfig === 'subSelect' ?
+            data.findIndex(item => 
+                item.constructor.name === 'subMenuItem' && 
+                item.selected) 
+            :
+            undefined
     }
 }
 
 class menuItemEnter {
+
+    constructor(menuConfig, selectedIndex){
+        this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
+    }
 
     enterItems(selection){
         const groups = this.enterGroups(selection)
@@ -208,9 +300,10 @@ class menuItemEnter {
 
     enterGroups(selection){
         return selection.append('g')
-            .attr('id', d => d.title)
-            .attr('transform', (d, i) => menuItemPositioning.calculateTranslate(d, i))
-            .on('click', menuItemClicked)
+            .attr('id', d => d.id)
+            .attr('transform', (d, i) => 
+                menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
+            .on('click', events.onMenuItemClick)
     }
 
     enterText(groups){
@@ -223,24 +316,31 @@ class menuItemEnter {
 
     enterTextTransitionColour(text){
         text.transition('tColour')
-            .delay((d, i) => i * 100) 
+            .delay((d, i) => i * 50) 
             .duration(100)
-            .attr('fill', 'black')
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
 
     enterTextTransitionTween(text){
         text.transition('tTween')
-            .delay((d, i) => i * 100)
+            .delay((d, i) => i * 50)
             .duration(200)
             .textTween(d => {
             return function(t) {
                 return d.title.slice(0, Math.round(t * d.title.length));
-            };
+            }
         })
+
     }
 }
 
 class menuItemUpdate {
+
+    constructor(menuConfig, selectedIndex){
+        this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
+    }
+
 
     updateItems(selection){
         const groups = this.updateGroups(selection)
@@ -250,19 +350,26 @@ class menuItemUpdate {
     updateGroups(selection){
         return selection.transition()
             .duration(400)
-            .attr('transform', (d, i) => {
-                return menuItemPositioning.calculateTranslate(d, i)
-            })
+            .attr('transform', (d, i) => 
+                menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
+            
     }
 
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', d => d.selected && d.constructor.name === 'menuItem' && menu.state === 'subSelect' ? 'grey' : 'black')
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
+
 }
 
 class menuItemExit {
+
+    constructor(menuConfig, selectedIndex){
+        this.menuConfig = menuConfig
+        this.selectedIndex = selectedIndex
+    }
+
 
     exitItems(selection){
 
@@ -285,8 +392,8 @@ class menuItemPositioning {
 
     static #parentItemWidth = {}
 
-    static calculateTranslate(d, i){
-        return menu.state === 'subSelect' ? this.#calculateSlimlineLayout(d, i) : this.#calculateStandardLayout(i) 
+    static calculateTranslate(d, i, menuConfig, selectedIndex){
+        return menuConfig === 'subSelect' ? this.#calculateSlimlineLayout(d, i, selectedIndex) : this.#calculateStandardLayout(i) 
     }
 
     static #calculateStandardLayout(i){
@@ -295,17 +402,18 @@ class menuItemPositioning {
         return this.#getTranslateString(x, y)
     }
 
-    static #calculateSlimlineLayout(d, i){
+    static #calculateSlimlineLayout(d, i, selectedIndex){
         let x = 0
         let y = 0
 
         switch(d.constructor.name){
-            case 'menuItem':
+            case 'mainMenuItem':
                 this.#parentItemWidth = d.renderedWidth
                 return this.#getTranslateString(20, 40)
 
             case 'subMenuItem':
-                return this.#getTranslateString(this.#parentItemWidth + 30, i * 20 + 20)
+                const distanceFromSelected = i - selectedIndex + 1
+                return this.#getTranslateString(this.#parentItemWidth + 30, distanceFromSelected * 20 + 20)
         }
 
         return this.#getTranslateString(x, y)
@@ -313,6 +421,38 @@ class menuItemPositioning {
 
     static #getTranslateString(x, y){
         return 'translate(' + x + ',' + y + ')'
+    }
+}
+
+class menuItemStyling {
+    static calculateTextColour(d, i, menuConfig, selectedIndex){
+        if(menuConfig === 'subSelect'){
+            return this.#colourOnSubSelect(d, i, selectedIndex)
+        } else {
+            return 'black'
+        }
+    }
+
+    static #colourOnSubSelect(d, i, selectedIndex){
+        if(d.constructor.name === 'mainMenuItem'){
+            return 'grey'
+        } else {
+            const colour = this.#colourForDistance(i - selectedIndex)
+            return colour
+        }
+    }
+
+    static #colourForDistance(distanceFromSelected){
+        switch(Math.abs(distanceFromSelected)){
+            case 0:
+                return 'black'
+            case 1:
+                return 'darkgrey'
+            case 2:
+                return 'lightgrey'
+            default:
+                return 'lightyellow'
+        }
     }
 }
 
@@ -335,19 +475,7 @@ class menuTextTransitions {
     }
 
     static calculateColour(selection){
-        
-
         return selection.transition(t).attr('fill', newColour)
     }
 
-
 }
-
-
-
-
-
-
-
-
-

@@ -303,7 +303,7 @@ class menuItemEnter {
             .attr('id', d => d.id)
             .attr('transform', (d, i) => 
                 menuItemPositioning.calculateTranslate(d, i, this.menuConfig, this.selectedIndex))
-            .on('click', onMenuItemClick)
+            .on('click', events.onMenuItemClick)
     }
 
     enterText(groups){

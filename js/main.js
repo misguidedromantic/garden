@@ -1,18 +1,46 @@
+window.onload = function(){
+
+    function loadData(){
+        songsDataHandling.load('csv')
+    }
+    function setupNavigation(){
+        new navigationSetup
+    }
+    function initialiseEventHandlers(){
+        events.initaliseWindowResizeHandling()
+    }
+
+    loadData()
+    setupNavigation()
+    initialiseEventHandlers() 
+}
 
 class events {
 
     static initaliseWindowResizeHandling(){
-        const throttle = new throttler (navigation.moveOnWindowResize)
-        //window.onresize = throttle.
-        window.onresize = this.throttleWithFinalCall(navigation.moveOnWindowResize, 100)
+        window.onresize = throttles.throttleWithFinalCall(navigation.moveOnWindowResize, 100)
     }
 
     static waitForWindowLoad(){
-        return new Promise(resolve => {
-            window.onload = resolve;
-        })
+        return new Promise(resolve => {window.onload = resolve})
     }
 
+    static onMenuItemClick(){
+        const clickedItem = d3.select(this).data()[0]
+        navigation.menuSelectionChange(clickedItem)
+    }
+
+    static onMenuMouseOver(){
+        navigation.menuExpand()
+    }
+    
+    static onMenuMouseOut(){
+        navigation.menuContract()
+    }
+    
+}
+
+class throttles {
     static throttle(func, delay){
         let lastCall = 0;
         return function (...args) {
@@ -54,62 +82,6 @@ class events {
       }
 }
 
-class throttler {
-
-    constructor(func){
-        this.func = func
-        this.timeoutId = null
-        this.lastExec = 0
-        this.finalCall = false
-        this.delay = 0
-    }
-
-    run(delay){
-
-        const readyToExec = checkExecReadyState()
-
-        return function(...args){
-            const context = this;
-            
-        }
-    }
-
-    executeFunction(){
-
-    }
-
-    checkExecReadyState(){
-        return Date.now() - state.lastExec >= state.delay;
-    }
-
-    
-
-
-}
-
-async function initalise(){
-    await events.waitForWindowLoad()
-    new setup
-    events.initaliseWindowResizeHandling()
-}
-
-initalise()
-
-
-
-function onMenuItemClick(){
-    const clickedItem = d3.select(this).data()[0]
-    navigation.menuSelectionChange(clickedItem)
-}
-
-function onMenuMouseOver(){
-    navigation.menuExpand()
-}
-
-function onMenuMouseOut(){
-    navigation.menuContract()
-}
-
 
 class navigation {
 
@@ -127,7 +99,6 @@ class navigation {
     }
 
     static moveOnWindowResize(){
-        console.log(window.innerHeight)
         navigation.#navigatorControl.adjustToWindowResize()
     }
 

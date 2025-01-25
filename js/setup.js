@@ -1,22 +1,4 @@
 
-
-class setup {
-
-    constructor(){
-        this.loadExternalSourceData()
-        this.setupNavigation()
-    }
-
-    loadExternalSourceData(){
-        songsDataHandling.load('csv')
-    }
-
-    setupNavigation(){
-        new navigationSetup
-    }
-
-}
-
 class navigationSetup {
 
     #navigatorSetup = {}
@@ -78,8 +60,8 @@ class navigatorSetup{
     #createSVGCanvas(id){
         this.nav.svg = this.nav.div.append('svg')
             .attr('id', id)
-            .on('mouseover', onMenuMouseOver)
-            .on('mouseout', onMenuMouseOut)
+            .on('mouseover', events.onMenuMouseOver)
+            .on('mouseout', events.onMenuMouseOut)
     }
 
 }

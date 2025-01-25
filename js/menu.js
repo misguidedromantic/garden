@@ -175,8 +175,10 @@ class menuListManagement {
     }
 
     #getSongsSubMenu(){
+        const allSongsItem = [new subMenuItem('allItems', 'all')]
         const songs = songsDataHandling.getTitles()
-        return songs.map(song => new subMenuItem(song.short_title, song.title))
+        const mappedSongs = songs.map(song => new subMenuItem(song.short_title, song.title))
+        return [...allSongsItem, ...mappedSongs]
     }
 
 }
@@ -316,14 +318,14 @@ class menuItemEnter {
 
     enterTextTransitionColour(text){
         text.transition('tColour')
-            .delay((d, i) => i * 50) 
+            //.delay((d, i) => i * 50) 
             .duration(100)
             .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuConfig, this.selectedIndex))
     }
 
     enterTextTransitionTween(text){
         text.transition('tTween')
-            .delay((d, i) => i * 50)
+            //.delay((d, i) => i * 50)
             .duration(200)
             .textTween(d => {
             return function(t) {
@@ -426,10 +428,22 @@ class menuItemPositioning {
 
 class menuItemStyling {
     static calculateTextColour(d, i, menuConfig, selectedIndex){
-        if(menuConfig === 'subSelect'){
-            return this.#colourOnSubSelect(d, i, selectedIndex)
+        switch(menuConfig){
+            case 'main':
+                return 'black'
+            case 'sub':
+                return this.#colourOnSub(d, i, selectedIndex)
+            case 'subSelect':
+                return this.#colourOnSubSelect(d, i, selectedIndex)
+        }
+    }
+
+    static #colourOnSub(d, i, selectedIndex){
+        if(d.id === 'allItems'){
+            return 'grey'
         } else {
-            return 'black'
+            const colour = this.#colourForDistance(i)
+            return colour
         }
     }
 

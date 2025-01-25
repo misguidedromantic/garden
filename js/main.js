@@ -1,98 +1,100 @@
-window.onload = function(){
 
-    function loadExternalData (){
-        songsDataHandling.load('csv')
-    }
-    
-    function createNavigator (){
+class events {
 
-        function createDiv(id, position){
-            return d3.select('body')
-                .append('div')
-                .attr('id', id)
-                .style('position', position)
-                .style('z-index', displays.getZIndex('navigator'))
-        }
-    
-        function createSVGCanvas(id, div){
-            return div.append('svg')
-                .attr('id', id)
-                .on('mouseover', onMenuMouseOver)
-                .on('mouseout', onMenuMouseOut)
-        }
-    
-        const nav = new navigatorWindow
-        nav.div = createDiv('navigatorDiv', 'fixed')
-        nav.svg = createSVGCanvas('navigatorSVG', nav.div)
-        return nav
-    
-    }
-    
-    function createMenu (){
-        
-        function getMainMenuItems(){
-            return [
-                new mainMenuItem ('plans', 'plans'),
-                new mainMenuItem ('songs', 'songs'),
-                new mainMenuItem ('concepts', 'concepts')
-            ]
-        }
-       
-        const navMenu = new menu ('main')
-        navMenu.items = getMainMenuItems()
-        return navMenu
-    }
-    
-    function loadMenuInNavigator (navigator, navigatorMenu){
-        
-        function renderMenuItems(){
-            const navMenuRendering = new menuRendering(navigator.svg)
-            navMenuRendering.renderItems(navigatorMenu.items, navigatorMenu.configuration)
-        }
-    
-        function renderNavigator(){
-            const settings = new navigatorWindowSettings(navigator, navigatorMenu)
-            const rendering = new navigatorRendering(navigator)
-    
-            settings.setForMainMenu()
-            rendering.resize(0, 0)
-            rendering.move(0, 0)
-            rendering.float(100, 300)
-    
-        }
-    
-        renderMenuItems()
-        renderNavigator()
-    
+    static initaliseWindowResizeHandling(){
+        const throttle = new throttler (navigation.moveOnWindowResize)
+        //window.onresize = throttle.
+        window.onresize = this.throttleWithFinalCall(navigation.moveOnWindowResize, 100)
     }
 
-    function handoverControl(navigator, menu){
-        navigation.initalise(navigator, menu)
-        
+    static waitForWindowLoad(){
+        return new Promise(resolve => {
+            window.onload = resolve;
+        })
     }
 
-    loadExternalData()
-    const navigator = createNavigator()
-    const navigatorMenu = createMenu()
-    loadMenuInNavigator(navigator, navigatorMenu)
-    handoverControl(navigator, navigatorMenu)
-    const throttledResize = throttle(navigation.moveOnWindowResize, 50)
-    window.onresize = throttledResize
+    static throttle(func, delay){
+        let lastCall = 0;
+        return function (...args) {
+            const now = new Date().getTime();
+            if (now - lastCall < delay) {
+                return;
+            }
+            lastCall = now;
+            return func(...args);
+        }
+    }
+
+    static throttleWithFinalCall(func, delay) {
+        let timeoutId;
+        let lastExec = 0;
+        let finalCall = false;
+      
+        return function(...args) {
+          const context = this;
+          const now = Date.now();
+      
+          if (now - lastExec >= delay) {
+            func.apply(context, args);
+            lastExec = now;
+            finalCall = false;
+          } else {
+            clearTimeout(timeoutId);
+            finalCall = true;
+      
+            timeoutId = setTimeout(() => {
+              if (finalCall) {
+                func.apply(context, args);
+                lastExec = now;
+                finalCall = false;
+              }
+            }, delay);
+          }
+        };
+      }
+}
+
+class throttler {
+
+    constructor(func){
+        this.func = func
+        this.timeoutId = null
+        this.lastExec = 0
+        this.finalCall = false
+        this.delay = 0
+    }
+
+    run(delay){
+
+        const readyToExec = checkExecReadyState()
+
+        return function(...args){
+            const context = this;
+            
+        }
+    }
+
+    executeFunction(){
+
+    }
+
+    checkExecReadyState(){
+        return Date.now() - state.lastExec >= state.delay;
+    }
+
+    
 
 
 }
 
-function throttle(func, delay){
-    let lastCall = 0;
-    return function (...args) {
-        const now = new Date().getTime();
-        if (now - lastCall < delay) {
-            return;
-        }
-        lastCall = now;
-        return func(...args);
-    };
+async function initalise(){
+    await events.waitForWindowLoad()
+    new setup
+    events.initaliseWindowResizeHandling()
 }
+
+initalise()
+
 
 
 function onMenuItemClick(){
@@ -107,7 +109,6 @@ function onMenuMouseOver(){
 function onMenuMouseOut(){
     navigation.menuContract()
 }
-
 
 
 class navigation {
@@ -126,6 +127,7 @@ class navigation {
     }
 
     static moveOnWindowResize(){
+        console.log(window.innerHeight)
         navigation.#navigatorControl.adjustToWindowResize()
     }
 

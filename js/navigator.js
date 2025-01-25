@@ -30,7 +30,7 @@ class navigatorWindowControl {
 
     adjustToWindowResize(){
         this.#settings.setForMainMenu()
-        this.#rendering.move(0, 50)
+        this.#rendering.move(0, 200)
     }
 
     #transitionSubToMain(){
@@ -94,6 +94,7 @@ class navigatorRendering {
 
     move(delay, duration){
         this.navigator.div.transition('tMove')
+            .ease(d3.easeSin)
             .delay(delay)
             .duration(duration)
             .style('left', this.navigator.left + "px")

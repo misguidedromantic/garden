@@ -26,8 +26,10 @@ class events {
     }
 
     static onMenuItemClick(){
-        const clickedItem = d3.select(this).data()[0]
-        navigation.menuSelectionChange(clickedItem)
+        const elem = d3.select(this)
+        const clickedMenu = elem.node().parentNode
+        const clickedItem = elem.data()[0]
+        navigation.menuSelectionChange(clickedMenu, clickedItem)
     }
 
     static onMenuMouseOver(){
@@ -92,8 +94,8 @@ class navigation {
     static #menuRendering = {}
     static #songsContent = {}
 
-    static initalise (navigator, menu){
-        this.#assignNavigationObjects(navigator, menu)
+    static initalise (navigator, mainMenu, subMenu){
+        this.#assignNavigationObjects(navigator, mainMenu, subMenu)
         this.#initialiseControllers()
         this.#setupSubscriptions()
     }
@@ -102,9 +104,14 @@ class navigation {
         navigation.#navigatorControl.adjustToWindowResize()
     }
 
-    static menuSelectionChange(clickedItem){
-        this.#menuSelections.update(clickedItem, this.menu.configuration)
+    static menuSelectionChange(clickedMenu, clickedItem){
+        this.#menuSelections.update(clickedMenu, clickedItem)
     }
+
+    static showMenu(){}
+    static hideMenu(){}
+    static expandMenu(){}
+    static contractMenu(){}
 
     static menuExpand(){
         if(this.menu.configuration === 'sub'){
@@ -118,16 +125,17 @@ class navigation {
         }
     }
 
-    static #assignNavigationObjects(navigator, menu){
+    static #assignNavigationObjects(navigator, mainMenu, subMenu){
         this.navigator = navigator
-        this.menu = menu
+        this.mainMenu = mainMenu
+        this.subMenu = subMenu
     }
 
     static #initialiseControllers(){
-        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.menu)
-        this.#menuSelections = new menuSelections(this.menu)
-        this.#menuListMgmt = new menuListManagement (this.menu)
-        this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
+        this.#navigatorControl = new navigatorWindowControl(this.navigator)
+        this.#menuSelections = new menuSelections
+        this.#menuListMgmt = new menuListManagement
+        this.#menuConfigMgmt = new menuConfigurationManagement
         this.#menuRendering = new menuRendering (this.navigator.svg)
         this.#songsContent = new songsContentControl ()
     }

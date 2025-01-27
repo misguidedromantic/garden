@@ -16,12 +16,12 @@ class navigationSetup {
     }
 
     loadAndRenderMainMenu(){
-        this.#menuSetup.renderMenuItems(this.#navigatorSetup.nav)
-        this.#navigatorSetup.renderNavigator(this.#menuSetup.navMenu)
+        this.#menuSetup.renderMainMenuItems(this.#navigatorSetup.nav)
+        this.#navigatorSetup.renderNavigator(this.#menuSetup.mainMenu, this.#menuSetup.subMenu)
     }
 
     handoverToNavigation(){
-        navigation.initalise(this.#navigatorSetup.nav, this.#menuSetup.navMenu) 
+        navigation.initalise(this.#navigatorSetup.nav, this.#menuSetup.mainMenu, this.#menuSetup.subMenu) 
     }
     
 }
@@ -34,8 +34,8 @@ class navigatorSetup{
         this.#createSVGCanvas('navigatorSVG')
     }
 
-    renderNavigator(menu){
-        const settings = new navigatorWindowSettings(this.nav, menu)
+    renderNavigator(mainMenu, subMenu){
+        const settings = new navigatorWindowSettings(this.nav, mainMenu, subMenu)
         const rendering = new navigatorRendering(this.nav)
 
         settings.setForMainMenu()
@@ -69,20 +69,30 @@ class navigatorSetup{
 
 class menuSetup{
     constructor(){
-        this.navMenu = new menu ('main')
-        this.navMenu.items = this.#getMainMenuItems()
+        this.#setupMainMenu()
+        this.#setupSubMenu()
     }
 
-    renderMenuItems(nav){
-        const navMenuRendering = new menuRendering(nav.svg)
-        navMenuRendering.renderItems(this.navMenu.items, this.navMenu.configuration)
+    #setupMainMenu(){
+        this.mainMenu = new mainMenu (true)
+        this.mainMenu.items = this.#getMainMenuItems()
+    }
+
+    #setupSubMenu(){
+        this.subMenu = new subMenu (false)
+    }
+
+    renderMainMenuItems(nav){
+        const rendering = new menuRendering(nav.svg, this.mainMenu)
+        rendering.renderItems(this.mainMenu.items)
+        this.mainMenu.loaded = true
     }
 
     #getMainMenuItems(){
         return [
-            new mainMenuItem ('plans', 'plans'),
-            new mainMenuItem ('songs', 'songs'),
-            new mainMenuItem ('concepts', 'concepts')
+            new menuItem ('plans', 'plans'),
+            new menuItem ('songs', 'songs'),
+            new menuItem ('concepts', 'concepts')
         ]
     }
 }

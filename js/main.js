@@ -27,17 +27,22 @@ class events {
 
     static onMenuItemClick(){
         const elem = d3.select(this)
-        const clickedMenu = elem.node().parentNode
         const clickedItem = elem.data()[0]
+        const clickedMenu = events.getMenuName(elem.attr('class'))
         navigation.menuSelectionChange(clickedMenu, clickedItem)
     }
 
+    static getMenuName(menuItemClass){
+        const itemIndex = menuItemClass.indexOf('Item')
+        return menuItemClass.substring(0, itemIndex)
+    }
+
     static onMenuMouseOver(){
-        navigation.menuExpand()
+        //navigation.menuExpand()
     }
     
     static onMenuMouseOut(){
-        navigation.menuContract()
+        //navigation.menuContract()
     }
     
 }
@@ -104,8 +109,12 @@ class navigation {
         navigation.#navigatorControl.adjustToWindowResize()
     }
 
-    static menuSelectionChange(clickedMenu, clickedItem){
-        this.#menuSelections.update(clickedMenu, clickedItem)
+    static menuSelectionChange(clickedMenuName, clickedItem){
+        if(clickedMenuName === 'mainMenu'){
+            this.#menuSelections.update(this.mainMenu, clickedItem)
+        } else {
+            this.#menuSelections.update(this.subMenu, clickedItem)
+        }
     }
 
     static showMenu(){}
@@ -132,19 +141,19 @@ class navigation {
     }
 
     static #initialiseControllers(){
-        this.#navigatorControl = new navigatorWindowControl(this.navigator)
+        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.mainMenu, this.subMenu)
         this.#menuSelections = new menuSelections
-        this.#menuListMgmt = new menuListManagement
-        this.#menuConfigMgmt = new menuConfigurationManagement
+        this.#menuListMgmt = new menuListManagement(this.mainMenu, this.subMenu)
+        //this.#menuConfigMgmt = new menuConfigurationManagement
         this.#menuRendering = new menuRendering (this.navigator.svg)
         this.#songsContent = new songsContentControl ()
     }
 
     static #setupSubscriptions(){
         this.#menuSelections.subscribe(this.#menuListMgmt)
-        this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
+        this.#menuListMgmt.subscribe(this.#menuRendering)
         this.#menuListMgmt.subscribe(this.#songsContent)
-        this.#menuConfigMgmt.subscribe(this.#menuRendering)
+        //this.#menuConfigMgmt.subscribe(this.#menuRendering)
         this.#menuRendering.subscribe(this.#navigatorControl)
     }
 }

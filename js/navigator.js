@@ -15,10 +15,10 @@ class navigatorWindowControl {
         this.#rendering = new navigatorRendering(navigator)
     }
 
-    update(data){
-        switch(data.newConfiguration){
-            case 'main':
-                this.#transitionSubToMain()
+    update(updatedMenu){
+        switch(updatedMenu.constructor.name){
+            case 'mainMenu':
+                this.#openSubMenu()
                 break;
             case 'sub':
                 this.#transitionMainToSub()
@@ -26,6 +26,13 @@ class navigatorWindowControl {
             case 'subSelect':
                 this.#transitionSubToSubSelect()
         }
+    }
+
+    #openSubMenu(){
+        this.#settings.setForSubMenu()
+        this.#rendering.resize(0, 400)
+        this.#rendering.move(0, 400)
+        this.#rendering.float(100, 300)
     }
 
     
@@ -141,7 +148,7 @@ class navigatorSizing{
 
     constructor(navigator, mainMenu, subMenu){
         this.navigator = navigator
-        this.mainMenu - mainMenu
+        this.mainMenu = mainMenu
         this.subMenu = subMenu
         this.menuPadding = 20
         this.menuYspacing = 20
@@ -155,22 +162,17 @@ class navigatorSizing{
     }
 
     #getWidth(){
-        return this.#getWidestItemWidth('mainMenu') + this.#getWidestItemWidth('subMenu') + (this.menuPadding * 3)
+        return this.#getWidestItemWidth('mainMenu') + this.#getWidestItemWidth('subMenu') + (this.menuPadding * 2)
     }
 
-
-    #getVisibleItemCount(){
-        if(this.mainMenu.expanded){
-            return this.mainMenu.items.length
-        } else if (this.subMenu.expanded) {
-            return this.subMenu.items.length
-        } else {
-            return 1
-        }
+    #setDivDimensions(){
+        this.navigator.divWidth = this.totalWidth
+        this.navigator.divHeight = this.#getDivHeight()
     }
 
-    #getHighestItemCount(){
-        return this.mainMenu.items.length > this.subMenu.items.length ?  his.mainMenu.items.length : this.subMenu.items.length 
+    #setSVGDimensions(){
+        this.navigator.svgWidth = this.totalWidth
+        this.navigator.svgHeight = this.#getSVGHeight()
     }
 
     #getDivHeight(){
@@ -183,15 +185,18 @@ class navigatorSizing{
         return highestItemCount * this.menuYspacing + (this.menuPadding * 2)
     }
 
-
-    #setDivDimensions(){
-        this.navigator.divWidth = this.totalWidth
-        this.navigator.divHeight = this.#getDivHeight()
+    #getVisibleItemCount(){
+        if(this.mainMenu.expanded){
+            return this.mainMenu.items.length
+        } else if (this.subMenu.expanded) {
+            return this.subMenu.items.length
+        } else {
+            return 1
+        }
     }
 
-    #setSVGDimensions(){
-        this.navigator.svgWidth = this.totalWidth
-        this.navigator.svgHeight = this.#getSVGHeight()
+    #getHighestItemCount(){
+        return this.mainMenu.items.length > this.subMenu.items.length ?  this.mainMenu.items.length : this.subMenu.items.length 
     }
 
     #getWidestItemWidth(menuName){

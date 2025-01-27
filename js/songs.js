@@ -103,8 +103,9 @@ class songsContentControl {
         this.blockControl = new songBlockControl()
     }
 
-    update(data){
-        if(this.#isSongsMenuLoaded(data.updatedItems)){
+    update(updatedMenu){
+
+        if(this.#isSongsMenuLoaded(updatedMenu.items)){
             let songToLoad = ''
             try{songToLoad = this.#getSongSelection(data.updatedItems)}
             catch {return}

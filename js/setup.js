@@ -83,9 +83,8 @@ class menuSetup{
     }
 
     renderMainMenuItems(nav){
-        const rendering = new menuRendering(nav.svg, this.mainMenu)
-        rendering.renderItems(this.mainMenu.items)
-        this.mainMenu.loaded = true
+        const rendering = new menuRendering(nav.svg)
+        rendering.renderItems(this.mainMenu.items, this.mainMenu.constructor.name)
     }
 
     #getMainMenuItems(){

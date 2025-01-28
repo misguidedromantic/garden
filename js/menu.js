@@ -25,6 +25,7 @@ class menuItem {
         this.id = id
         this.title = title
         this.selected = false
+        this.renderedWidth = 0
     }
 }
 
@@ -209,7 +210,7 @@ class menuRendering {
     update(updatedMenu){
         this.interruptTransitions()
         this.renderItems(updatedMenu.items, updatedMenu.constructor.name)
-        updatedMenu.renderedWidth = this.getRenderedItemWidths(updatedMenu.items, updatedMenu.constructor.name) 
+        this.getRenderedItemWidths(updatedMenu.items, updatedMenu.constructor.name) 
         this.notify(updatedMenu)
     }
 
@@ -238,10 +239,10 @@ class menuRendering {
         const groups = this.svg.selectAll('g.' + menuName + 'Item')
         groups.each(function(){
             const elem = d3.select(this)
-            console.log(elem)
             const item = items.find(item => item.id === elem.attr('id'))
             item.renderedWidth = elem.select('text').node().getBBox().width
         })
+        //return items
     }
 
 
@@ -362,14 +363,25 @@ class menuItemPositioning {
     static #parentItemWidth = {}
 
     static calculateTranslate(d, i, menuName, selectedIndex){
-        return menuName === 'subMenu' ? this.#calculateSlimlineLayout(d, i, selectedIndex) : this.#calculateStandardLayout(i) 
-    }
-
-    static #calculateStandardLayout(i){
-        const x = 20
+        const x = this.#getStartingX(menuName)
         const y = i * 20 + 40
         return this.#getTranslateString(x, y)
     }
+
+    static #getStartingX(menuName){
+        return menuName === 'mainMenu' ? 20 : 100
+    }
+
+    
+
+
+    static #calculateStandardLayout(i, menuName){
+        const x = this.#getStartingX(menuName)
+        const y = i * 20 + 40
+        return this.#getTranslateString(x, y)
+    }
+
+    
 
     static #calculateSlimlineLayout(d, i, selectedIndex){
         let x = 0

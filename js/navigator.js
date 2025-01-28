@@ -16,15 +16,16 @@ class navigatorWindowControl {
     }
 
     update(updatedMenu){
+        console.log(updatedMenu)
         switch(updatedMenu.constructor.name){
             case 'mainMenu':
                 this.#openSubMenu()
                 break;
-            case 'sub':
-                this.#transitionMainToSub()
+            case 'subMenu':
+                this.#openSubMenu()
                 break;
             case 'subSelect':
-                this.#transitionSubToSubSelect()
+                //this.#transitionSubToSubSelect()
         }
     }
 
@@ -115,7 +116,7 @@ class navigatorWindowSettings{
     
     constructor(navigator, mainMenu, subMenu){
         this.navigator = navigator
-        //this.mainMenu - mainMenu
+        //this.mainMenu = mainMenu
         //this.subMenu = subMenu
         this.sizing = new navigatorSizing(navigator, mainMenu, subMenu)
         this.positioning = new navigatorPositioning(navigator)
@@ -129,7 +130,7 @@ class navigatorWindowSettings{
     }
 
     setForSubMenu(){
-        this.sizing.fitToContents(8)
+        this.sizing.fitToContents()
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
     }
@@ -200,21 +201,10 @@ class navigatorSizing{
     }
 
     #getWidestItemWidth(menuName){
-        const groups = this.navigator.svg.selectAll('g.' + menuName + 'Item')
-        let widestWidth = 0
-        
-        groups.each(function(){
-            const textElem = d3.select(this).select('text')
-            const width = textElem.node().getBBox().width
-            if(width > widestWidth){
-                widestWidth = width
-            }  
-        })
-
-        return widestWidth
+        const items = menuName === 'mainMenu' ? this.mainMenu.items : this.subMenu.items
+        console.log(Math.max(...items.map(item => item.renderedWidth)))
+        return items.length > 0 ? Math.max(...items.map(item => item.renderedWidth)) : 0
     }
-
-    
 
 }
 

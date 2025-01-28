@@ -85,6 +85,7 @@ class menuSetup{
     renderMainMenuItems(nav){
         const rendering = new menuRendering(nav.svg)
         rendering.renderItems(this.mainMenu.items, this.mainMenu.constructor.name)
+        rendering.getRenderedItemWidths(this.mainMenu.items, 'mainMenu')
     }
 
     #getMainMenuItems(){

@@ -17,13 +17,15 @@ class mainMenu extends menu {
 class subMenu extends menu {
     constructor(expanded){
         super(expanded)
+        
     }
 }
 
 class menuItem {
-    constructor(id, title){
+    constructor(id, title, parentMenuItem){
         this.id = id
         this.title = title
+        this.parentMenuItem = parentMenuItem
         this.selected = false
         this.renderedWidth = 0
     }
@@ -51,7 +53,7 @@ class menuListManagement {
             
             const selectedMainMenuItem = this.#getSelectedMainMenuItem(updatedMenu.items)
             this.mainMenu.items = [selectedMainMenuItem]
-            this.subMenu.items = this.#getSubMenuSourceData(selectedMainMenuItem.title)
+            this.subMenu.items = this.#getSubMenuSourceData(selectedMainMenuItem)
         }
         this.notify(this.mainMenu)
         this.notify(this.subMenu)
@@ -69,13 +71,12 @@ class menuListManagement {
         ]
     }
 
-    #getSubMenuSourceData(mainMenuItemName){
-        console.log(mainMenuItemName)
-        switch(mainMenuItemName){
+    #getSubMenuSourceData(mainMenuItem){
+        switch(mainMenuItem.title){
             case 'plans':
                 return this.#getPlansSubMenu()
             case 'songs':
-                return this.#getSongsSubMenu()
+                return this.#getSongsSubMenu(mainMenuItem)
             default:
                 return []
         }
@@ -87,12 +88,12 @@ class menuListManagement {
     
     }
 
-    #getSongsSubMenu(){
-        const allSongsItems = [new menuItem('allItems', 'all songs')]
+    #getSongsSubMenu(parentMenuItem){
+        const menuExpander = [new menuItem('expander', '>', parentMenuItem)]
+        const allSongsItems = [new menuItem('allItems', 'all songs', parentMenuItem)]
         const songs = songsDataHandling.getTitles()
-        console.log(songs)
-        const mappedSongs = songs.map(song => new menuItem(song.short_title, song.title))
-        return [...allSongsItems, ...mappedSongs]
+        const mappedSongs = songs.map(song => new menuItem(song.short_title, song.title, parentMenuItem))
+        return [...menuExpander, ...allSongsItems, ...mappedSongs]
     }
 
 }
@@ -363,25 +364,34 @@ class menuItemPositioning {
     static #parentItemWidth = {}
 
     static calculateTranslate(d, i, menuName, selectedIndex){
-        const x = this.#getStartingX(menuName)
-        const y = i * 20 + 40
+        const x = this.#calculateX(d, menuName)
+        const y = this.#calculateY(d, i, menuName)
         return this.#getTranslateString(x, y)
     }
 
-    static #getStartingX(menuName){
-        return menuName === 'mainMenu' ? 20 : 100
+
+    static #calculateX(d, menuName){
+        if(menuName === 'mainMenu'){
+            return 20
+        } else if (d.id === 'expander') {
+            return d.parentMenuItem.renderedWidth + 30
+        } else {
+            return d.parentMenuItem.renderedWidth + 45
+        }
+    }
+
+    static #calculateY(d, i, menuName){
+        if(menuName === 'mainMenu'){
+            return i * 20 + 40
+        } else if (d.id === 'expander') {
+            return 40
+        } else {
+            return (i - 1) * 20 + 40
+        }
     }
 
     
 
-
-    static #calculateStandardLayout(i, menuName){
-        const x = this.#getStartingX(menuName)
-        const y = i * 20 + 40
-        return this.#getTranslateString(x, y)
-    }
-
-    
 
     static #calculateSlimlineLayout(d, i, selectedIndex){
         let x = 0

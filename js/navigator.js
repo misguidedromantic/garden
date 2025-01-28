@@ -177,13 +177,18 @@ class navigatorSizing{
     }
 
     #getDivHeight(){
-        const visibleItemCount = this.#getVisibleItemCount()
-        return visibleItemCount * this.menuYspacing + (this.menuPadding * 2)
+        const multiplier = this.#getHeightMultipler()
+        return multiplier * this.menuYspacing + (this.menuPadding * 2)
     }
 
     #getSVGHeight(){
         const highestItemCount = this.#getHighestItemCount()
         return highestItemCount * this.menuYspacing + (this.menuPadding * 2)
+    }
+
+    #getHeightMultipler(){
+        const visibleItemCount = this.#getVisibleItemCount()
+        return visibleItemCount > 1 ? visibleItemCount : 0
     }
 
     #getVisibleItemCount(){

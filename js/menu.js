@@ -91,6 +91,7 @@ class menuListManagement {
     #getSongsSubMenu(parentMenuItem){
         const menuExpander = [new menuItem('expander', '>', parentMenuItem)]
         const allSongsItems = [new menuItem('allItems', 'all songs', parentMenuItem)]
+        allSongsItems[0].selected = true
         const songs = songsDataHandling.getTitles()
         const mappedSongs = songs.map(song => new menuItem(song.short_title, song.title, parentMenuItem))
         return [...menuExpander, ...allSongsItems, ...mappedSongs]
@@ -147,51 +148,7 @@ class menuSelections {
         this.#deslectAllSelectedItems(clickedMenu)
         itemToSelect.selected = true
     }
-
 }
-
-
-
-/* class menuConfigurationManagement {
-
-    constructor(menu){
-        this.menu = menu
-        this.observers = []
-    }
-
-    subscribe(observer){
-        this.observers.push(observer)
-    }
-
-    notify(data, newConfig){
-        data.newConfiguration = newConfig
-        this.observers.forEach(observer => observer.update(data))
-    }
-
-    update(data){
-        this.menu.configuration = this.#determineConfiguration()
-        this.notify(data, this.menu.configuration)
-    }
-
-    #determineConfiguration(){
-        const mainSelected = this.checkItemTypeSelection('mainMenuItem')
-        const subSelected = this.checkItemTypeSelection('subMenuItem')
-
-        if(subSelected && mainSelected){
-            return 'subSelect'
-        } else if (!mainSelected && !subSelected) {
-            return 'main'
-        } else if (mainSelected){
-            return 'sub'
-        }
-
-    }
-
-    checkItemTypeSelection(itemType){
-        return this.menu.items.some(item => item.constructor.name === itemType && item.selected)
-    }
-
-} */
 
 class menuRendering {
 
@@ -283,6 +240,7 @@ class menuItemEnter {
             .style('font-size','14px')
             .attr('dy', '-.4em')
             .attr('fill', 'transparent')
+            .attr('font-weight', d => d.selected ? 'bold' : 'normal')
     }
 
     enterTextTransitionColour(text){
@@ -303,6 +261,8 @@ class menuItemEnter {
         })
 
     }
+
+    
 }
 
 class menuItemUpdate {
@@ -316,20 +276,30 @@ class menuItemUpdate {
     updateItems(selection){
         const groups = this.updateGroups(selection)
         const text = this.updateText(groups)
+        this.updateTextTransitionRotation(text)
     }
 
     updateGroups(selection){
-        return selection.transition()
+        return selection.transition('tTranslate')
             .duration(400)
             .attr('transform', (d, i) => 
-                menuItemPositioning.calculateTranslate(d, i, this.menuName, this.selectedIndex))
-            
+                menuItemPositioning.calculateTranslate(d, i, this.menuName, this.selectedIndex))    
     }
+
+    
 
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
             .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuName, this.selectedIndex))
+    }
+
+    updateTextTransitionRotation(text){
+        text.transition('tRotate')
+            .duration(250)
+            .attr('transform',d => {
+                return d.id === 'expander' ? 'rotate(90) translate(-14, 6)' : 'rotate(0)'
+            })
     }
 
 }
@@ -416,12 +386,12 @@ class menuItemPositioning {
 }
 
 class menuItemStyling {
-    static calculateTextColour(d, i, menuConfig, selectedIndex){
-        switch(menuConfig){
-            case 'main':
-                return 'black'
-            case 'sub':
-                return this.#colourOnSub(d, i, selectedIndex)
+    static calculateTextColour(d, i, menuName, selectedIndex){
+        switch(menuName){
+            case 'mainMenu':
+                return d.selected ? 'grey' : 'black'
+            case 'subMenu':
+                return 'black' //this.#colourOnSub(d, i, selectedIndex)
             case 'subSelect':
                 return this.#colourOnSubSelect(d, i, selectedIndex)
         }

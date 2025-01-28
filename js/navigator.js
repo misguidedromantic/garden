@@ -6,11 +6,16 @@ class navigatorWindow {
 }
 
 class navigatorWindowControl {
-
+    
+    #mainMenu = {}
+    #subMenu = {}
     #settings = {}
     #rendering = {}
 
+
     constructor(navigator, mainMenu, subMenu){
+        this.#mainMenu = mainMenu
+        this.#subMenu = subMenu
         this.#settings = new navigatorWindowSettings(navigator, mainMenu, subMenu)
         this.#rendering = new navigatorRendering(navigator)
     }
@@ -29,12 +34,24 @@ class navigatorWindowControl {
         }
     }
 
+    expandSubMenu(){
+        this.#settings.setForSubExpanded()
+        this.#rendering.resize(0, 200)
+    }
+
+    contractSubMenu(){
+        this.#settings.setForSubContracted()
+        this.#rendering.resize(0, 200)
+    }
+
     #openSubMenu(){
         this.#settings.setForSubMenu()
         this.#rendering.resize(0, 400)
         this.#rendering.move(0, 400)
         this.#rendering.float(100, 300)
     }
+
+
 
     
 
@@ -116,8 +133,8 @@ class navigatorWindowSettings{
     
     constructor(navigator, mainMenu, subMenu){
         this.navigator = navigator
-        //this.mainMenu = mainMenu
-        //this.subMenu = subMenu
+        this.mainMenu = mainMenu
+        this.subMenu = subMenu
         this.sizing = new navigatorSizing(navigator, mainMenu, subMenu)
         this.positioning = new navigatorPositioning(navigator)
         this.float = new navigatorFloat(navigator)
@@ -127,19 +144,23 @@ class navigatorWindowSettings{
         this.sizing.fitToContents()
         this.positioning.positionCentre()
         this.float.floatOffBackground()
+        this.mainMenu.expanded = true
     }
 
     setForSubMenu(){
         this.sizing.fitToContents()
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
+        this.mainMenu.expanded = false
     }
 
     setForSubExpanded(){
+        this.subMenu.expanded = true
         this.sizing.fitToContents()
     }
 
-    setForSubSelectMenu(){
+    setForSubContracted(){
+        this.subMenu.expanded = false
         this.sizing.fitToContents()
     }
 

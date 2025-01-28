@@ -38,11 +38,12 @@ class events {
     }
 
     static onMenuMouseOver(){
+        navigation.menuExpansionChange('on')
         //navigation.menuExpand()
     }
     
     static onMenuMouseOut(){
-        //navigation.menuContract()
+        navigation.menuExpansionChange('off')
     }
     
 }
@@ -115,6 +116,17 @@ class navigation {
         } else {
             this.#menuSelections.update(this.subMenu, clickedItem)
         }
+    }
+
+    static menuExpansionChange(event){
+        console.log(this.mainMenu.expanded)
+        if(event === 'on' && !this.mainMenu.expanded){
+            navigation.#navigatorControl.expandSubMenu()
+        } else if (event === 'off' && this.subMenu.expanded) {
+            navigation.#navigatorControl.contractSubMenu()
+        }
+
+
     }
 
     static showMenu(){}

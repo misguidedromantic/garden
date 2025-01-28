@@ -232,6 +232,7 @@ class menuItemEnter {
             .attr('transform', (d, i) => 
                 menuItemPositioning.calculateTranslate(d, i, this.menuName, this.selectedIndex))
             .on('click', events.onMenuItemClick)
+            
     }
 
     enterText(groups){

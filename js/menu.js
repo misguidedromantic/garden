@@ -28,6 +28,7 @@ class menuItem {
     }
 }
 
+
 class menuListManagement {
 
     constructor(mainMenu, subMenu){
@@ -46,20 +47,17 @@ class menuListManagement {
 
     update(updatedMenu){
         if(updatedMenu.constructor.name === 'mainMenu'){
+            
             const selectedMainMenuItem = this.#getSelectedMainMenuItem(updatedMenu.items)
             this.mainMenu.items = [selectedMainMenuItem]
             this.subMenu.items = this.#getSubMenuSourceData(selectedMainMenuItem.title)
         }
-
-        console.log(this.mainMenu)
-        console.log(this.subMenu)
-
         this.notify(this.mainMenu)
-        //this.notify(this.subMenu)
+        this.notify(this.subMenu)
     }
 
     #getSelectedMainMenuItem(items){
-        return items.filter(item => item.selected)
+        return items.find(item => item.selected)
     }
 
     #getMainMenuItems(){
@@ -71,6 +69,7 @@ class menuListManagement {
     }
 
     #getSubMenuSourceData(mainMenuItemName){
+        console.log(mainMenuItemName)
         switch(mainMenuItemName){
             case 'plans':
                 return this.#getPlansSubMenu()
@@ -90,6 +89,7 @@ class menuListManagement {
     #getSongsSubMenu(){
         const allSongsItems = [new menuItem('allItems', 'all songs')]
         const songs = songsDataHandling.getTitles()
+        console.log(songs)
         const mappedSongs = songs.map(song => new menuItem(song.short_title, song.title))
         return [...allSongsItems, ...mappedSongs]
     }

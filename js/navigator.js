@@ -1,8 +1,5 @@
 class navigatorWindow {
 
-    width = 0
-
-
 }
 
 class navigatorWindowControl {
@@ -101,13 +98,13 @@ class navigatorRendering {
 
     resize(delay, duration){
         this.navigator.div.transition('tSizingDIV').delay(delay).duration(duration)
-            .style('width', this.navigator.divWidth + 'px')
-            .style('height', this.navigator.divHeight + 'px')
+            .style('width', this.navigator.div.width + 'px')
+            .style('height', this.navigator.div.height + 'px')
 
 
         this.navigator.svg
-            .attr('width', this.navigator.svgWidth)
-            .attr('height', this.navigator.svgHeight)
+            .attr('width', this.navigator.svg.width)
+            .attr('height', this.navigator.svg.height)
     }
 
     float(delay, duration){
@@ -131,106 +128,85 @@ class navigatorRendering {
 
 class navigatorWindowSettings{
     
-    constructor(navigator, mainMenu, subMenu){
+    constructor(navigator){
         this.navigator = navigator
-        this.mainMenu = mainMenu
-        this.subMenu = subMenu
-        this.sizing = new navigatorSizing(navigator, mainMenu, subMenu)
+        this.sizing = new navigatorSizing(navigator)
         this.positioning = new navigatorPositioning(navigator)
         this.float = new navigatorFloat(navigator)
     }
 
-    setForMainMenu(){
-        this.sizing.fitToContents()
+    setToMainOnly(){
+        this.sizing.fitToMainMenu(this.navigator.mainMenu.items)
         this.positioning.positionCentre()
         this.float.floatOffBackground()
-        this.mainMenu.expanded = true
+        this.navigator.configuration = 'main'
+        //this.navigator.mainMenu.expanded = true
+        //this.navigator.subMenu.expanded = false
+
     }
 
-    setForSubMenu(){
-        this.sizing.fitToContents()
+    setToSubContracted(){
+        this.sizing.fitToSubMenuContracted(this.navigator.mainMenu.items, this.navigator.subMenu.items)
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
-        this.mainMenu.expanded = false
+        this.navigator.configuration = 'sub'
+        //this.navigator.mainMenu.expanded = false
+        //this.navigator.subMenu.expanded = false
     }
 
-    setForSubExpanded(){
-        this.subMenu.expanded = true
-        this.sizing.fitToContents()
-    }
-
-    setForSubContracted(){
-        this.subMenu.expanded = false
-        this.sizing.fitToContents()
+    setToSubExpanded(){
+        this.sizing.fitToSubMenuExpanded(this.navigator.mainMenu.items, this.navigator.subMenu.items)
+        this.positioning.positionLeft()
+        this.float.sinkIntoBackground()
+        this.navigator.configuration = 'sub'
+        //this.navigator.mainMenu.expanded = false
+        //this.navigator.subMenu.expanded = true
     }
 
 }
 
 class navigatorSizing{
 
-    constructor(navigator, mainMenu, subMenu){
+    constructor(navigator){
         this.navigator = navigator
-        this.mainMenu = mainMenu
-        this.subMenu = subMenu
-        this.menuPadding = 20
-        this.menuYspacing = 20
-        this.totalWidth = 0
     }
 
-    fitToContents(){
-        this.totalWidth = this.#getWidth()
-        this.#setDivDimensions()
-        this.#setSVGDimensions()
+    fitToMainMenu(items){
+        const width = this.getWidestItemWidth(items) + 40
+        const height = items.length > 1 ? items.length * 20 + 40: 20
+        this.setDivDimensions(width, height)
+        this.setSVGDimensions(width, height)
+        console.log(this.navigator)
     }
 
-    #getWidth(){
-        return this.#getWidestItemWidth('mainMenu') + this.#getWidestItemWidth('subMenu') + (this.menuPadding * 2)
+    fitToSubMenuContracted(mainMenuItems, subMenuItems){
+        const width = getWidestItemWidth(mainMenuItems) + getWidestItemWidth(subMenuItems) + 40
+        this.setDivDimensions(width, 20)
+        this.setSVGDimensions(width, subMenuItems.length * 20)
     }
 
-    #setDivDimensions(){
-        this.navigator.divWidth = this.totalWidth
-        this.navigator.divHeight = this.#getDivHeight()
+    fitToSubMenuExpanded(mainMenuItems, subMenuItems){
+        const width = getWidestItemWidth(mainMenuItems) + getWidestItemWidth(subMenuItems) + 40
+        this.setDivDimensions(width, 7 * 20)
+        this.setSVGDimensions(width, subMenuItems.length * 20)
     }
 
-    #setSVGDimensions(){
-        this.navigator.svgWidth = this.totalWidth
-        this.navigator.svgHeight = this.#getSVGHeight()
+    getWidestItemWidth(menuItems){
+        return menuItems.length > 0 ? Math.max(...menuItems.map(item => item.renderedWidth)) : 0
     }
 
-    #getDivHeight(){
-        const multiplier = this.#getHeightMultipler()
-        return multiplier * this.menuYspacing + (this.menuPadding * 2)
+    setDivDimensions(width, height){
+        this.navigator.div.width = width
+        this.navigator.div.height = height
     }
 
-    #getSVGHeight(){
-        const highestItemCount = this.#getHighestItemCount()
-        return highestItemCount * this.menuYspacing + (this.menuPadding * 2)
+    setSVGDimensions(width, height){
+        this.navigator.svg.width = width
+        this.navigator.svg.height = height
     }
 
-    #getHeightMultipler(){
-        const visibleItemCount = this.#getVisibleItemCount()
-        return visibleItemCount > 1 ? visibleItemCount : 0
-    }
+    
 
-    #getVisibleItemCount(){
-        if(this.mainMenu.expanded){
-            return this.mainMenu.items.length
-        } else if (this.subMenu.expanded) {
-            return this.subMenu.items.length
-        } else {
-            return 1
-        }
-    }
-
-    #getHighestItemCount(){
-        return this.mainMenu.items.length > this.subMenu.items.length ?  this.mainMenu.items.length : this.subMenu.items.length 
-    }
-
-    #getWidestItemWidth(menuName){
-        const items = menuName === 'mainMenu' ? this.mainMenu.items : this.subMenu.items
-        console.log(Math.max(...items.map(item => item.renderedWidth)))
-        return items.length > 0 ? Math.max(...items.map(item => item.renderedWidth)) : 0
-    }
 
 }
 
@@ -241,14 +217,14 @@ class navigatorPositioning{
     }
 
     positionCentre(){
-        const left = window.innerWidth / 2 - this.navigator.divWidth / 2
-        const top = window.innerHeight / 2 - this.navigator.divHeight / 2
+        const left = window.innerWidth / 2 - this.navigator.div.width / 2
+        const top = window.innerHeight / 2 - this.navigator.div.height / 2
         this.set(left, top)
     }
 
     positionLeft(){
         const left = 20
-        const top = 20
+        const top = 0
         this.set(left, top)
     }
 

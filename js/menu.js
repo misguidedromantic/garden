@@ -167,7 +167,7 @@ class menuRendering {
 
     update(updatedMenu){
         this.interruptTransitions()
-        this.renderItems(updatedMenu.items, updatedMenu.constructor.name)
+        this.renderItems(updatedMenu)
         this.getRenderedItemWidths(updatedMenu.items, updatedMenu.constructor.name) 
         this.notify(updatedMenu)
     }
@@ -178,14 +178,14 @@ class menuRendering {
         text.interrupt('tWeen')
     }
 
-    renderItems(data, menuName){
-        const selectedIndex = this.#getSelectedIndex(data)
-        const enterControl = new menuItemEnter(menuName, selectedIndex)
-        const updateControl = new menuItemUpdate(menuName, selectedIndex)
-        const exitControl = new menuItemExit(menuName, selectedIndex)
+    renderItems(updatedMenu){
+        const selectedIndex = this.#getSelectedIndex(updatedMenu.items)
+        const enterControl = new menuItemEnter(updatedMenu, selectedIndex)
+        const updateControl = new menuItemUpdate(updatedMenu, selectedIndex)
+        const exitControl = new menuItemExit(updatedMenu, selectedIndex)
         
-        const groups = this.svg.selectAll('g.' + menuName + 'Item')
-            .data(data, d => d.id)
+        const groups = this.svg.selectAll('g.' + updatedMenu.constructor.name + 'Item')
+            .data(updatedMenu.items, d => d.id)
             .join(
                 enter => enterControl.enterItems(enter),
                 update => updateControl.updateItems(update),
@@ -213,8 +213,8 @@ class menuRendering {
 
 class menuItemEnter {
 
-    constructor(menuName, selectedIndex){
-        this.menuName = menuName
+    constructor(menu, selectedIndex){
+        this.menu = menu
         this.selectedIndex = selectedIndex
     }
 
@@ -227,10 +227,10 @@ class menuItemEnter {
 
     enterGroups(selection){
         return selection.append('g')
-            .attr('class', this.menuName + 'Item')
+            .attr('class', this.menu.constructor.name + 'Item')
             .attr('id', d => d.id)
             .attr('transform', (d, i) => 
-                menuItemPositioning.calculateTranslate(d, i, this.menuName, this.selectedIndex))
+                menuItemPositioning.calculateTranslate(d, i, this.menu, this.selectedIndex))
             .on('click', events.onMenuItemClick)
             
     }
@@ -248,7 +248,7 @@ class menuItemEnter {
         text.transition('tColour')
             //.delay((d, i) => i * 50) 
             .duration(100)
-            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuName, this.selectedIndex))
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menu, this.selectedIndex))
     }
 
     enterTextTransitionTween(text){
@@ -268,8 +268,8 @@ class menuItemEnter {
 
 class menuItemUpdate {
 
-    constructor(menuName, selectedIndex){
-        this.menuName = menuName
+    constructor(menu, selectedIndex){
+        this.menu = menu
         this.selectedIndex = selectedIndex
     }
 
@@ -284,7 +284,7 @@ class menuItemUpdate {
         return selection.transition('tTranslate')
             .duration(400)
             .attr('transform', (d, i) => 
-                menuItemPositioning.calculateTranslate(d, i, this.menuName, this.selectedIndex))    
+                menuItemPositioning.calculateTranslate(d, i, this.menu, this.selectedIndex))    
     }
 
     
@@ -292,7 +292,7 @@ class menuItemUpdate {
     updateText(groups){
         return groups.select('text')
             .attr('font-weight', d => d.selected ? 'bold' : 'normal')
-            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menuName, this.selectedIndex))
+            .attr('fill', (d, i) => menuItemStyling.calculateTextColour(d, i, this.menu, this.selectedIndex))
     }
 
     updateTextTransitionRotation(text){
@@ -307,8 +307,8 @@ class menuItemUpdate {
 
 class menuItemExit {
 
-    constructor(menuName, selectedIndex){
-        this.menuName = menuName
+    constructor(menu, selectedIndex){
+        this.menu = menu
         this.selectedIndex = selectedIndex
     }
 
@@ -334,15 +334,16 @@ class menuItemPositioning {
 
     static #parentItemWidth = {}
 
-    static calculateTranslate(d, i, menuName, selectedIndex){
-        const x = this.#calculateX(d, menuName)
-        const y = this.#calculateY(d, i, menuName)
+    static calculateTranslate(d, i, menu, selectedIndex){
+        console.log(menu)
+        const x = this.#calculateX(d, menu)
+        const y = this.#calculateY(d, i, menu, selectedIndex)
         return this.#getTranslateString(x, y)
     }
 
 
-    static #calculateX(d, menuName){
-        if(menuName === 'mainMenu'){
+    static #calculateX(d, menu){
+        if(menu.constructor.name === 'mainMenu'){
             return 20
         } else if (d.id === 'expander') {
             return d.parentMenuItem.renderedWidth + 30
@@ -351,13 +352,13 @@ class menuItemPositioning {
         }
     }
 
-    static #calculateY(d, i, menuName){
-        if(menuName === 'mainMenu'){
+    static #calculateY(d, i, menu, selectedIndex){
+        if(menu.constructor.name === 'mainMenu'){
             return i * 20 + 40
         } else if (d.id === 'expander') {
             return 40
         } else {
-            return (i - 1) * 20 + 40
+            return (i - selectedIndex) * 20 + 40
         }
     }
 
@@ -392,40 +393,22 @@ class menuItemStyling {
             case 'mainMenu':
                 return d.selected ? 'grey' : 'black'
             case 'subMenu':
-                return 'black' //this.#colourOnSub(d, i, selectedIndex)
-            case 'subSelect':
-                return this.#colourOnSubSelect(d, i, selectedIndex)
-        }
-    }
-
-    static #colourOnSub(d, i, selectedIndex){
-        if(d.id === 'allItems'){
-            return 'grey'
-        } else {
-            const colour = this.#colourForDistance(i)
-            return colour
-        }
-    }
-
-    static #colourOnSubSelect(d, i, selectedIndex){
-        if(d.constructor.name === 'mainMenuItem'){
-            return 'grey'
-        } else {
-            const colour = this.#colourForDistance(i - selectedIndex)
-            return colour
+                return this.#colourForDistance(i - selectedIndex)
         }
     }
 
     static #colourForDistance(distanceFromSelected){
         switch(Math.abs(distanceFromSelected)){
             case 0:
-                return 'black'
+                return '#000000'
             case 1:
-                return 'darkgrey'
+                return '#3f3f20'
             case 2:
-                return 'lightgrey'
+                return '#7f7f60'
+            case 3:
+                return '#bfbfa0'
             default:
-                return 'lightyellow'
+                return '#ffffe0'
         }
     }
 }

@@ -3,6 +3,9 @@ window.onload = function(){
     function loadData(){
         songsDataHandling.load('csv')
     }
+
+
+
     function setupNavigation(){
         new navigationSetup
     }
@@ -11,7 +14,8 @@ window.onload = function(){
     }
 
     loadData()
-    setupNavigation()
+    loadMenu()
+    //setupNavigation()
     initialiseEventHandlers() 
 }
 
@@ -119,7 +123,6 @@ class navigation {
     }
 
     static menuExpansionChange(event){
-        console.log(this.mainMenu.expanded)
         if(event === 'on' && !this.mainMenu.expanded){
             navigation.#navigatorControl.expandSubMenu()
         } else if (event === 'off' && this.subMenu.expanded) {
@@ -156,7 +159,6 @@ class navigation {
         this.#navigatorControl = new navigatorWindowControl(this.navigator, this.mainMenu, this.subMenu)
         this.#menuSelections = new menuSelections
         this.#menuListMgmt = new menuListManagement(this.mainMenu, this.subMenu)
-        //this.#menuConfigMgmt = new menuConfigurationManagement
         this.#menuRendering = new menuRendering (this.navigator.svg)
         this.#songsContent = new songsContentControl ()
     }
@@ -165,7 +167,6 @@ class navigation {
         this.#menuSelections.subscribe(this.#menuListMgmt)
         this.#menuListMgmt.subscribe(this.#menuRendering)
         this.#menuListMgmt.subscribe(this.#songsContent)
-        //this.#menuConfigMgmt.subscribe(this.#menuRendering)
         this.#menuRendering.subscribe(this.#navigatorControl)
     }
 }

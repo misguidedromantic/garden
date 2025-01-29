@@ -1,3 +1,81 @@
+function loadMenu(){
+    const navigator = createNavigator()
+    navigator.mainMenu = createMainMenu()
+    navigator.subMenu = createSubMenu()
+    renderMainMenu(navigator)
+}
+
+function createNavigator(){
+
+    function createDiv(){
+        return d3.select('body')
+            .append('div')
+            .attr('id', 'navigatorDiv')
+            .style('position', 'fixed')
+            .style('z-index', displays.getZIndex('navigator'))
+    }
+
+    function createSVGCanvas(div){
+        return div.append('svg')
+            .attr('id', 'navigatorSVG')
+            .on('mouseover', events.onMenuMouseOver)
+            .on('mouseout', events.onMenuMouseOut)
+    }
+        
+
+    const nav = new navigatorWindow()
+    nav.div = createDiv()
+    nav.svg = createSVGCanvas(nav.div)
+    return nav
+
+}
+
+function createMainMenu(){
+
+    function loadItems(){
+        return [
+            new menuItem ('plans', 'plans'),
+            new menuItem ('songs', 'songs'),
+            new menuItem ('concepts', 'concepts')
+        ]
+    }
+
+    const menu = new mainMenu
+    menu.items = loadItems()
+    return menu
+}
+
+function createSubMenu(){
+    return new subMenu
+}
+
+function renderMainMenu(navigator){
+
+    function renderMainMenuItems(svg, mainMenu){
+
+        const rendering = new menuRendering(svg)
+        rendering.renderItems(mainMenu)
+        rendering.getRenderedItemWidths(mainMenu.items, 'mainMenu')
+
+    }
+
+    function renderNavigator(navigator){
+        const settings = new navigatorWindowSettings (navigator)
+        const rendering = new navigatorRendering (navigator)
+
+        settings.setToMainOnly()
+        rendering.resize(0, 0)
+        rendering.move(0, 0)
+        rendering.float(100, 300)
+    }
+
+    renderMainMenuItems(navigator.svg, navigator.mainMenu)
+    renderNavigator(navigator)
+    
+
+}
+
+
 
 class navigationSetup {
 
@@ -30,8 +108,7 @@ class navigatorSetup{
 
     constructor(){
         this.#createNavigatorObject()
-        this.#createDiv('navigatorDiv', 'fixed')
-        this.#createSVGCanvas('navigatorSVG')
+
     }
 
     renderNavigator(mainMenu, subMenu){
@@ -49,20 +126,7 @@ class navigatorSetup{
         this.nav = new navigatorWindow
     }
 
-    #createDiv(id, position){
-        this.nav.div = d3.select('body')
-            .append('div')
-            .attr('id', id)
-            .style('position', position)
-            .style('z-index', displays.getZIndex('navigator'))
-    }
-
-    #createSVGCanvas(id){
-        this.nav.svg = this.nav.div.append('svg')
-            .attr('id', id)
-            .on('mouseover', events.onMenuMouseOver)
-            .on('mouseout', events.onMenuMouseOut)
-    }
+    
 
 }
 
@@ -84,7 +148,7 @@ class menuSetup{
 
     renderMainMenuItems(nav){
         const rendering = new menuRendering(nav.svg)
-        rendering.renderItems(this.mainMenu.items, this.mainMenu.constructor.name)
+        rendering.renderItems(this.mainMenu)
         rendering.getRenderedItemWidths(this.mainMenu.items, 'mainMenu')
     }
 

@@ -1,22 +1,8 @@
 window.onload = function(){
-
-    function loadData(){
-        songsDataHandling.load('csv')
-    }
-
-
-
-    function setupNavigation(){
-        new navigationSetup
-    }
-    function initialiseEventHandlers(){
-        events.initaliseWindowResizeHandling()
-    }
-
-    loadData()
-    loadMenu()
-    //setupNavigation()
-    initialiseEventHandlers() 
+    songsDataHandling.load('csv')
+    navigation.initialise()
+    //loadMenu()
+    //events.initaliseWindowResizeHandling()
 }
 
 class events {
@@ -33,7 +19,7 @@ class events {
         const elem = d3.select(this)
         const clickedItem = elem.data()[0]
         const clickedMenu = events.getMenuName(elem.attr('class'))
-        navigation.menuSelectionChange(clickedMenu, clickedItem)
+        navigation.menuSelectionChange(clickedItem)
     }
 
     static getMenuName(menuItemClass){
@@ -43,7 +29,6 @@ class events {
 
     static onMenuMouseOver(){
         navigation.menuExpansionChange('on')
-        //navigation.menuExpand()
     }
     
     static onMenuMouseOut(){
@@ -95,7 +80,7 @@ class throttles {
 }
 
 
-class navigation {
+class navigationOLD {
 
     static #navigatorControl  = {}
     static #menuSelections = {}
@@ -104,33 +89,28 @@ class navigation {
     static #menuRendering = {}
     static #songsContent = {}
 
-    static initalise (navigator, mainMenu, subMenu){
-        this.#assignNavigationObjects(navigator, mainMenu, subMenu)
+    static initalise (navigator){
+        this.navigator = navigator
         this.#initialiseControllers()
         this.#setupSubscriptions()
     }
+/*     }
 
     static moveOnWindowResize(){
         navigation.#navigatorControl.adjustToWindowResize()
     }
 
-    static menuSelectionChange(clickedMenuName, clickedItem){
-        if(clickedMenuName === 'mainMenu'){
-            this.#menuSelections.update(this.mainMenu, clickedItem)
-        } else {
-            this.#menuSelections.update(this.subMenu, clickedItem)
+    static menuSelectionChange(clickedItem){
+        if(this.navigator.configuration === 'main'){
+            this.#menuSelections.updateFromMain(clickedItem, this.navigator.mainMenu.items)
         }
     }
 
     static menuExpansionChange(event){
-        if(event === 'on' && !this.mainMenu.expanded){
-            navigation.#navigatorControl.expandSubMenu()
-        } else if (event === 'off' && this.subMenu.expanded) {
-            navigation.#navigatorControl.contractSubMenu()
+        if(this.navigator.configuration === 'sub'){
+            event === 'on' ? navigation.#navigatorControl.expandMenu() : navigation.#navigatorControl.contractMenu() 
         }
-
-
-    }
+    } */
 
     static showMenu(){}
     static hideMenu(){}
@@ -149,14 +129,8 @@ class navigation {
         }
     }
 
-    static #assignNavigationObjects(navigator, mainMenu, subMenu){
-        this.navigator = navigator
-        this.mainMenu = mainMenu
-        this.subMenu = subMenu
-    }
-
     static #initialiseControllers(){
-        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.mainMenu, this.subMenu)
+        this.#navigatorControl = new navigatorWindowControl(this.navigator)
         this.#menuSelections = new menuSelections
         this.#menuListMgmt = new menuListManagement(this.mainMenu, this.subMenu)
         this.#menuRendering = new menuRendering (this.navigator.svg)

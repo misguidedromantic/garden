@@ -1,24 +1,47 @@
 class menu {
-    constructor(expanded){
-        this.expanded = expanded
-        this.items = []
-        this.observers = []
-        this.ySpacing = 20
-        this.padding = 20
+    constructor(parentContainer){
+        this.createContainers(parentContainer)
     }
+
+    createContainers(parentContainer){
+        this.div = this.createMenuDiv(parentContainer)
+        this.svg = this.createMenuSVGCanvas()
+    }
+
+    createMenuDiv(parentContainer){
+        const divObj = new div (this.constructor.name, 'absolute', parentContainer)
+        return divObj.element
+    }
+    createMenuSVGCanvas(){
+        const svgObj = new svg (this.constructor.name, this.div)
+        return svgObj.element
+    }
+
+
+
+
 }
 
 class mainMenu extends menu {
-    constructor(expanded){
-        super(expanded)
+    constructor(parentContainer){
+        super(parentContainer)
+        this.items = this.loadItems()
+    }
+
+    loadItems(){
+        return [
+            new menuItem ('plans', 'plans'),
+            new menuItem ('songs', 'songs'),
+            new menuItem ('concepts', 'concepts')
+        ]
     }
 }
 
 class subMenu extends menu {
-    constructor(expanded){
-        super(expanded)
-        
+    constructor(parentContainer){
+        super(parentContainer)
     }
+
 }
 
 class menuItem {
@@ -31,6 +54,43 @@ class menuItem {
     }
 }
 
+
+
+
+class menuSelections {
+
+    constructor(){
+        this.observers = []
+    }
+
+    subscribe(observer){
+        this.observers.push(observer)
+    }
+
+    notify(updatedMenuItems){
+        this.observers.forEach(observer => observer.update(updatedMenuItems))
+    }
+
+    updateFromMain(clickedItem, menuItems){
+        clickedItem.selected ? this.#deslectAllSelectedItems(menuItems) : this.#selectExclusive(clickedItem, menuItems)
+        this.notify(menuItems)
+    }
+
+    updateFromSub(clickedItem, menuItems){
+        clickedItem.selected ? clickedItem.selected = false : this.#selectExclusive(clickedItem, menuItems)
+        this.notify(menuItems)
+    }
+
+    #selectExclusive(itemToSelect, menuItems){
+        this.#deslectAllSelectedItems(menuItems)
+        itemToSelect.selected = true
+    }
+
+    #deslectAllSelectedItems(menuItems){
+        const selectedItems = menuItems.filter(item => item.selected)
+        selectedItems.forEach(item => item.selected = false)
+    }
+}
 
 class menuListManagement {
 
@@ -51,13 +111,19 @@ class menuListManagement {
     update(updatedMenu){
         if(updatedMenu.constructor.name === 'mainMenu'){
             
-            const selectedMainMenuItem = this.#getSelectedMainMenuItem(updatedMenu.items)
-            this.mainMenu.items = [selectedMainMenuItem]
-            this.subMenu.items = this.#getSubMenuSourceData(selectedMainMenuItem)
+            
         }
         this.notify(this.mainMenu)
         this.notify(this.subMenu)
     }
+
+    updateFromMain(){
+        const selectedMainMenuItem = this.#getSelectedMainMenuItem(updatedMenu.items)
+        this.mainMenu.items = [selectedMainMenuItem]
+        this.subMenu.items = this.#getSubMenuSourceData(selectedMainMenuItem)
+
+    }
+    updateFromSub(){}
 
     #getSelectedMainMenuItem(items){
         return items.find(item => item.selected)
@@ -99,56 +165,6 @@ class menuListManagement {
 
 }
 
-
-class menuSelections {
-
-    constructor(){
-        this.observers = []
-    }
-
-    subscribe(observer){
-        this.observers.push(observer)
-    }
-
-    notify(updatedMenu){
-        this.observers.forEach(observer => observer.update(updatedMenu))
-    }
-
-    update(clickedMenu, clickedItem){
-        //const dispatch = d3.dispatch('stopTextTransitions')
-        //dispatch.call('stopTextTransitions', this)
-        
-        let updatedItems = []
-        switch(clickedMenu.constructor.name){
-            case 'mainMenu':
-                updatedItems = this.#updateFromMain(clickedItem, clickedMenu)
-                break;
-            case 'subMenu':
-                updatedItems = this.#updateFromSub(clickedItem, clickedMenu)
-                break;
-
-        }
-        this.notify(clickedMenu)
-    }
-
-    #updateFromMain(clickedItem, clickedMenu){
-        return clickedItem.selected ? this.#deslectAllSelectedItems(clickedMenu) : this.#selectExclusive(clickedItem, clickedMenu)
-    }
-
-    #updateFromSub(clickedItem, clickedMenu){
-        return clickedItem.selected ? clickedItem.selected = false : this.#selectExclusive(clickedItem, clickedMenu)
-    }
-
-    #deslectAllSelectedItems(clickedMenu){
-        const selectedItems = clickedMenu.items.filter(item => item.selected)
-        selectedItems.forEach(item => item.selected = false)
-    }
-
-    #selectExclusive(itemToSelect, clickedMenu){
-        this.#deslectAllSelectedItems(clickedMenu)
-        itemToSelect.selected = true
-    }
-}
 
 class menuRendering {
 
@@ -335,7 +351,6 @@ class menuItemPositioning {
     static #parentItemWidth = {}
 
     static calculateTranslate(d, i, menu, selectedIndex){
-        console.log(menu)
         const x = this.#calculateX(d, menu)
         const y = this.#calculateY(d, i, menu, selectedIndex)
         return this.#getTranslateString(x, y)

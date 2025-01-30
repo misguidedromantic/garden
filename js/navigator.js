@@ -1,6 +1,72 @@
-class navigatorWindow {
+class navigation {
+
+    static window = {}
+
+    static initialise (){
+        this.window = new navigatorWindow
+        this.mainMenu = new mainMenu (this.window)
+        this.subMenu = new subMenu (this.window)
+        //createContainers
+            //createWindow
+            //createMenuContainers
+        //loadMenuData
+        //renderMenus
+
+    }
 
 }
+
+class navigatorWindow {
+    constructor(){
+        this.div = createDiv ('navigator', 'fixed')
+        return this.div
+    }
+}
+
+
+
+function createNavigator(){
+    return createDiv ('navigator', 'fixed')
+}
+
+function createMenus(){
+    
+
+
+}
+
+function createMenu(name, parentContainer, items){
+
+}
+
+function createMainMenu(window){
+    
+    
+    function loadItems(){
+        return [
+            new menuItem ('plans', 'plans'),
+            new menuItem ('songs', 'songs'),
+            new menuItem ('concepts', 'concepts')
+        ]
+    }
+
+    const menu = new mainMenu
+    
+
+    menu.div = createDiv ('mainMenu', 'absolute', window)
+    menu.svg = createSVGCanvas ('mainMenu', div)
+    menu.items = loadItems()
+    return menu
+}
+
+
+
+class navigationEvents {}
+class navigationMenuContainers {}
+
+
+
+
 
 class navigatorWindowControl {
     
@@ -31,12 +97,12 @@ class navigatorWindowControl {
         }
     }
 
-    expandSubMenu(){
+    expandMenu(){
         this.#settings.setForSubExpanded()
         this.#rendering.resize(0, 200)
     }
 
-    contractSubMenu(){
+    contractMenu(){
         this.#settings.setForSubContracted()
         this.#rendering.resize(0, 200)
     }
@@ -48,45 +114,10 @@ class navigatorWindowControl {
         this.#rendering.float(100, 300)
     }
 
-
-
-    
-
     adjustToWindowResize(){
         this.#settings.setForMainMenu()
         this.#rendering.move(0, 200)
     }
-
-    #transitionSubToMain(){
-        this.#settings.setForMainMenu()
-        this.#rendering.resize(0, 400)
-        this.#rendering.move(0, 400)
-        this.#rendering.float(100, 300)
-    }
-
-    transitionSubToSubExpanded(){
-        this.#settings.setForSubExpanded()
-        this.#rendering.resize(0, 200)
-    }
-
-    transitionSubExpandedToSub(){
-        this.#settings.setForSubMenu()
-        this.#rendering.resize(0, 200)
-    }
-
-    #transitionSubToSubSelect(){
-        this.#settings.setForSubSelectMenu()
-        this.#rendering.resize(0, 0)
-    }
-
-    #transitionMainToSub(){
-        this.#settings.setForSubMenu()
-        this.#rendering.resize(0, 400)
-        this.#rendering.move(0, 400)
-        this.#rendering.float(100, 300)
-    }
-
-    
 
 }
 
@@ -140,9 +171,6 @@ class navigatorWindowSettings{
         this.positioning.positionCentre()
         this.float.floatOffBackground()
         this.navigator.configuration = 'main'
-        //this.navigator.mainMenu.expanded = true
-        //this.navigator.subMenu.expanded = false
-
     }
 
     setToSubContracted(){
@@ -150,8 +178,6 @@ class navigatorWindowSettings{
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
         this.navigator.configuration = 'sub'
-        //this.navigator.mainMenu.expanded = false
-        //this.navigator.subMenu.expanded = false
     }
 
     setToSubExpanded(){
@@ -159,8 +185,6 @@ class navigatorWindowSettings{
         this.positioning.positionLeft()
         this.float.sinkIntoBackground()
         this.navigator.configuration = 'sub'
-        //this.navigator.mainMenu.expanded = false
-        //this.navigator.subMenu.expanded = true
     }
 
 }
@@ -176,7 +200,6 @@ class navigatorSizing{
         const height = items.length > 1 ? items.length * 20 + 40: 20
         this.setDivDimensions(width, height)
         this.setSVGDimensions(width, height)
-        console.log(this.navigator)
     }
 
     fitToSubMenuContracted(mainMenuItems, subMenuItems){

@@ -1,34 +1,12 @@
 function loadMenu(){
-    const navigator = createNavigator()
-    navigator.mainMenu = createMainMenu()
-    navigator.subMenu = createSubMenu()
-    renderMainMenu(navigator)
+   //const navigator = createNavigator()
+    //navigator.mainMenu = createMainMenu()
+    //navigator.subMenu = createSubMenu()
+    //renderMainMenu(navigator)
+    //navigation.initalise(navigator) 
 }
 
-function createNavigator(){
 
-    function createDiv(){
-        return d3.select('body')
-            .append('div')
-            .attr('id', 'navigatorDiv')
-            .style('position', 'fixed')
-            .style('z-index', displays.getZIndex('navigator'))
-    }
-
-    function createSVGCanvas(div){
-        return div.append('svg')
-            .attr('id', 'navigatorSVG')
-            .on('mouseover', events.onMenuMouseOver)
-            .on('mouseout', events.onMenuMouseOut)
-    }
-        
-
-    const nav = new navigatorWindow()
-    nav.div = createDiv()
-    nav.svg = createSVGCanvas(nav.div)
-    return nav
-
-}
 
 function createMainMenu(){
 

@@ -35,10 +35,37 @@ function addMilestonesToSongs(milestonesData, songs){
 }
 
 function renderSongMilestones(svg, songs){
-    svg.selectAll('g')
+    const groups = svg.selectAll('g')
         .data(songs, songs.id)
         .join('g')
         .attr('id', d => d.id)
-        
+        .attr('transform', (d,i) => getTranslateString(10, i * 50 + 40))
+        .append('text')
+        .text(d => d.title)
+
+    songs.forEach(song => {
+        const thisG = d3.select('g#' + song.id)
+        thisG.selectAll('rect')
+            .data(song.milestones)
+            .join('rect')
+            .attr('id', d => d.id)
+            .attr('height', 10)
+            .attr('width', 10)
+            .attr('x', d => {
+                const dateObject = new Date(d.date)
+                const year = dateObject.getFullYear()
+                const month = dateObject.getMonth()
+                const day = dateObject.getDate()
+                return (year - 2000) * 12 + month
+                
+
+
+            })
+    })
+
+}
+
+function getTranslateString(x, y){
+    return 'translate(' + x + ',' + y + ')'
 }
 

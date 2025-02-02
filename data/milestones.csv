@@ -1,10 +1,10 @@
 ﻿id,song_id,date,description,type
-gab-20181004-written-lyrics,gab,4/10/2018,lyrics chart,written-lyrics
-gab-20170401-seeded-lyrics,gab,1/4/2017,concept lyrics,seeded-lyrics
-gab-20181002-written-music,gab,2/10/2018,chord chart,written-music
-gab-20190119-seeded-music,gab,19/1/2019,concept demo,seeded-music
-hurdle-20070803-written-music,hurdle,3/8/2007,setlist of early performance,written-music
-hurdle-20070803-written-lyrics,hurdle,3/8/2007,setlist of early performance,written-lyrics
-hurdle-20080712-released,hurdle,12/7/2008,ep launch,released
-hurdle-20080510-mixed,hurdle,10/5/2008,file names,mixed
-hurdle-20080516-mastered,hurdle,16/5/2008,file creation date,mastered
+gab-20181004-written-lyrics,gab,2018-10-04,lyrics chart,written-lyrics
+gab-20170401-seeded-lyrics,gab,2017-04-01,concept lyrics,seeded-lyrics
+gab-20181002-written-music,gab,2018-10-02,chord chart,written-music
+gab-20190119-seeded-music,gab,2019-01-19,concept demo,seeded-music
+hurdle-20070803-written-music,hurdle,2007-08-03,setlist of early performance,written-music
+hurdle-20070803-written-lyrics,hurdle,2007-08-03,setlist of early performance,written-lyrics
+hurdle-20080712-released,hurdle,2008-07-12,ep launch,released
+hurdle-20080510-mixed,hurdle,2008-05-10,file names,mixed
+hurdle-20080516-mastered,hurdle,2008-05-16,file creation date,mastered

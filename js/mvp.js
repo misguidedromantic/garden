@@ -36,7 +36,8 @@ function setupSongs(songsData, milestonesData){
     let songs = []
     songsData.forEach(d => {
         const thisSong = new song(d.short_title, d.title)
-        thisSong.milestones = milestonesData.filter(milestone => milestone.song_id === d.short_title)
+        const songMilestones = milestonesData.filter(milestone => milestone.song_id === d.short_title)
+        thisSong.milestones = songMilestones.map(mStone => new milestone(mStone.id, mStone.date))
         songs.push(thisSong)
 
     })
@@ -76,5 +77,12 @@ function renderSongMilestones(svg, songs){
 
 function getTranslateString(x, y){
     return 'translate(' + x + ',' + y + ')'
+}
+
+class milestone {
+    constructor(id, date){
+        this.id = id
+        this.date = date
+    }
 }
 

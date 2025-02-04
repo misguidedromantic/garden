@@ -29,13 +29,22 @@ class displayOrchestration {
         switch(displayName){
             case 'songMilestones':
                 const content = new displayContentRendering(display)
-                content.render(display.svg, data)
+                const groups = content.renderGroups(display.svg, data)
+                content.renderGroupLabels(groups)
+                groups.data().forEach(d => {
+                    const parentGroup = d3.select('g#' + d.id)
+                    const subGroups = content.renderGroups(parentGroup, d.milestones)
+                    content.renderMilestoneCircles(subGroups)
+                })
+
 
                 //renderInvisible
                 //fitContainer
                 //renderVisible
         }
     }
+
+    
 
 
 }
@@ -77,59 +86,71 @@ class displayContentRendering {
         this.display = display
     }
 
-    render(svgCanvas, data){
-        const groups = svgCanvas.selectAll('g.' + this.display.gClass)
+    renderGroups(parentElem, data){
+        return parentElem.selectAll('g.' + this.display.gClass)
             .data(data, data.id)
-            .join('g')
-            .attr('id', d => d.id)
-            .attr('class', this.display.gClass)
-            .attr('transform', (d, i) => this.calculateTranslate(d, i))
-
-        this.renderSubElements(groups)
-            
+            .join(
+                enter => this.enterGroups(enter, this.display.gClass),
+                update => this.updateGroups(update),
+                exit => this.exitGroups(exit)
+            )
     }
 
-    enter(selection, classText){
-        selection.append('g')
+    enterGroups(selection, classText){
+        return selection.append('g')
             .attr('id', d => d.id)
             .attr('class', classText)
-            .attr('transform', (d, i) => this.calculateTranslate(d, i))
+            .attr('transform', (d, i) => contentPositioning.calculateTranslate(d, i, this.display))
     }
 
-    renderSubElements(groups){
-        if(this.display.constructor.name === 'timelinesDisplay'){
-            groups.append('text')
-                .text(d => d.title)
-
-            groups.data().forEach(d =>{
-                const g = d3.select('g#' + d.id)
-                g.selectAll('circle')
-                    .data(d.milestones)
-                    .join('circle')
-                    .attr('id', d => d.id)
-                    .attr('r', 3)
-                    .attr('cx', d => {
-                        const dateObject = new Date(d.date)
-                        const year = dateObject.getFullYear()
-                        const month = dateObject.getMonth()
-                        const day = dateObject.getDate()
-                    return (year - 2000) * 12 + month + day
-                })
-            })
-        }
+    updateGroups(selection){
+        return selection
+    }
+    exitGroups(selection){
+        return selection
     }
 
-    
+    renderGroupLabels(groups){
+        groups.append('text')
+            .text(d => d.title)
+    }
 
+    renderMilestoneCircles(groups){
+        groups.append('circle')
+            .attr('r', 4)
+            .attr('cy', - 5)
+    }
 
 }
 
 class contentPositioning {
     static calculateTranslate(d, i, display){
-        const x = 0
-        const y = (this.display.gSpacingY * i) + (this.display.gPadding * 2)
+
+        let x = 0
+        let y = 0
+
+        switch(d.constructor.name){
+            case 'song':
+                y = (display.gSpacingY * i) + (display.gPadding * 2)
+                break;
+            case 'milestone':
+                x = this.#calculateTimelinePosition(d.date)
+        }
+
         return 'translate(' + x + ',' + y + ')'
     }
+
+    static #calculateTimelinePosition(date){
+        const dateObject = new Date(date)
+        const year = dateObject.getFullYear()
+        const month = dateObject.getMonth()
+        const day = dateObject.getDate()
+        return (year - 2000) * 12 + month + day + 50
+    }
+
+
+
+
 }
 
 class displaySizing {

@@ -1,3 +1,9 @@
+class songMilestoneHandling {
+    static prepareDataForDisplay(songs){
+        return songs.filter(song => song.milestones.length > 0)
+    }
+}
+
 class song {
     constructor(shortTitle, title){
         this.id = shortTitle

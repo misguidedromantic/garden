@@ -147,19 +147,6 @@ class navigationOLD {
 
 
 
-class displays {
-    static getZIndex(divID){
-        switch(divID){
-            case 'songBlockCanvasDiv':
-                return 1
-            case 'navigatorDiv':
-                return 2
-            default:
-                return 99
-        }
-    }
-}
-
 
 
 

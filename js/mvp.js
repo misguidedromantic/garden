@@ -1,37 +1,46 @@
-window.onload = function(){
-    loadSongs()
+window.onload = async function(){
+    const songs = await loadSongsData()
+    displayFactory.createDisplay('songMilestones')
+    const songsMilestones = songMilestoneHandling.prepareDataForDisplay(songs)
+    displayOrchestration.load('songMilestones', songsMilestones)
 }
 
-async function loadSongs (){
+
+
+async function loadSongsData (){
     const extractor = new csvExtractLoadTransform
     const songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
     const milestonesData = await extractor.getAllRecordsFromFile('data/milestones.csv')
-    
-    const songs = getSongs(songsData)
-    addMilestonesToSongs(milestonesData, songs)
-
-    const div = createDiv('songs', 'absolute')
-    const svg = createSVGCanvas ('songs', div)
-
-    const filtered = songs.filter(song => song.milestones !== undefined)
-    renderSongMilestones(svg, filtered)
+    return setupSongs(songsData, milestonesData)
 }
 
-function getSongs(songsData){
+
+function loadSongsMilestonesDisplay(){
+
+    const display = new displaySetup ('timelines')
+
+    //setup displays
+    //render
+    //const filtered = songs.filter(song => song.milestones !== undefined)
+    //renderSongMilestones(svg, filtered)
+
+}
+
+function setupDisplay(){
+    const div = createDiv('songsMilestones', 'absolute')
+    const svg = createSVGCanvas ('songsMilestones', div)
+
+}
+
+function setupSongs(songsData, milestonesData){
     let songs = []
-    songsData.forEach(songData => {
-        songs.push(new song(songData.short_title, songData.title))
+    songsData.forEach(d => {
+        const thisSong = new song(d.short_title, d.title)
+        thisSong.milestones = milestonesData.filter(milestone => milestone.song_id === d.short_title)
+        songs.push(thisSong)
+
     })
     return songs
-}
-
-function addMilestonesToSongs(milestonesData, songs){
-    const grouped = d3.group(milestonesData, d => d.song_id)
-    songs.forEach(song => {
-        if(grouped.has(song.id)){
-            song.milestones = grouped.get(song.id)
-        }
-    })
 }
 
 function renderSongMilestones(svg, songs){

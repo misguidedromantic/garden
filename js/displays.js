@@ -89,6 +89,13 @@ class displayContentRendering {
             
     }
 
+    enter(selection, classText){
+        selection.append('g')
+            .attr('id', d => d.id)
+            .attr('class', classText)
+            .attr('transform', (d, i) => this.calculateTranslate(d, i))
+    }
+
     renderSubElements(groups){
         if(this.display.constructor.name === 'timelinesDisplay'){
             groups.append('text')
@@ -112,18 +119,17 @@ class displayContentRendering {
         }
     }
 
-    calculateTranslate(d, i){
+    
+
+
+}
+
+class contentPositioning {
+    static calculateTranslate(d, i, display){
         const x = 0
         const y = (this.display.gSpacingY * i) + (this.display.gPadding * 2)
         return 'translate(' + x + ',' + y + ')'
     }
-
-
-
-
-
-    
-
 }
 
 class displaySizing {

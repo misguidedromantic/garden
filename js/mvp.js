@@ -7,12 +7,7 @@ window.onload = async function(){
 
 
 
-async function loadSongsData (){
-    const extractor = new csvExtractLoadTransform
-    const songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
-    const milestonesData = await extractor.getAllRecordsFromFile('data/milestones.csv')
-    return setupSongs(songsData, milestonesData)
-}
+
 
 
 function loadSongsMilestonesDisplay(){

@@ -1,3 +1,73 @@
+
+
+
+class songSectionHandling {
+
+    constructor(formalSectionData, structuralSectionData){
+        this.formalSectionData = formalSectionData
+        this.structuralSectionData = structuralSectionData
+    }
+
+    setupSections(song){
+        this.#setupFormalSections(song)
+        this.#setupStructuralSections(song)
+    }
+
+    #setupFormalSections(song){
+        const sectionData = this.#getSectionDataForSong(this.formalSectionData, song.id)
+        sectionData.forEach(sectionRecord => {
+            const section = this.#createFormalSection(sectionRecord)
+            song.form.push(section)
+        })
+    }
+
+    #setupStructuralSections(song){
+        const sectionData = this.#getSectionDataForSong(this.structuralSectionData, song.id)
+        sectionData.forEach(sectionRecord => {
+            const section = this.#createSongSection(sectionRecord)
+            song.structure.push(section)
+        })
+        
+    }
+
+    #getSectionDataForSong(data, songID){
+        const filtered = data.filter(element => element.song[0] === songID)
+        return filtered.sort((a, b) => {
+            if(a.label < b.label) return -1
+            if(a.label > b.label) return 1
+            return 0
+        })
+    }
+
+    #createFormalSection(sectionData){
+        return new formalSection (sectionData.id, sectionData.title, sectionData.label)
+    }
+
+    #createSongSection (sectionData){
+        switch(sectionData.type){
+            case 'intro':
+                return new intro (sectionData)
+
+            case 'verse':
+                return new verse (sectionData)
+
+            case 'chorus':
+                return new chorus (sectionData)
+
+            case 'bridge':
+                return new bridge (sectionData)
+
+            case 'outro':
+                return new outro (sectionData)  
+
+            default:
+                return new structuralSection (sectionData)
+        }
+    }
+}
+
+
+
 class songMilestoneHandling {
     static prepareDataForDisplay(songs){
         return songs.filter(song => song.milestones.length > 0)
@@ -133,7 +203,7 @@ class songsContentControl {
 
 }
 
-class songStructuring {
+/* class songStructuring {
 
     constructor(){
         this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
@@ -145,7 +215,7 @@ class songStructuring {
         thisSong.structure = songsDataHandling.getStructuralSections(thisSong.id)
         return thisSong
     }
-}
+} */
 
 
 class songsDataHandling {
@@ -154,8 +224,9 @@ class songsDataHandling {
     static formalSectionData = []
     static structuralSectionData = []
 
-    static async load(){
+    static async load(){  //consider renaming ETL
         this.#source === 'csv' ? await this.#loadFromCSV(new csvExtractLoadTransform) : await this.#loadFromAirtable(new airtableExtractor)
+
     }
 
     static async #loadFromAirtable(extractor){
@@ -233,11 +304,7 @@ class songsDataHandling {
     }
 
 
-    static #setupSong(thisSong){
-        this.sectionHandling.setupSections(thisSong)
-        //this.blockHandling.setupBlocks(thisSong)
-        return thisSong
-    }
+    
 
 
 
@@ -252,14 +319,7 @@ class songsDataHandling {
         //this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
     }
 
-    static #setupSongs(){
-        this.songsData.forEach(song => {
-            const thisSong = this.#createSong(song.id, song.title)
-            this.#setupSong(thisSong)
-            this.songs.push(thisSong)
-        })
-        
-    }
+    
 
     static #createSong(id, title){
         return new song(id, title)
@@ -281,70 +341,68 @@ class songsDataHandling {
     }
 }
 
-class songSectionHandling {
-
-    constructor(formalSectionData, structuralSectionData){
-        this.formalSectionData = formalSectionData
-        this.structuralSectionData = structuralSectionData
-    }
-
-    setupSections(song){
-        this.#setupFormalSections(song)
-        this.#setupStructuralSections(song)
-    }
-
-    #setupFormalSections(song){
-        const sectionData = this.#getSectionDataForSong(this.formalSectionData, song.id)
-        sectionData.forEach(sectionRecord => {
-            const section = this.#createFormalSection(sectionRecord)
-            song.form.push(section)
-        })
-    }
-
-    #setupStructuralSections(song){
-        const sectionData = this.#getSectionDataForSong(this.structuralSectionData, song.id)
-        sectionData.forEach(sectionRecord => {
-            const section = this.#createSongSection(sectionRecord)
-            song.structure.push(section)
+class songsDataTransformation {
+    setupSongs(songsData){
+        const songs = []
+        songsData.forEach(song => {
+            const thisSong = new song (song.id, song.title)
+            thisSong.structuralSections = []
+            songs.push(thisSong)
         })
         
     }
 
-    #getSectionDataForSong(data, songID){
-        const filtered = data.filter(element => element.song[0] === songID)
-        return filtered.sort((a, b) => {
-            if(a.label < b.label) return -1
-            if(a.label > b.label) return 1
-            return 0
+    #setupSong(thisSong){
+        //this.sectionHandling.setupSections(thisSong)
+        //this.blockHandling.setupBlocks(thisSong)
+        return thisSong
+    }
+}
+
+class songStructuring {
+
+    getDefaultStructure(){
+        [
+            new verse ('verse1'),
+            new chorus ('chorus1'),
+            new verse ('verse2'),
+            new chorus ('chours2'),
+            new bridge ('bridge1'),
+            new chorus ('chorus3')
+        ]
+    }
+    
+    getSongStructure(sections){
+        const structure = []
+        sections.forEach(section => {
+            structure.push(this.#getSection(section))
         })
     }
 
-    #createFormalSection(sectionData){
-        return new formalSection (sectionData.id, sectionData.title, sectionData.label)
-    }
-
-    #createSongSection (sectionData){
-        switch(sectionData.type){
+    #getSection(section){
+        switch(section.type){
             case 'intro':
-                return new intro (sectionData)
+                return new intro (section)
 
             case 'verse':
-                return new verse (sectionData)
+                return new verse (section)
 
             case 'chorus':
-                return new chorus (sectionData)
+                return new chorus (section)
 
             case 'bridge':
-                return new bridge (sectionData)
+                return new bridge (section)
 
             case 'outro':
-                return new outro (sectionData)  
+                return new outro (section)  
 
             default:
-                return new structuralSection (sectionData)
+                return new structuralSection (section)
         }
     }
 }
+
+
 
 class songBlockHandling {
     constructor(patternsData, structureData){

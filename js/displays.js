@@ -33,10 +33,12 @@ class displayOrchestration {
                 content.renderGroupLabels(groups)
                 groups.data().forEach(d => {
                     const parentGroup = d3.select('g#' + d.id)
+                    content.renderRects(parentGroup, d.milestones)
                     //const subGroups = content.renderGroups(parentGroup, d.milestones)
-                    content.renderCircles(parentGroup, d.milestones)
+                    //content.renderCircles(parentGroup, d.milestones)
                 })
-                zoomHandling.zoomToRange(110,180)
+
+                //zoomHandling.zoomToRange(110,180)
 
 
                 //renderInvisible
@@ -116,6 +118,17 @@ class displayContentRendering {
             .text(d => d.title)
     }
 
+    renderRects(group, data){
+        group.selectAll('rect')
+            .data(data)
+            .join('rect')
+            .attr('width', 4)
+            .attr('height', 10)
+            .attr('x', (d, i) => contentPositioning.calculateTimelinePosition(d.date))
+            .attr('y', -10)
+
+    }
+
     renderCircles(group, data){
         group.selectAll('circle')
             .data(data)
@@ -157,33 +170,55 @@ class contentPositioning {
         const day = dateObject.getDate()
         return (year - 2000) * 12 + month + day + 50
     }
+}
 
+class contentSizing {
+    static calculateRectWidth(d){
 
-
-
+    
+    }
 }
 
 class zoomHandling {
     
     
     static zoomToRange(xMin, xMax){
-        const xScale = d3.scaleLinear().range([100, 300])
-        const xDomain = xScale.domain();
-        const xRange = xScale.range();
-        const scale = (xRange[1] - xRange[0]) / (xMax - xMin);
+        const width = 300
+        //const height = 150
+        const zoom = d3.zoom().on('zoom', zoomHandling.zoomed)
+        d3.select('svg').call(zoom)
+
+            //.append('rect')
+            //.attr('width', width)
+            //.attr('height', height)
+            //.style('fill', 'none')
+
+        
+        const xScale = d3.scaleLinear().domain([xMin, xMax]).range([0, width])
+        //const xDomain = xScale.domain();
+        //const xRange = xScale.range();
+        const scale = width / (xMax - xMin);
         const translate = -xMin * scale;
         
         
-        const zoom = d3.zoom().on('zoom', zoomHandling.zoomed)
-        d3.select('svg').call(zoom)
-        d3.select('svg').transition().duration(750).call(zoom.transform,d3.zoomIdentity.translate(translate, 0).scale(scale));
+        d3.select('svg').transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity
+                .scale(width / (xScale(xMax) - xScale(xMin)))
+                .transform(-xScale(xMin), 0)
+        )
+
 
         //d3.select('svg').transition().delay(250).duration(250).call(zoom.scaleBy, 2)
     }
 
     static zoomed(event){
         const transform = event.transform
-        d3.selectAll('g').attr('transform', 'translate(' + transform.x + ', 0) scale(' + transform.k + ', 1)')
+        d3.selectAll('circle')
+            .attr('cx', d => transform.applyX(d.x))
+            .attr('cy', d => d.y)
+
+        //d3.selectAll('g#hurdle').attr('transform', 'translate(' + transform.x + ',60) scale(' + transform.k + ', 1)')
     }
 }
 

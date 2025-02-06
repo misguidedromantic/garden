@@ -1,8 +1,4 @@
 class csvExtractLoadTransform {
-    constructor(tableRecords){
-        this.tableRecords = tableRecords
-    }
-
     getAllRecordsFromFile(filePath){
         return d3.csv(filePath)
     }

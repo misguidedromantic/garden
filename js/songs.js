@@ -1,4 +1,213 @@
+class songsDataHandling {
+    static #source = 'csv'
+    static songsData = []
+    static formalSectionData = []
+    static structuralSectionData = []
 
+    static async load(){  
+        const csvData = await songsDataExtraction.extract()
+        const dataTransformer = new songsDataTransformation(csvData)
+        const songs = dataTransformer.setupSongs()
+        console.log(songs)
+    }
+
+    static async #loadFromAirtable(extractor){
+        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
+        this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
+        this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
+        return Promise.resolve()
+    }
+
+    static async #loadFromCSV(extractor){
+        this.songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
+        this.formalSectionData = await extractor.getAllRecordsFromFile('data/formal_sections.csv')
+        this.structuralSectionData = await extractor.getAllRecordsFromFile('data/structural_sections.csv')
+        return Promise.resolve()
+    }
+
+
+    static getTitles(){
+        return this.songsData.map(({short_title, title}) => ({short_title, title}))
+    }
+
+    static getSongs(){
+        console.log(this.songsData)
+        console.log(this.songsData.map(song => song.id))
+        return 'test' //this.songsData.map(song => {song.id, song.title})
+    }
+
+    static #getLoader(table){
+        return this.#source === 'airtable' ? new airtableExtractedDataLoader(table) : new csvExtractLoadTransform(table)
+    }
+
+    static getSong(songTitle){
+        const songData = this.songsData.find(song => song.title === songTitle)
+        return new song (songData.short_title, songData.title)
+    }
+
+    static getFormalSections(songID){
+        const sectionsData = this.formalSectionData.filter(section => section.song === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            sections.push(new formalSection (section.title, section.type))
+        })
+        return sections
+    }
+
+    static getStructuralSections(songID){
+        const sectionsData = this.structuralSectionData.filter(section => section.song_id === songID)
+        const sections = []
+        sectionsData.forEach(section => {
+            sections.push(this.#getStructuralSection(section))
+        })
+        return sections
+    }
+
+    static #getStructuralSection(sectionData){
+        switch(sectionData.type){
+            case 'intro':
+                return new intro (sectionData)
+
+            case 'verse':
+                return new verse (sectionData)
+
+            case 'chorus':
+                return new chorus (sectionData)
+
+            case 'bridge':
+                return new bridge (sectionData)
+
+            case 'outro':
+                return new outro (sectionData)  
+
+            default:
+                return new structuralSection (sectionData)
+        }
+    }
+
+
+    
+
+
+
+    static async #loadData(){
+        const extractor = new airtableExtractor
+        this.songsData = await extractor.getAllRecordsFromTable('songs')
+        return Promise.resolve()
+    }
+
+    static #loadHandlers(){
+        this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
+        //this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
+    }
+
+    
+
+    
+
+    
+
+    static filterForSong(data, songID){
+        return data.filter(item => item.songID === songID)
+    }
+
+    static getSongs(){
+        return this.songs
+    }
+
+
+    static getSongByID(id){
+        return this.songs.find(song => song.id === id)
+    }
+}
+
+class songsDataExtraction {
+    static async extract(){
+        const csvData = {}
+        csvData.songs = await d3.csv('data/songs.csv')
+        csvData.formalSections = await d3.csv('data/formal_sections.csv')
+        csvData.structuralSections = await d3.csv('data/structural_sections.csv')
+        return csvData
+    }
+}
+
+class songsDataTransformation {
+
+    constructor(extractedData){
+        this.extractedData = extractedData
+        this.structuring = new songStructuring
+        this.songs = []
+    }
+
+    setupSongs(){
+        this.#createSongs()
+        this.#addSections()
+        return this.songs
+    }
+
+    #createSongs(){
+        this.extractedData.songs.forEach(songData => {
+            this.songs.push(new song (songData.short_title))
+        })
+    }
+
+    #addSections(){
+        this.songs.forEach(song => {
+            const sectionData = this.#getSectionData(song.id)
+            song.structure = this.structuring.getSongStructure(sectionData)
+        })
+    }
+
+    #getSectionData(songID){
+        return this.extractedData.structuralSections.filter(section => section.song_id === songID)
+    }
+
+}
+
+
+
+class songStructuring {
+
+    getDefaultStructure(){
+        [
+            new verse ('verse1'),
+            new chorus ('chorus1'),
+            new verse ('verse2'),
+            new chorus ('chours2'),
+            new bridge ('bridge1'),
+            new chorus ('chorus3')
+        ]
+    }
+    
+    getSongStructure(sectionsData){
+        const structure = []
+        sectionsData.forEach(section => {
+            structure.push(this.#getSection(sectionsData))
+        })
+    }
+
+    #getSection(section){
+        switch(section.type){
+            case 'intro':
+                return new intro (section)
+
+            case 'verse':
+                return new verse (section)
+
+            case 'chorus':
+                return new chorus (section)
+
+            case 'bridge':
+                return new bridge (section)
+
+            case 'outro':
+                return new outro (section)  
+
+            default:
+                return new structuralSection (section)
+        }
+    }
+}
 
 
 class songSectionHandling {
@@ -75,11 +284,8 @@ class songMilestoneHandling {
 }
 
 class song {
-    constructor(shortTitle, title){
-        this.id = shortTitle
-        this.title = title
-        this.structure = []
-        this.form = []
+    constructor(id){
+        this.id = id
     }
 
 }
@@ -218,189 +424,9 @@ class songsContentControl {
 } */
 
 
-class songsDataHandling {
-    static #source = 'csv'
-    static songsData = []
-    static formalSectionData = []
-    static structuralSectionData = []
-
-    static async load(){  //consider renaming ETL
-        this.#source === 'csv' ? await this.#loadFromCSV(new csvExtractLoadTransform) : await this.#loadFromAirtable(new airtableExtractor)
-
-    }
-
-    static async #loadFromAirtable(extractor){
-        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
-        this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
-        this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
-        return Promise.resolve()
-    }
-
-    static async #loadFromCSV(extractor){
-        this.songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
-        this.formalSectionData = await extractor.getAllRecordsFromFile('data/formal_sections.csv')
-        this.structuralSectionData = await extractor.getAllRecordsFromFile('data/structural_sections.csv')
-        return Promise.resolve()
-    }
-
-
-    static getTitles(){
-        return this.songsData.map(({short_title, title}) => ({short_title, title}))
-    }
-
-    static getSongs(){
-        console.log(this.songsData)
-        console.log(this.songsData.map(song => song.id))
-        return 'test' //this.songsData.map(song => {song.id, song.title})
-    }
-
-    static #getLoader(table){
-        return this.#source === 'airtable' ? new airtableExtractedDataLoader(table) : new csvExtractLoadTransform(table)
-    }
-
-    static getSong(songTitle){
-        const songData = this.songsData.find(song => song.title === songTitle)
-        return new song (songData.short_title, songData.title)
-    }
-
-    static getFormalSections(songID){
-        const sectionsData = this.formalSectionData.filter(section => section.song === songID)
-        const sections = []
-        sectionsData.forEach(section => {
-            sections.push(new formalSection (section.title, section.type))
-        })
-        return sections
-    }
-
-    static getStructuralSections(songID){
-        const sectionsData = this.structuralSectionData.filter(section => section.song_id === songID)
-        const sections = []
-        sectionsData.forEach(section => {
-            sections.push(this.#getStructuralSection(section))
-        })
-        return sections
-    }
-
-    static #getStructuralSection(sectionData){
-        switch(sectionData.type){
-            case 'intro':
-                return new intro (sectionData)
-
-            case 'verse':
-                return new verse (sectionData)
-
-            case 'chorus':
-                return new chorus (sectionData)
-
-            case 'bridge':
-                return new bridge (sectionData)
-
-            case 'outro':
-                return new outro (sectionData)  
-
-            default:
-                return new structuralSection (sectionData)
-        }
-    }
-
-
-    
 
 
 
-    static async #loadData(){
-        const extractor = new airtableExtractor
-        this.songsData = await extractor.getAllRecordsFromTable('songs')
-        return Promise.resolve()
-    }
-
-    static #loadHandlers(){
-        this.sectionHandling = new songSectionHandling(this.formalSectionData, this.structuralSectionData)
-        //this.blockHandling = new songBlockHandling (this.songPatterns, this.songStructures)
-    }
-
-    
-
-    static #createSong(id, title){
-        return new song(id, title)
-    }
-
-    
-
-    static filterForSong(data, songID){
-        return data.filter(item => item.songID === songID)
-    }
-
-    static getSongs(){
-        return this.songs
-    }
-
-
-    static getSongByID(id){
-        return this.songs.find(song => song.id === id)
-    }
-}
-
-class songsDataTransformation {
-    setupSongs(songsData){
-        const songs = []
-        songsData.forEach(song => {
-            const thisSong = new song (song.id, song.title)
-            thisSong.structuralSections = []
-            songs.push(thisSong)
-        })
-        
-    }
-
-    #setupSong(thisSong){
-        //this.sectionHandling.setupSections(thisSong)
-        //this.blockHandling.setupBlocks(thisSong)
-        return thisSong
-    }
-}
-
-class songStructuring {
-
-    getDefaultStructure(){
-        [
-            new verse ('verse1'),
-            new chorus ('chorus1'),
-            new verse ('verse2'),
-            new chorus ('chours2'),
-            new bridge ('bridge1'),
-            new chorus ('chorus3')
-        ]
-    }
-    
-    getSongStructure(sections){
-        const structure = []
-        sections.forEach(section => {
-            structure.push(this.#getSection(section))
-        })
-    }
-
-    #getSection(section){
-        switch(section.type){
-            case 'intro':
-                return new intro (section)
-
-            case 'verse':
-                return new verse (section)
-
-            case 'chorus':
-                return new chorus (section)
-
-            case 'bridge':
-                return new bridge (section)
-
-            case 'outro':
-                return new outro (section)  
-
-            default:
-                return new structuralSection (section)
-        }
-    }
-}
 
 
 

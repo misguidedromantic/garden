@@ -27,9 +27,20 @@ class displayOrchestration {
         const display = this.getDisplay(displayName) 
 
         switch(displayName){
+            case 'songStructures':
+                const rendering = new displayContentRendering(display)
+                const groups = rendering.renderGroups(display.svg, data)
+                groups.data().forEach(d => {
+                    const parentGroup = d3.select('g#' + d.id)
+                    rendering.renderRects(parentGroup, d.structure)
+                })
+
+                break;
+
+
             case 'songMilestones':
                 const content = new displayContentRendering(display)
-                const groups = content.renderGroups(display.svg, data)
+                //const groups = content.renderGroups(display.svg, data)
                 content.renderGroupLabels(groups)
                 groups.data().forEach(d => {
                     const parentGroup = d3.select('g#' + d.id)
@@ -123,10 +134,11 @@ class displayContentRendering {
         group.selectAll('rect')
             .data(data)
             .join('rect')
-            .attr('width', 4)
+            .attr('width', 40)
             .attr('height', 10)
-            .attr('x', (d, i) => contentPositioning.calculateTimelinePosition(d.date))
+            .attr('x', (d, i) => i * 50)
             .attr('y', -10)
+            .attr('fill', '#A9A9A9')
 
     }
 

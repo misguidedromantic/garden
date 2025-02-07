@@ -130,7 +130,9 @@ class songsDataTransformation {
 
     #createSongs(){
         this.extractedData.songs.forEach(songData => {
-            this.songs.push(new song (songData.short_title))
+            const thisSong = new song (songData.short_title)
+            thisSong.title = songData.title 
+            this.songs.push(thisSong)
         })
     }
 

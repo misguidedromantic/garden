@@ -30,6 +30,7 @@ class displayOrchestration {
             case 'songStructures':
                 const rendering = new displayContentRendering(display)
                 const groups = rendering.renderGroups(display.svg, data)
+                rendering.renderGroupLabels(groups)
                 groups.data().forEach(d => {
                     const parentGroup = d3.select('g#' + d.id)
                     rendering.renderRects(parentGroup, d.structure)
@@ -127,7 +128,12 @@ class displayContentRendering {
 
     renderGroupLabels(groups){
         groups.append('text')
-            .text(d => d.title)
+            .text(d => {
+                console.log(d)
+                return d.title
+            })
+            .attr('fill', 'white')
+            .style('size', 10)
     }
 
     renderRects(group, data){
@@ -136,7 +142,7 @@ class displayContentRendering {
             .join('rect')
             .attr('width', 40)
             .attr('height', 10)
-            .attr('x', (d, i) => i * 50)
+            .attr('x', (d, i) => i * 50 + 100)
             .attr('y', -10)
             .attr('fill', '#A9A9A9')
 

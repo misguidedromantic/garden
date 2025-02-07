@@ -55,19 +55,20 @@ class displayOrchestration {
 
 class displayFactory{
     static createDisplay(displayName){
-        let newDisplay = {}
-        switch(displayName){
-            case 'songMilestones':
-                newDisplay = new timelinesDisplay(displayName)
-                this.#setupContainerConfiguration(newDisplay)
-
-        }
+        const newDisplay = this.#getDisplayObject(displayName)
+        newDisplay.div = new container (displayName, 'div', d3.select('body'))
+        newDisplay.svg = new container (displayName, 'svg', newDisplay.div)
         displayOrchestration.addDisplay(newDisplay)
     }
 
-    static #setupContainerConfiguration(newDisplay){
-        newDisplay.div = new div (newDisplay.name, newDisplay.parentContainer)
-        newDisplay.svg = new svg (newDisplay.name, newDisplay.div)
+    static #getDisplayObject(displayName){
+        switch(displayName){
+            case 'songStructures':
+                return new display(displayName)
+
+            case 'songMilestones':
+                return new timelinesDisplay(displayName)
+        }
     }
 }
 

@@ -1,8 +1,24 @@
+
 class container {
+    constructor(id, type, parentContainer){
+        this.id = id
+        this.parentContainer = parentContainer
+        return this.#getElement(type)
+    }
+
+    #getElement(type){
+        return this.parentContainer
+            .append(type)
+            .attr('id', this.id + type.toUpperCase())
+    }
+
+}
+
+class containerf {
 
     #element = {}
 
-    constructor(id, parentContainer){
+    constructor(id, type, parentContainer){
         this.id = id
         this.parentContainer = parentContainer
         this.createElement()
@@ -40,10 +56,10 @@ class container {
 
 }
 
-class div extends container {
+class div {
 
-    constructor(id, parentContainer = d3.select('body')){
-        super(id, parentContainer)
+    constructor(id, parentContainer){
+
     }
 
     setPositionStyle(style){
@@ -72,9 +88,18 @@ class div extends container {
 
 }
 
-class svg extends container {
+class svg {
     constructor(id, parentContainer){
-        super(id, parentContainer)
+        this.id = id
+        this.createDiv()
+        this.createSVG()
     }
+    
+    
+    
 }
+
+
+
+
 

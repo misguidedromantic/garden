@@ -1,29 +1,22 @@
 window.onload = async function(){
-    await songsDataHandling.load()
-    new canvas ('songMaps')
+    await loadData()
+    setupDisplays()
+    loadDisplays()
+}
+
+async function loadData(){
+    return songsDataHandling.load()
+}
+
+function setupDisplays(){
+    displayFactory.createDisplay('songStructures')
+}
+
+function loadDisplays(){
+    displayOrchestration.load('songStructures', songsDataHandling.getSongs())
 }
 
 
-
-class canvas {
-    constructor(id){
-        this.id = id
-        this.createDiv()
-        this.createSVG()
-    }
-
-
-    createDiv(){
-        this.div = d3.select('body')
-            .append('div')
-            .attr('id', this.id + 'Div')
-    }
-
-    createSVG(){
-        return this.div.append('svg')
-            .attr('id', this.id + 'Svg')
-    }
-}
 
 
 

@@ -1,28 +1,13 @@
 class songsDataHandling {
     static #source = 'csv'
-    static songsData = []
+    static songs = []
     static formalSectionData = []
     static structuralSectionData = []
 
     static async load(){  
         const csvData = await songsDataExtraction.extract()
         const dataTransformer = new songsDataTransformation(csvData)
-        const songs = dataTransformer.setupSongs()
-        console.log(songs)
-    }
-
-    static async #loadFromAirtable(extractor){
-        this.songsData = await extractor.getAllRecordsFromTable('songs', 'songs')
-        this.formalSectionData = await extractor.getAllRecordsFromTable('songs', 'formal_sections')
-        this.structuralSectionData = await extractor.getAllRecordsFromTable('songs', 'structural_sections')
-        return Promise.resolve()
-    }
-
-    static async #loadFromCSV(extractor){
-        this.songsData = await extractor.getAllRecordsFromFile('data/songs.csv')
-        this.formalSectionData = await extractor.getAllRecordsFromFile('data/formal_sections.csv')
-        this.structuralSectionData = await extractor.getAllRecordsFromFile('data/structural_sections.csv')
-        return Promise.resolve()
+        this.songs = dataTransformer.setupSongs()
     }
 
 
@@ -31,9 +16,7 @@ class songsDataHandling {
     }
 
     static getSongs(){
-        console.log(this.songsData)
-        console.log(this.songsData.map(song => song.id))
-        return 'test' //this.songsData.map(song => {song.id, song.title})
+        return this.songs
     }
 
     static #getLoader(table){
@@ -181,30 +164,32 @@ class songStructuring {
     
     getSongStructure(sectionsData){
         const structure = []
-        sectionsData.forEach(section => {
-            structure.push(this.#getSection(sectionsData))
+        sectionsData.forEach(sectionData => {
+            const section = this.#getSection(sectionData)
+            structure.push(section)
         })
+        return structure
     }
 
-    #getSection(section){
-        switch(section.type){
+    #getSection(sectionData){
+        switch(sectionData.type){
             case 'intro':
-                return new intro (section)
+                return new intro (sectionData)
 
             case 'verse':
-                return new verse (section)
+                return new verse (sectionData)
 
             case 'chorus':
-                return new chorus (section)
+                return new chorus (sectionData)
 
             case 'bridge':
-                return new bridge (section)
+                return new bridge (sectionData)
 
             case 'outro':
-                return new outro (section)  
+                return new outro (sectionData)  
 
             default:
-                return new structuralSection (section)
+                return new structuralSection (sectionData)
         }
     }
 }
@@ -310,32 +295,32 @@ class structuralSection {
 }
 
 class intro extends structuralSection {
-    constructor(id, sectionData){
-        super(id, sectionData)
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 
 class verse extends structuralSection {
-    constructor(id, sectionData){
-        super(id, sectionData)
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 
 class chorus extends structuralSection {
-    constructor(id, sectionData){
-        super(id, sectionData)
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 
 class bridge extends structuralSection {
-    constructor(id, sectionData){
-        super(id, sectionData)
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 
 class outro extends structuralSection {
-    constructor(id, sectionData){
-        super(id, sectionData)
+    constructor(sectionData){
+        super(sectionData)
     }
 }
 

@@ -36,6 +36,11 @@ class displayOrchestration {
                     rendering.renderRects(parentGroup, d.structure)
                 })
 
+                display.width = 800
+                display.height = 500
+                const windowControl = new displayContainerControl(display)
+                windowControl.resize(0,0)
+
                 break;
 
 
@@ -88,7 +93,19 @@ class displayFactory{
 
 class displayContainerControl {
 
-    constructor(){
+    constructor(display){
+        this.display = display
+    }
+
+    resize(delay, duration){
+        this.display.div.transition('tSizingDIV').delay(delay).duration(duration)
+            .style('width', this.display.width + 'px')
+            .style('height', this.display.height + 'px')
+
+
+        this.display.svg.transition('tSizingSVG').delay(delay).duration(duration)
+            .style('width', this.display.width + 'px')
+            .style('height', this.display.height + 'px')
 
     }
 
@@ -129,7 +146,6 @@ class displayContentRendering {
     renderGroupLabels(groups){
         groups.append('text')
             .text(d => {
-                console.log(d)
                 return d.title
             })
             .attr('fill', 'white')
@@ -142,7 +158,7 @@ class displayContentRendering {
             .join('rect')
             .attr('width', 40)
             .attr('height', 10)
-            .attr('x', (d, i) => i * 50 + 100)
+            .attr('x', (d, i) => i * 50 + 300)
             .attr('y', -10)
             .attr('fill', '#A9A9A9')
 
@@ -195,6 +211,20 @@ class contentSizing {
     static calculateRectWidth(d){
 
     
+    }
+
+    static getRenderedLabelWidth(g){
+        return g.select('text').node().getBBox().width
+    }
+
+    static getRenderedLabelWidths(svg){
+        const widths = []
+        const groups = svg.selectAll('g')
+        groups.each(function(){
+            const elem = d3.select(this)
+            widths.push(elem.select('text').node().getBBox().width)
+        })
+        return widths
     }
 }
 

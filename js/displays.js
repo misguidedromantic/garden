@@ -28,11 +28,13 @@ class displayOrchestration {
 
         switch(displayName){
             case 'songStructures':
+                const content = new displayContentControl()
                 const rendering = new displayContentRendering(display)
                 const groups = rendering.renderGroups(display.svg, data)
                 rendering.renderGroupLabels(groups)
                 groups.data().forEach(d => {
                     const parentGroup = d3.select('g#' + d.id)
+                    content.prepareSongStructureStacks(d)
                     rendering.renderRects(parentGroup, d.structure)
                 })
 
@@ -45,7 +47,7 @@ class displayOrchestration {
 
 
             case 'songMilestones':
-                const content = new displayContentRendering(display)
+                //const content = new displayContentRendering(display)
                 //const groups = content.renderGroups(display.svg, data)
                 content.renderGroupLabels(groups)
                 groups.data().forEach(d => {
@@ -113,6 +115,92 @@ class displayContainerControl {
 
 }
 
+class displayContentControl {
+    constructor(){
+
+    }
+
+    prepareSongStructureStacks(song){
+
+        let stackNumber = 0
+        let positionInStack = 0
+
+        song.structure.forEach(structuralSection => {
+            const ssType = this.getStructuralSectionType(structuralSection)
+            const fsType = this.getFormalSectionType(song.formalSections, structuralSection)
+            if(ssType === 'intro' || ssType === 'outro' || fsType === 'A' ){
+                stackNumber = stackNumber + 1
+                positionInStack = 1
+            } else {
+                positionInStack = positionInStack + 1
+            }
+            structuralSection.stackNumber = stackNumber
+            structuralSection.positionInStack = positionInStack
+        })
+
+
+    }
+
+    getStructuralSectionType(structuralSection){
+        return structuralSection.constructor.name 
+    }
+    
+    getFormalSectionType(formalSections, structuralSection){
+        const formalSection = formalSections.find(section => section.id === structuralSection.formalSectionID)
+        return formalSection.type
+    }
+
+
+    getStackDetails(section){
+
+    }
+
+
+    getStackNumber(thisSection, currentNum){
+        switch(thisSection.constructor.name){
+            case 'intro':
+                return currentNum + 1
+            case 'verse':
+                return this.calculateStackNumForVerse(thisSection, currentStack)
+            case 'chorus':
+                return this.calculateStackNumForChorus(thisSection, currentStack)
+            case 'bridge':
+            case 'outro':
+                return currentStack + 1
+        }
+
+    }
+
+    calculateStackNumForVerse(thisVerse, currentStack){
+        switch(this.#getPreviousSectionType(thisVerse)){
+            case 'intro':
+            case 'bridge':
+            case 'chorus':
+                return currentStack + 1
+            case 'verse':
+            default:
+                return currentStack
+        }
+    }
+
+    calculateStackNumForChorus(thisChorus, currentStack){
+        switch(this.#getPreviousSectionType(thisChorus)){
+            case 'intro':
+            case 'verse':
+            case 'chorus':
+                return currentStack + 1
+            case 'bridge':
+            default:
+                return currentStack
+        }
+    }
+
+    #getPreviousSectionType(thisSection){
+        const previousSection = songSectionDataHandling.getPreviousSection(thisSection)
+        try{return previousSection.constructor.name}catch{return undefined}
+    }
+}
+
 class displayContentRendering {
 
     constructor(display){
@@ -156,10 +244,10 @@ class displayContentRendering {
         group.selectAll('rect')
             .data(data)
             .join('rect')
-            .attr('width', 40)
+            .attr('width', 10)
             .attr('height', 10)
-            .attr('x', (d, i) => contentPositioning.calculateRectPositionX(d, i))
-            .attr('y', (d, i) => contentPositioning.calculateRectPositionY(d, i))
+            .attr('x', (d, i) => (d.stackNumber - 1) * 15)
+            .attr('y', (d, i) => d.positionInStack * -15 -15)
             .attr('fill', '#A9A9A9')
 
     }
@@ -211,14 +299,13 @@ class contentPositioning {
 
     static calculateRectPositionX(d, i){
         this.stackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
-        console.log(this.stackNumber)
         return 250 + (50 * this.stackNumber)
     }
 
     static calculateRectPositionY(d, i){
         const newStackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
         if(newStackNumber === 0){
-            
+
         }
         
         if(this.stackNumber === newStackNumber){
@@ -355,8 +442,8 @@ class displaySizing {
 
 class display {
 
-    gSpacingY = 20
-    gPadding = 20
+    gSpacingY = 80
+    gPadding = 40
 
     constructor(name){
         this.name = name

@@ -140,13 +140,36 @@ class songsDataTransformation {
 
     #addSections(){
         this.songs.forEach(song => {
-            const sectionData = this.#getSectionData(song.id)
-            song.structure = this.structuring.getSongStructure(sectionData)
+            this.#addStructuralSections(song) 
+            this.#addFormalSections(song)
         })
+    }
+
+    #addStructuralSections(song){
+        const sectionData = this.#getSectionData(song.id)
+        song.structure = this.structuring.getSongStructure(sectionData)
+    }
+
+    #addFormalSections(song){
+        const formalSectionData = this.#getFormalSectionData(song.id)
+        song.formalSections = this.#getFormalSections(formalSectionData)
     }
 
     #getSectionData(songID){
         return this.extractedData.structuralSections.filter(section => section.song_id === songID)
+    }
+
+    #getFormalSectionData(songID){
+        return this.extractedData.formalSections.filter(section => section.song_id === songID)
+    }
+
+    #getFormalSections(sectionsData){
+        const sections = []
+        sectionsData.forEach(sectionData => {
+            const section = new formalSection (sectionData.title, sectionData.type)  
+            sections.push(section)
+        })
+        return sections
     }
 
 }
@@ -196,22 +219,24 @@ class songStructuring {
                 return new structuralSection (sectionData)
         }
     }
+
+
 }
 
 
 
 class songSectionDataHandling {
     static getNextSection(thisSection){
-        const songSections = this.#getSectionsForSong(thisSection.id)
+        const songSections = this.getSectionsForSong(thisSection.id)
         return this.#getSectionBySequenceIndex(songSections, parseInt(thisSection.sequence) + 1)
     }
 
     static getPreviousSection(thisSection){
-        const songSections = this.#getSectionsForSong(thisSection.id)
+        const songSections = this.getSectionsForSong(thisSection.id)
         return this.#getSectionBySequenceIndex(songSections, thisSection.sequence - 1)
     }
 
-    static #getSectionsForSong(sectionID){
+    static getSectionsForSong(sectionID){
         const firstNumberIndex = sectionID.search(/\d/)
         const songID = sectionID.substring(0, firstNumberIndex)
         const thisSong = songsDataHandling.songs.find(song => song.id === songID)

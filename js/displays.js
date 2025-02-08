@@ -125,18 +125,48 @@ class displayContentControl {
         let stackNumber = 0
         let positionInStack = 0
 
-        song.structure.forEach(structuralSection => {
+        for(let i = 0; i < song.structure.length; i++){
+            const section = song.structure[i]
+            const ssType = this.getStructuralSectionType(section)
+            const fsType = this.getFormalSectionType(song.formalSections, section)
+            if(ssType === 'intro' || ssType === 'outro' || fsType === 'A' ){
+                stackNumber = stackNumber + 1
+                let ssTypePrevSection = undefined
+                try{
+                    ssTypePrevSection = this.getStructuralSectionType(song.structure[i - 1])
+                }
+                catch{
+                    ssTypePrevSection = ''
+                }
+                
+                if(ssTypePrevSection === 'bridge'){
+                    stackNumber = stackNumber + 1
+                }
+                positionInStack = 1
+            } else {
+                
+                positionInStack = positionInStack + 1
+            }
+            section.stackNumber = stackNumber
+            section.positionInStack = positionInStack
+
+        }
+
+/*         song.structure.forEach(structuralSection => {
             const ssType = this.getStructuralSectionType(structuralSection)
             const fsType = this.getFormalSectionType(song.formalSections, structuralSection)
             if(ssType === 'intro' || ssType === 'outro' || fsType === 'A' ){
                 stackNumber = stackNumber + 1
                 positionInStack = 1
+            } else if (ssType === 'bridge'){
+                positionInStack = positionInStack + 1
+
             } else {
                 positionInStack = positionInStack + 1
             }
             structuralSection.stackNumber = stackNumber
             structuralSection.positionInStack = positionInStack
-        })
+        }) */
 
 
     }
@@ -150,55 +180,6 @@ class displayContentControl {
         return formalSection.type
     }
 
-
-    getStackDetails(section){
-
-    }
-
-
-    getStackNumber(thisSection, currentNum){
-        switch(thisSection.constructor.name){
-            case 'intro':
-                return currentNum + 1
-            case 'verse':
-                return this.calculateStackNumForVerse(thisSection, currentStack)
-            case 'chorus':
-                return this.calculateStackNumForChorus(thisSection, currentStack)
-            case 'bridge':
-            case 'outro':
-                return currentStack + 1
-        }
-
-    }
-
-    calculateStackNumForVerse(thisVerse, currentStack){
-        switch(this.#getPreviousSectionType(thisVerse)){
-            case 'intro':
-            case 'bridge':
-            case 'chorus':
-                return currentStack + 1
-            case 'verse':
-            default:
-                return currentStack
-        }
-    }
-
-    calculateStackNumForChorus(thisChorus, currentStack){
-        switch(this.#getPreviousSectionType(thisChorus)){
-            case 'intro':
-            case 'verse':
-            case 'chorus':
-                return currentStack + 1
-            case 'bridge':
-            default:
-                return currentStack
-        }
-    }
-
-    #getPreviousSectionType(thisSection){
-        const previousSection = songSectionDataHandling.getPreviousSection(thisSection)
-        try{return previousSection.constructor.name}catch{return undefined}
-    }
 }
 
 class displayContentRendering {
@@ -275,7 +256,7 @@ class contentPositioning {
 
     static calculateTranslate(d, i, display){
 
-        let x = 0
+        let x = 10
         let y = 0
 
         switch(d.constructor.name){
@@ -297,70 +278,6 @@ class contentPositioning {
         return (year - 2000) * 12 + month + day + 50
     }
 
-    static calculateRectPositionX(d, i){
-        this.stackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
-        return 250 + (50 * this.stackNumber)
-    }
-
-    static calculateRectPositionY(d, i){
-        const newStackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
-        if(newStackNumber === 0){
-
-        }
-        
-        if(this.stackNumber === newStackNumber){
-            this.numberInStack = this.numberInStack + 1
-        } else {
-            this.numberInStack = 0
-        }
-        return 15 * (this.numberInStack - 1)
-    }
-
-
-
-    static getStackNumber(thisSection, currentStack){
-        switch(thisSection.constructor.name){
-            case 'intro':
-                return currentStack
-            case 'verse':
-                return this.calculateStackNumForVerse(thisSection, currentStack)
-            case 'chorus':
-                return this.calculateStackNumForChorus(thisSection, currentStack)
-            case 'bridge':
-            case 'outro':
-                return currentStack + 1
-        }
-
-    }
-
-    static calculateStackNumForVerse(thisVerse, currentStack){
-        switch(this.#getPreviousSectionType(thisVerse)){
-            case 'intro':
-            case 'bridge':
-            case 'chorus':
-                return currentStack + 1
-            case 'verse':
-            default:
-                return currentStack
-        }
-    }
-
-    static calculateStackNumForChorus(thisChorus, currentStack){
-        switch(this.#getPreviousSectionType(thisChorus)){
-            case 'intro':
-            case 'verse':
-            case 'chorus':
-                return currentStack + 1
-            case 'bridge':
-            default:
-                return currentStack
-        }
-    }
-
-    static #getPreviousSectionType(thisSection){
-        const previousSection = songSectionDataHandling.getPreviousSection(thisSection)
-        try{return previousSection.constructor.name}catch{return undefined}
-    }
 }
 
 class contentSizing {

@@ -159,7 +159,7 @@ class displayContentRendering {
             .attr('width', 40)
             .attr('height', 10)
             .attr('x', (d, i) => contentPositioning.calculateRectPositionX(d, i))
-            .attr('y', -10)
+            .attr('y', (d, i) => contentPositioning.calculateRectPositionY(d, i))
             .attr('fill', '#A9A9A9')
 
     }
@@ -182,6 +182,7 @@ class displayContentRendering {
 }
 
 class contentPositioning {
+    static numberInStack = 0
     static stackNumber = 0
 
     static calculateTranslate(d, i, display){
@@ -209,9 +210,26 @@ class contentPositioning {
     }
 
     static calculateRectPositionX(d, i){
-        const stackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(this.stackNumber) : 0
-        return 250 + (50 * stackNumber)
+        this.stackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
+        console.log(this.stackNumber)
+        return 250 + (50 * this.stackNumber)
     }
+
+    static calculateRectPositionY(d, i){
+        const newStackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(d, this.stackNumber) : 0
+        if(newStackNumber === 0){
+            
+        }
+        
+        if(this.stackNumber === newStackNumber){
+            this.numberInStack = this.numberInStack + 1
+        } else {
+            this.numberInStack = 0
+        }
+        return 15 * (this.numberInStack - 1)
+    }
+
+
 
     static getStackNumber(thisSection, currentStack){
         switch(thisSection.constructor.name){

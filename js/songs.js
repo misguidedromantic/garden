@@ -1,3 +1,5 @@
+
+
 class songsDataHandling {
     static #source = 'csv'
     static songs = []
@@ -197,14 +199,15 @@ class songStructuring {
 }
 
 
+
 class songSectionDataHandling {
     static getNextSection(thisSection){
         const songSections = this.#getSectionsForSong(thisSection.id)
         return this.#getSectionBySequenceIndex(songSections, parseInt(thisSection.sequence) + 1)
     }
 
-    static getPreviousSection(){
-        const songSections = this.#getSectionsForSong(thisSection.songID)
+    static getPreviousSection(thisSection){
+        const songSections = this.#getSectionsForSong(thisSection.id)
         return this.#getSectionBySequenceIndex(songSections, thisSection.sequence - 1)
     }
 

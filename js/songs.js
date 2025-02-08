@@ -197,68 +197,26 @@ class songStructuring {
 }
 
 
-class songSectionHandling {
-
-    constructor(formalSectionData, structuralSectionData){
-        this.formalSectionData = formalSectionData
-        this.structuralSectionData = structuralSectionData
+class songSectionDataHandling {
+    static getNextSection(thisSection){
+        const songSections = this.#getSectionsForSong(thisSection.id)
+        return this.#getSectionBySequenceIndex(songSections, parseInt(thisSection.sequence) + 1)
     }
 
-    setupSections(song){
-        this.#setupFormalSections(song)
-        this.#setupStructuralSections(song)
+    static getPreviousSection(){
+        const songSections = this.#getSectionsForSong(thisSection.songID)
+        return this.#getSectionBySequenceIndex(songSections, thisSection.sequence - 1)
     }
 
-    #setupFormalSections(song){
-        const sectionData = this.#getSectionDataForSong(this.formalSectionData, song.id)
-        sectionData.forEach(sectionRecord => {
-            const section = this.#createFormalSection(sectionRecord)
-            song.form.push(section)
-        })
+    static #getSectionsForSong(sectionID){
+        const firstNumberIndex = sectionID.search(/\d/)
+        const songID = sectionID.substring(0, firstNumberIndex)
+        const thisSong = songsDataHandling.songs.find(song => song.id === songID)
+        return thisSong.structure
     }
 
-    #setupStructuralSections(song){
-        const sectionData = this.#getSectionDataForSong(this.structuralSectionData, song.id)
-        sectionData.forEach(sectionRecord => {
-            const section = this.#createSongSection(sectionRecord)
-            song.structure.push(section)
-        })
-        
-    }
-
-    #getSectionDataForSong(data, songID){
-        const filtered = data.filter(element => element.song[0] === songID)
-        return filtered.sort((a, b) => {
-            if(a.label < b.label) return -1
-            if(a.label > b.label) return 1
-            return 0
-        })
-    }
-
-    #createFormalSection(sectionData){
-        return new formalSection (sectionData.id, sectionData.title, sectionData.label)
-    }
-
-    #createSongSection (sectionData){
-        switch(sectionData.type){
-            case 'intro':
-                return new intro (sectionData)
-
-            case 'verse':
-                return new verse (sectionData)
-
-            case 'chorus':
-                return new chorus (sectionData)
-
-            case 'bridge':
-                return new bridge (sectionData)
-
-            case 'outro':
-                return new outro (sectionData)  
-
-            default:
-                return new structuralSection (sectionData)
-        }
+    static #getSectionBySequenceIndex(sections, index){
+        return sections[index]
     }
 }
 

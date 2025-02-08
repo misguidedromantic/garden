@@ -158,7 +158,7 @@ class displayContentRendering {
             .join('rect')
             .attr('width', 40)
             .attr('height', 10)
-            .attr('x', (d, i) => i * 50 + 300)
+            .attr('x', (d, i) => contentPositioning.calculateRectPositionX(d, i))
             .attr('y', -10)
             .attr('fill', '#A9A9A9')
 
@@ -182,6 +182,8 @@ class displayContentRendering {
 }
 
 class contentPositioning {
+    static stackNumber = 0
+
     static calculateTranslate(d, i, display){
 
         let x = 0
@@ -204,6 +206,55 @@ class contentPositioning {
         const month = dateObject.getMonth()
         const day = dateObject.getDate()
         return (year - 2000) * 12 + month + day + 50
+    }
+
+    static calculateRectPositionX(d, i){
+        const stackNumber = songSectionDataHandling.getNextSection(d) !== undefined ? this.getStackNumber(this.stackNumber) : 0
+        return 250 + (50 * stackNumber)
+    }
+
+    static getStackNumber(thisSection, currentStack){
+        switch(thisSection.constructor.name){
+            case 'intro':
+                return currentStack
+            case 'verse':
+                return this.calculateStackNumForVerse(thisSection, currentStack)
+            case 'chorus':
+                return this.calculateStackNumForChorus(thisSection, currentStack)
+            case 'bridge':
+            case 'outro':
+                return currentStack + 1
+        }
+
+    }
+
+    static calculateStackNumForVerse(thisVerse, currentStack){
+        switch(this.#getPreviousSectionType(thisVerse)){
+            case 'intro':
+            case 'bridge':
+            case 'chorus':
+                return currentStack + 1
+            case 'verse':
+            default:
+                return currentStack
+        }
+    }
+
+    static calculateStackNumForChorus(thisChorus, currentStack){
+        switch(this.#getPreviousSectionType(thisChorus)){
+            case 'intro':
+            case 'verse':
+            case 'chorus':
+                return currentStack + 1
+            case 'bridge':
+            default:
+                return currentStack
+        }
+    }
+
+    static #getPreviousSectionType(thisSection){
+        const previousSection = songSectionDataHandling.getPreviousSection(thisSection)
+        try{return previousSection.constructor.name}catch{return undefined}
     }
 }
 

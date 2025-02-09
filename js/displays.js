@@ -139,9 +139,6 @@ class displayContentControl {
                     ssTypePrevSection = ''
                 }
                 
-                if(ssTypePrevSection === 'bridge'){
-                    stackNumber = stackNumber + 1
-                }
                 positionInStack = 1
             } else {
                 
@@ -169,6 +166,35 @@ class displayContentControl {
         }) */
 
 
+    }
+
+    getAxisFlippedStackStructure(song){
+        const colOffset = this.checkForIntro(song.structure) ? 1 : 0
+        for(let i = 0; i < song.structure.length; i++){
+            const section = song.structure[i]
+            section.stackNumber = this.getPositionInRow(this.getFormalSectionType(song.formalSections, section))
+            //
+        }
+    }
+
+    checkForIntro(structure){
+        const introCount = structure.filter(section => section.constructor.name === 'intro').length
+        switch(introCount){
+            case 0:
+                return false
+            case 1:
+                return true
+            default:
+                throw error
+        }
+    }
+
+    getRowNumber(){
+
+    }
+
+    getPositionInRow(formalSectionType, colOffset){
+        return formalSectionType.toLowerCase().charCodeAt(0) - 96 + colOffset
     }
 
     getStructuralSectionType(structuralSection){
@@ -227,8 +253,8 @@ class displayContentRendering {
             .join('rect')
             .attr('width', 10)
             .attr('height', 10)
-            .attr('x', (d, i) => (d.stackNumber - 1) * 15)
-            .attr('y', (d, i) => d.positionInStack * -15 -15)
+            .attr('y', (d, i) => d.stackNumber * 15)
+            .attr('x', (d, i) => (d.positionInStack - 1) * 15)
             .attr('fill', '#A9A9A9')
 
     }

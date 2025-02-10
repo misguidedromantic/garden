@@ -34,7 +34,7 @@ class displayOrchestration {
                 rendering.renderGroupLabels(groups)
                 groups.data().forEach(d => {
                     const parentGroup = d3.select('g#' + d.id)
-                    content.prepareSongStructureStacks(d)
+                    content.createStacks(d)
                     rendering.renderRects(parentGroup, d.structure)
                 })
 
@@ -120,6 +120,103 @@ class displayContentControl {
 
     }
 
+    createStacks(song){
+        console.log(song)
+
+        const sectionTypes = this.getSectionTypesOfSong(song.structure)
+        console.log(sectionTypes)
+
+        const stacks = []
+        stacks.push(this.getIntroStack(song.structure))
+        const coreStacks = this.getCoreStacks(song)
+    }
+
+    getSectionTypesOfSong(sections){
+        return [...new Set(sections.map(section => section.constructor.name))]
+    }
+
+   
+
+    createStack(){
+        //intro stack
+        //core stack
+        //bridge stack
+        //outro stack
+    }
+
+    getIntroStack(structure){
+        return structure.filter(section => section.constructor.name === 'intro')
+    }
+
+    getCoreStacks(song){
+        const filtered = song.structure.filter(section => 
+            section.constructor.name !== 'intro' &&
+            section.constructor.name !== 'bridge' &&
+            section.constructor.name !== 'outro'
+        )
+
+        const coreStack = this.createCoreStack(filtered)
+
+      
+    }
+
+    createCoreStack(sections){
+        const stack = []
+        for(let i = 0; i < sections.length; i++){
+            const type = sections[i].constructor.name
+            const filteredForType = sections.filter(section => section.constructor.name === type)
+            const indexOfFirstOfType = this.getIndexOfEarliestOfType(filteredForType)
+
+
+        }
+    }
+
+    getIndexOfEarliestOfType(sectionsOfType){
+        const earliestSequence = sectionsOfType.reduce((min, section) => 
+            section.sequence < min ? section.sequence : min, 
+            Infinity
+          );
+
+        return sectionsOfType.findIndex(section => section.sequence === earliestSequence)
+    }
+
+
+    getAxisFlippedStackStructure(song){
+        const colOffset = this.checkForIntro(song.structure) ? 1 : 0
+        for(let i = 0; i < song.structure.length; i++){
+            const section = song.structure[i]
+            section.stackNumber = this.getPositionInRow(this.getFormalSectionType(song.formalSections, section))
+            section.positionInStack = this.getRowNumber(song.structure, i)
+            //
+        }
+    }
+
+    checkForIntro(structure){
+        const introCount = structure.filter(section => section.constructor.name === 'intro').length
+        switch(introCount){
+            case 0:
+                return false
+            case 1:
+                return true
+            default:
+                throw error
+        }
+    }
+
+
+    getPositionInRow(formalSectionType, colOffset){
+        return formalSectionType.toLowerCase().charCodeAt(0) - 96 + colOffset
+    }
+
+    getStructuralSectionType(structuralSection){
+        return structuralSection.constructor.name 
+    }
+    
+    getFormalSectionType(formalSections, structuralSection){
+        const formalSection = formalSections.find(section => section.id === structuralSection.formalSectionID)
+        return formalSection.type
+    }
+
     prepareSongStructureStacks(song){
 
         let stackNumber = 0
@@ -167,45 +264,6 @@ class displayContentControl {
 
 
     }
-
-    getAxisFlippedStackStructure(song){
-        const colOffset = this.checkForIntro(song.structure) ? 1 : 0
-        for(let i = 0; i < song.structure.length; i++){
-            const section = song.structure[i]
-            section.stackNumber = this.getPositionInRow(this.getFormalSectionType(song.formalSections, section))
-            //
-        }
-    }
-
-    checkForIntro(structure){
-        const introCount = structure.filter(section => section.constructor.name === 'intro').length
-        switch(introCount){
-            case 0:
-                return false
-            case 1:
-                return true
-            default:
-                throw error
-        }
-    }
-
-    getRowNumber(){
-
-    }
-
-    getPositionInRow(formalSectionType, colOffset){
-        return formalSectionType.toLowerCase().charCodeAt(0) - 96 + colOffset
-    }
-
-    getStructuralSectionType(structuralSection){
-        return structuralSection.constructor.name 
-    }
-    
-    getFormalSectionType(formalSections, structuralSection){
-        const formalSection = formalSections.find(section => section.id === structuralSection.formalSectionID)
-        return formalSection.type
-    }
-
 }
 
 class displayContentRendering {

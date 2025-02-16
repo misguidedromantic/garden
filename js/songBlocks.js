@@ -4,7 +4,7 @@ class songBlockCanvas {
     static blocks = []
     static width = 300
     static height = 300
-    static left = 72
+    static left = 300
     static top = 120
     static position = 'absolute'
     static borderRadius = 20

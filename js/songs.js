@@ -104,12 +104,14 @@ class songsContentControl {
     }
 
     update(data){
+        
         if(this.#isSongsMenuLoaded(data.updatedItems)){
             let songToLoad = ''
             try{songToLoad = this.#getSongSelection(data.updatedItems)}
             catch {return}
             const thisSong = this.structuring.setupSong(songToLoad.title)
-            this.blockControl.loadSong(thisSong)
+            console.log(thisSong)
+            //this.blockControl.loadSong(thisSong)
 
         }
     }

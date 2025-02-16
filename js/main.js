@@ -134,6 +134,7 @@ class navigation {
 
     static #setupSubscriptions(){
         this.#menuSelections.subscribe(this.#menuListMgmt)
+        this.#menuSelections.subscribe(this.#songsContent)
         this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
         this.#menuListMgmt.subscribe(this.#songsContent)
         this.#menuConfigMgmt.subscribe(this.#menuRendering)

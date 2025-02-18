@@ -29,9 +29,15 @@ class displayOrchestration {
         switch(displayName){
             case 'songStructures':
                 const content = new displayContentControl()
+                const rendering = new displayContentRendering(display)
                 const structuring = new songStructuring
                 const data = structuring.getDefaultStructure()
-                content.createStacks(data)
+                content.setupStacks(data)
+                rendering.renderRects(display.svg, data)
+                display.width = 800
+                display.height = 500
+                const windowControl = new displayContainerControl(display)
+                windowControl.resize(0,0)
             
                 //console.log(data[0].structure)
                 //songSectionSquare.render(display.svg, data[0].structure)
@@ -42,7 +48,7 @@ class displayOrchestration {
             case 'songStructures1':
 
                 //const content = new displayContentControl()
-                const rendering = new displayContentRendering(display)
+                
                 const groups = rendering.renderGroups(display.svg, data)
                 rendering.renderGroupLabels(groups)
                 groups.data().forEach(d => {
@@ -53,7 +59,7 @@ class displayOrchestration {
 
                 display.width = 800
                 display.height = 500
-                const windowControl = new displayContainerControl(display)
+                //const windowControl = new displayContainerControl(display)
                 windowControl.resize(0,0)
 
                 break;
@@ -129,76 +135,68 @@ class displayContainerControl {
 }
 
 class displayContentControl {
-    createStacks(structure){
-        let stacks = []
-        let stacksIndex = 0
-        let stackIndex = 0
-        //const types = this.getSectionTypes(song.structure)
-        for(let i = 0; i < structure.length; i++){
-            const section = structure[i]
-     
-            console.log(section)
-            const type = this.getSectionType(section.id)
-            const sequenceOfType = this.getSequenceOfType(section.id)
-            const sequenceInSong = section.sequence
-            const previousSectionType = sequenceInSong !== 1 ? this.getSectionType(structure[i - 1].id) : undefined
-            
-            if(previousSectionType === 'bridge'){
-                stacksIndex = stacksIndex + 1
-                stackIndex = 0
-            } else {
+
+    setupStacks(sections){
+        let stackNumber = 0
+        sections.forEach(thisSection => {
+            console.log(thisSection.sequence)
+                stackNumber = stackNumber + this.getStackIncrement(thisSection, sections)
+                thisSection.stackNumber = stackNumber
+                thisSection.positionInStack = this.getPositionInStack(thisSection.constructor.name)
+            });
                 
-            }
-            
-            
-            stacks.splice()
-
-
-    
-  
-        }
-
-        console.log(stacks)
-        
-        
-      
-    }
-
-    getSectionType(id){
-        const intIndex = this.getIndexOfIdInt(id)
-        return id.substring(0,intIndex)
-    }   
-
-    getSequenceOfType(id){
-        const intIndex = this.getIndexOfIdInt(id)
-        return id.substring(intIndex)
-    }
-
-    getIndexOfIdInt(id){
-        return id.search(/\d/)
-    }
-
-
-
-
-    getSectionTypes(structure){
-        return [...new Set(structure.map(section => section.constructor.name))]
     }
     
-    getNthOccurrence(arr, property, value, n) {
-        let count = 0;
-        for (let i = 0; i < arr.length; i++) {
-          if (arr[i] === value) {
-            count++;
-            if (count === n) {
-              return i;
-            }
-          }
+    getStackIncrement(thisSection, allSections){
+        const previousSectionType = this.getSectionTypeBySequenceNumber(thisSection.sequence - 1, allSections)
+        switch(thisSection.constructor.name){
+            case 'intro':
+                return 0
+            case 'verse':
+                return this.getStackIncrementForVerse(previousSectionType)
+            case 'chorus':
+                console.log(thisSection.sequence )
+                return this.getStackIncrementForChorus(previousSectionType)
+            case 'bridge':
+            case 'outro':
+                return 1
+            };
         }
-        return -1; // If nth occurrence is not found
-      }
 
-   
+    getPositionInStack(thisSectionType){
+        switch(thisSectionType){
+            case 'intro':
+            case 'verse':
+                return 1
+            case 'chorus':
+                return 2
+            case 'bridge':
+            case 'outro':
+                return 3
+        }
+    }
+    
+    getSectionTypeBySequenceNumber(sequenceNumber, sections){
+        if(sequenceNumber > 0 && sequenceNumber < sections.length){
+            const previousSection = sections.find(section => section.sequence === sequenceNumber)
+            return previousSection.constructor.name
+        }
+    }
+    
+    getStackIncrementForVerse(previousSectionType){
+        return previousSectionType === 'intro' ? 0 : 1
+    }
+
+    getStackIncrementForChorus(previousSectionType){
+        switch(previousSectionType){
+            case 'intro':
+            case 'bridge':
+            case 'chorus':
+                return 1
+            case 'verse':
+                return 0
+        }
+    }
 }
 
 class displayContentRendering {
@@ -244,10 +242,10 @@ class displayContentRendering {
         group.selectAll('rect')
             .data(data)
             .join('rect')
-            .attr('width', 10)
-            .attr('height', 10)
-            .attr('y', (d, i) => d.stackNumber * 15)
-            .attr('x', (d, i) => (d.positionInStack - 1) * 15)
+            .attr('width', 12)
+            .attr('height', 12)
+            .attr('x', (d, i) => d.stackNumber * 15)
+            .attr('y', (d, i) => d.positionInStack * -15 + 80)
             .attr('fill', '#A9A9A9')
 
     }

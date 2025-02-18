@@ -14,6 +14,7 @@ function setupDisplays(){
 
 function loadDisplays(){
     displayOrchestration.load('songStructures', songsDataHandling.getSongs())
+
 }
 
 

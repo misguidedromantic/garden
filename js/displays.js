@@ -29,6 +29,19 @@ class displayOrchestration {
         switch(displayName){
             case 'songStructures':
                 const content = new displayContentControl()
+                const structuring = new songStructuring
+                const data = structuring.getDefaultStructure()
+                content.createStacks(data)
+            
+                //console.log(data[0].structure)
+                //songSectionSquare.render(display.svg, data[0].structure)
+                
+                
+                
+                break;
+            case 'songStructures1':
+
+                //const content = new displayContentControl()
                 const rendering = new displayContentRendering(display)
                 const groups = rendering.renderGroups(display.svg, data)
                 rendering.renderGroupLabels(groups)
@@ -116,154 +129,76 @@ class displayContainerControl {
 }
 
 class displayContentControl {
-    constructor(){
+    createStacks(structure){
+        let stacks = []
+        let stacksIndex = 0
+        let stackIndex = 0
+        //const types = this.getSectionTypes(song.structure)
+        for(let i = 0; i < structure.length; i++){
+            const section = structure[i]
+     
+            console.log(section)
+            const type = this.getSectionType(section.id)
+            const sequenceOfType = this.getSequenceOfType(section.id)
+            const sequenceInSong = section.sequence
+            const previousSectionType = sequenceInSong !== 1 ? this.getSectionType(structure[i - 1].id) : undefined
+            
+            if(previousSectionType === 'bridge'){
+                stacksIndex = stacksIndex + 1
+                stackIndex = 0
+            } else {
+                
+            }
+            
+            
+            stacks.splice()
 
-    }
 
-    createStacks(song){
-        console.log(song)
+    
+  
+        }
 
-        const sectionTypes = this.getSectionTypesOfSong(song.structure)
-        console.log(sectionTypes)
-
-        const stacks = []
-        stacks.push(this.getIntroStack(song.structure))
-        const coreStacks = this.getCoreStacks(song)
-    }
-
-    getSectionTypesOfSong(sections){
-        return [...new Set(sections.map(section => section.constructor.name))]
-    }
-
-   
-
-    createStack(){
-        //intro stack
-        //core stack
-        //bridge stack
-        //outro stack
-    }
-
-    getIntroStack(structure){
-        return structure.filter(section => section.constructor.name === 'intro')
-    }
-
-    getCoreStacks(song){
-        const filtered = song.structure.filter(section => 
-            section.constructor.name !== 'intro' &&
-            section.constructor.name !== 'bridge' &&
-            section.constructor.name !== 'outro'
-        )
-
-        const coreStack = this.createCoreStack(filtered)
-
+        console.log(stacks)
+        
+        
       
     }
 
-    createCoreStack(sections){
-        const stack = []
-        for(let i = 0; i < sections.length; i++){
-            const type = sections[i].constructor.name
-            const filteredForType = sections.filter(section => section.constructor.name === type)
-            const indexOfFirstOfType = this.getIndexOfEarliestOfType(filteredForType)
+    getSectionType(id){
+        const intIndex = this.getIndexOfIdInt(id)
+        return id.substring(0,intIndex)
+    }   
 
-
-        }
+    getSequenceOfType(id){
+        const intIndex = this.getIndexOfIdInt(id)
+        return id.substring(intIndex)
     }
 
-    getIndexOfEarliestOfType(sectionsOfType){
-        const earliestSequence = sectionsOfType.reduce((min, section) => 
-            section.sequence < min ? section.sequence : min, 
-            Infinity
-          );
-
-        return sectionsOfType.findIndex(section => section.sequence === earliestSequence)
+    getIndexOfIdInt(id){
+        return id.search(/\d/)
     }
 
 
-    getAxisFlippedStackStructure(song){
-        const colOffset = this.checkForIntro(song.structure) ? 1 : 0
-        for(let i = 0; i < song.structure.length; i++){
-            const section = song.structure[i]
-            section.stackNumber = this.getPositionInRow(this.getFormalSectionType(song.formalSections, section))
-            section.positionInStack = this.getRowNumber(song.structure, i)
-            //
-        }
-    }
-
-    checkForIntro(structure){
-        const introCount = structure.filter(section => section.constructor.name === 'intro').length
-        switch(introCount){
-            case 0:
-                return false
-            case 1:
-                return true
-            default:
-                throw error
-        }
-    }
 
 
-    getPositionInRow(formalSectionType, colOffset){
-        return formalSectionType.toLowerCase().charCodeAt(0) - 96 + colOffset
-    }
-
-    getStructuralSectionType(structuralSection){
-        return structuralSection.constructor.name 
+    getSectionTypes(structure){
+        return [...new Set(structure.map(section => section.constructor.name))]
     }
     
-    getFormalSectionType(formalSections, structuralSection){
-        const formalSection = formalSections.find(section => section.id === structuralSection.formalSectionID)
-        return formalSection.type
-    }
-
-    prepareSongStructureStacks(song){
-
-        let stackNumber = 0
-        let positionInStack = 0
-
-        for(let i = 0; i < song.structure.length; i++){
-            const section = song.structure[i]
-            const ssType = this.getStructuralSectionType(section)
-            const fsType = this.getFormalSectionType(song.formalSections, section)
-            if(ssType === 'intro' || ssType === 'outro' || fsType === 'A' ){
-                stackNumber = stackNumber + 1
-                let ssTypePrevSection = undefined
-                try{
-                    ssTypePrevSection = this.getStructuralSectionType(song.structure[i - 1])
-                }
-                catch{
-                    ssTypePrevSection = ''
-                }
-                
-                positionInStack = 1
-            } else {
-                
-                positionInStack = positionInStack + 1
+    getNthOccurrence(arr, property, value, n) {
+        let count = 0;
+        for (let i = 0; i < arr.length; i++) {
+          if (arr[i] === value) {
+            count++;
+            if (count === n) {
+              return i;
             }
-            section.stackNumber = stackNumber
-            section.positionInStack = positionInStack
-
+          }
         }
+        return -1; // If nth occurrence is not found
+      }
 
-/*         song.structure.forEach(structuralSection => {
-            const ssType = this.getStructuralSectionType(structuralSection)
-            const fsType = this.getFormalSectionType(song.formalSections, structuralSection)
-            if(ssType === 'intro' || ssType === 'outro' || fsType === 'A' ){
-                stackNumber = stackNumber + 1
-                positionInStack = 1
-            } else if (ssType === 'bridge'){
-                positionInStack = positionInStack + 1
-
-            } else {
-                positionInStack = positionInStack + 1
-            }
-            structuralSection.stackNumber = stackNumber
-            structuralSection.positionInStack = positionInStack
-        }) */
-
-
-    }
+   
 }
 
 class displayContentRendering {

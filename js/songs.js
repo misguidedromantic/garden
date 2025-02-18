@@ -13,6 +13,8 @@ class songsDataHandling {
     }
 
 
+
+
     static getTitles(){
         return this.songsData.map(({short_title, title}) => ({short_title, title}))
     }
@@ -179,13 +181,13 @@ class songsDataTransformation {
 class songStructuring {
 
     getDefaultStructure(){
-        [
-            new verse ('verse1'),
-            new chorus ('chorus1'),
-            new verse ('verse2'),
-            new chorus ('chours2'),
-            new bridge ('bridge1'),
-            new chorus ('chorus3')
+        return [
+            new verse ({title: 'verse1', sequence_in_song: 1}),
+            new chorus ({title: 'chorus1', sequence_in_song: 2}),
+            new verse ({title: 'verse2', sequence_in_song: 3}),
+            new chorus ({title: 'chours2', sequence_in_song: 4}),
+            new bridge ({title: 'bridge1', sequence_in_song: 5}),
+            new chorus ({title: 'chorus3', sequence_in_song: 6})
         ]
     }
     

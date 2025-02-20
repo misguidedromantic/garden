@@ -277,7 +277,7 @@ class structuralSection {
         this.id = sectionData.title
         this.formalSectionID = sectionData.formal_section_id
         this.type = sectionData.type
-        this.sequence = sectionData.sequence_in_song
+        this.sequence = parseInt(sectionData.sequence_in_song)
         this.formVariations = sectionData.formal_section_variation_types
     }
 

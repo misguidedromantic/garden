@@ -28,12 +28,12 @@ class displayOrchestration {
 
         switch(displayName){
             case 'songStructures':
-                const content = new displayContentControl()
-                const rendering = new displayContentRendering(display)
-                const structuring = new songStructuring
-                const data = structuring.getDefaultStructure()
-                content.setupStacks(data)
-                rendering.renderRects(display.svg, data)
+
+                console.log(data)
+                const sectionBlocksControl = new songSectionBlocksControl(display.svg)
+                sectionBlocksControl.loadSong(data[0])
+                
+                //rendering.renderRects(display.svg, data)
                 display.width = 800
                 display.height = 500
                 const windowControl = new displayContainerControl(display)

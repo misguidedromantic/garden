@@ -107,6 +107,75 @@ class songSectionBlocksControl {
     }
 }
 
+class sectionSequencing {
+
+    getSectionTypeBySequenceNumber(sequenceNumber, sections){
+        console.log(sequenceNumber)
+        if(sequenceNumber > 0 && sequenceNumber < sections.length){
+            const previousSection = sections.find(section => section.sequence === sequenceNumber)
+            return previousSection.constructor.name
+        }
+    }
+
+    getPattern(thisSection, nextSection){
+        if(thisSection === 'intro' && nextSection === 'verse'){}
+    }
+
+}
+
+class sectionBlockRendering {
+
+    constructor(canvas){
+        this.canvas = canvas
+    }
+
+    render(data, songID){
+        this.canvas.selectAll('rect.' + songID)
+            .data(data, d => d.id)
+            .join('rect')
+            .attr('class', songID)
+            .attr('id', d => d.id)
+            .attr('width', 12)
+            .attr('height', 12)
+            .attr('x', (d, i) => d.stackNumber * 15)
+            .attr('y', (d, i) => d.positionInStack * -15 + 80)
+            //.attr('fill', '#A9A9A9')
+            .attr('fill', 'white')
+            .attr('opacity', 0.25)
+    }
+
+    getAttributes(thisSection, nextSection){
+        if(thisSection.type === 'intro'){
+            if(thisSection.formLabel === nextSection.formLabel){
+                thisSection.stackNumber = nextSection.stackNumber
+                if(nextSection.type === 'verse'){
+                    thisSection.stackLevel = 1
+                } else if (nextSection.type === 'chorus'){
+                    thisSection.stackLevel = 2
+                }
+            }
+        }
+    }
+
+}
+
+class sectionBlockSizing {
+
+    static calculateHeight(formOverlap){
+        switch(formOverlap){
+     
+
+        }
+    }
+
+    static calculateWidth(){
+
+    }
+
+
+
+}
+
 
 
 

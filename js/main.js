@@ -17,7 +17,9 @@ function loadDisplays(){
 
 }
 
+function renderRectangles(canvas, data, attrFunctions){
 
+}
 
 
 

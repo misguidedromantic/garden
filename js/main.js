@@ -3,7 +3,7 @@ window.onload = function(){
     createCanvas()
     const canvas = getCanvas()
     const data = getData()
-
+    renderSectionBlocks(canvas, data)
 
 
 }
@@ -20,7 +20,12 @@ function getCanvas(){
 
 function getData(){
     const defaultSections = getSections()
+    sortSectionsIntoStacks(defaultSections)
+    
     const goodAfterBadSections = getSections('good after bad')
+    sortSectionsIntoStacks(goodAfterBadSections)
+
+    return goodAfterBadSections
     
 }
 
@@ -30,7 +35,10 @@ function getSections(songTitle){
             return [
                 new section ('intro 1', 'good after bad'),
                 new section ('verse 1', 'good after bad'),
-                new section ('chorus 1', 'good after bad')
+                new section ('chorus 1', 'good after bad'),
+                new section ('verse 2', 'good after bad'),
+                new section ('chorus 2', 'good after bad'),
+                new section ('chorus 3', 'good after bad')
             ]
         default:
             return [
@@ -42,23 +50,27 @@ function getSections(songTitle){
                 new section ('chorus 3', 'default song')
             ]
     }
+
+
 }
 
 function sortSectionsIntoStacks(sections){
 
-    const stacks = []
-
+    let stackOrdinal = 0
 
     for(let i = 0; i < sections.length; i++){
-        if(sections[i].type === 'verse'){
-            stacks.push([
-                sections[i]
-            ])
+        const thisSection = sections[i]
+        const nextSection = sections[i + 1]
+
+        if(thisSection.type === 'verse' && nextSection.type === 'chorus'){
+            thisSection.stackOrdinal = stackOrdinal
+            nextSection.stackOrdinal = stackOrdinal
+            i = i + 1
+        } else {
+            thisSection.stackOrdinal = stackOrdinal
         }
-
-
+        stackOrdinal = stackOrdinal + 1
     }
-
 }
 
 class section {
@@ -80,11 +92,21 @@ function renderSectionBlocks (canvas, data){
     canvas.selectAll('rect')
         .data(data)
         .join('rect')
-        .attr('height', 10)
-        .attr('width', 10)
+        .attr('height', 12)
+        .attr('width', 12)
         .attr('fill', 'grey')
-        .attr('x', (d, i) => {
-
+        .attr('x', d => d.stackOrdinal * 15 + 15)
+        .attr('y', d => {
+            switch(d.type){
+                case 'bridge':
+                    return 15
+                case 'chorus':
+                    return 30
+                case 'verse':
+                    return 45
+                case 'intro':
+                    return 60
+            }
         })
 }
 

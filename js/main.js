@@ -1,169 +1,92 @@
 window.onload = function(){
 
-    function loadData(){
-        songsDataHandling.load('csv')
-    }
-    function setupNavigation(){
-        new navigationSetup
-    }
-    function initialiseEventHandlers(){
-        events.initaliseWindowResizeHandling()
-    }
+    createCanvas()
+    const canvas = getCanvas()
+    const data = getData()
 
-    loadData()
-    setupNavigation()
-    initialiseEventHandlers() 
+
+
 }
 
-class events {
+function createCanvas(){
+    d3.select('body')
+        .append('svg')
+        .attr('id','songLayouts')
+}
 
-    static initaliseWindowResizeHandling(){
-        window.onresize = throttles.throttleWithFinalCall(navigation.moveOnWindowResize, 100)
-    }
+function getCanvas(){
+    return d3.select('#songLayouts')
+}
 
-    static waitForWindowLoad(){
-        return new Promise(resolve => {window.onload = resolve})
-    }
-
-    static onMenuItemClick(){
-        const clickedItem = d3.select(this).data()[0]
-        navigation.menuSelectionChange(clickedItem)
-    }
-
-    static onMenuMouseOver(){
-        navigation.menuExpand()
-    }
-    
-    static onMenuMouseOut(){
-        navigation.menuContract()
-    }
+function getData(){
+    const defaultSections = getSections()
+    const goodAfterBadSections = getSections('good after bad')
     
 }
 
-class throttles {
-    static throttle(func, delay){
-        let lastCall = 0;
-        return function (...args) {
-            const now = new Date().getTime();
-            if (now - lastCall < delay) {
-                return;
-            }
-            lastCall = now;
-            return func(...args);
-        }
-    }
-
-    static throttleWithFinalCall(func, delay) {
-        let timeoutId;
-        let lastExec = 0;
-        let finalCall = false;
-      
-        return function(...args) {
-          const context = this;
-          const now = Date.now();
-      
-          if (now - lastExec >= delay) {
-            func.apply(context, args);
-            lastExec = now;
-            finalCall = false;
-          } else {
-            clearTimeout(timeoutId);
-            finalCall = true;
-      
-            timeoutId = setTimeout(() => {
-              if (finalCall) {
-                func.apply(context, args);
-                lastExec = now;
-                finalCall = false;
-              }
-            }, delay);
-          }
-        };
-      }
-}
-
-
-class navigation {
-
-    static #navigatorControl  = {}
-    static #menuSelections = {}
-    static #menuListMgmt = {}
-    static #menuConfigMgmt = {}
-    static #menuRendering = {}
-    static #songsContent = {}
-
-    static initalise (navigator, menu){
-        this.#assignNavigationObjects(navigator, menu)
-        this.#initialiseControllers()
-        this.#setupSubscriptions()
-    }
-
-    static moveOnWindowResize(){
-        navigation.#navigatorControl.adjustToWindowResize()
-    }
-
-    static menuSelectionChange(clickedItem){
-        this.#menuSelections.update(clickedItem, this.menu.configuration)
-    }
-
-    static menuExpand(){
-        if(this.menu.configuration === 'sub'){
-            this.#navigatorControl.transitionSubToSubExpanded()
-        }
-    }
-
-    static menuContract(){
-        if(this.menu.configuration === 'sub'){
-            this.#navigatorControl.transitionSubExpandedToSub()
-        }
-    }
-
-    static #assignNavigationObjects(navigator, menu){
-        this.navigator = navigator
-        this.menu = menu
-    }
-
-    static #initialiseControllers(){
-        this.#navigatorControl = new navigatorWindowControl(this.navigator, this.menu)
-        this.#menuSelections = new menuSelections(this.menu)
-        this.#menuListMgmt = new menuListManagement (this.menu)
-        this.#menuConfigMgmt = new menuConfigurationManagement(this.menu)
-        this.#menuRendering = new menuRendering (this.navigator.svg)
-        this.#songsContent = new songsContentControl ()
-    }
-
-    static #setupSubscriptions(){
-        this.#menuSelections.subscribe(this.#menuListMgmt)
-        this.#menuListMgmt.subscribe(this.#menuConfigMgmt)
-        this.#menuListMgmt.subscribe(this.#songsContent)
-        this.#menuConfigMgmt.subscribe(this.#menuRendering)
-        this.#menuRendering.subscribe(this.#navigatorControl)
+function getSections(songTitle){
+    switch(songTitle){
+        case 'good after bad':
+            return [
+                new section ('intro 1', 'good after bad'),
+                new section ('verse 1', 'good after bad'),
+                new section ('chorus 1', 'good after bad')
+            ]
+        default:
+            return [
+                new section ('verse 1', 'default song'),
+                new section ('chorus 1', 'default song'),
+                new section ('verse 2', 'default song'),
+                new section ('chorus 2', 'default song'),
+                new section ('bridge 1', 'default song'),
+                new section ('chorus 3', 'default song')
+            ]
     }
 }
 
+function sortSectionsIntoStacks(sections){
+
+    const stacks = []
 
 
-class displays {
-    static getZIndex(divID){
-        switch(divID){
-            case 'songBlockCanvasDiv':
-                return 1
-            case 'navigatorDiv':
-                return 2
-            default:
-                return 99
+    for(let i = 0; i < sections.length; i++){
+        if(sections[i].type === 'verse'){
+            stacks.push([
+                sections[i]
+            ])
         }
+
+
     }
+
 }
 
+class section {
+    constructor(sectionTitle, songTitle){
+        this.title = sectionTitle
+        this.song = songTitle
+        this.setType()
+    }
 
+    setType(){
+        const words = this.title.split(' ')
+        this.type = words[0]
+        this.typeOrdinal = words[1]
+    }
 
+}
 
+function renderSectionBlocks (canvas, data){
+    canvas.selectAll('rect')
+        .data(data)
+        .join('rect')
+        .attr('height', 10)
+        .attr('width', 10)
+        .attr('fill', 'grey')
+        .attr('x', (d, i) => {
 
-
-
-
-
+        })
+}
 
 
 

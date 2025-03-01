@@ -25,7 +25,7 @@ function getData(){
     const goodAfterBadSections = getSections('good after bad')
     sortSectionsIntoStacks(goodAfterBadSections)
 
-    return goodAfterBadSections
+    return defaultSections
     
 }
 
@@ -54,25 +54,6 @@ function getSections(songTitle){
 
 }
 
-function sortSectionsIntoStacks(sections){
-
-    let stackOrdinal = 0
-
-    for(let i = 0; i < sections.length; i++){
-        const thisSection = sections[i]
-        const nextSection = sections[i + 1]
-
-        if(thisSection.type === 'verse' && nextSection.type === 'chorus'){
-            thisSection.stackOrdinal = stackOrdinal
-            nextSection.stackOrdinal = stackOrdinal
-            i = i + 1
-        } else {
-            thisSection.stackOrdinal = stackOrdinal
-        }
-        stackOrdinal = stackOrdinal + 1
-    }
-}
-
 class section {
     constructor(sectionTitle, songTitle){
         this.title = sectionTitle
@@ -87,6 +68,43 @@ class section {
 
 }
 
+function sortSectionsIntoStacks(sections){
+
+    let stackOrdinal = 0
+
+    for(let i = 0; i < sections.length; i++){
+        const thisSection = sections[i]
+        const nextSection = sections[i + 1]
+
+        if(thisSection.type === 'verse' && nextSection.type === 'chorus'){
+            thisSection.stackOrdinal = stackOrdinal
+            nextSection.stackOrdinal = stackOrdinal
+            thisSection.stackLevel = getSectionLevel(thisSection)
+            nextSection.stackLevel = getSectionLevel(nextSection)
+            i = i + 1
+        } else {
+            thisSection.stackOrdinal = stackOrdinal
+            thisSection.stackLevel = getSectionLevel(thisSection)
+        }
+        stackOrdinal = stackOrdinal + 1
+    }
+}
+
+
+
+function getSectionLevel(section){
+    switch(section.type){
+        case 'bridge':
+            return 3
+        case 'chorus':
+            return 2
+        case 'verse':
+            return 1
+        case 'intro':
+            return 0
+    }
+}
+
 function renderSectionBlocks (canvas, data){
     canvas.selectAll('rect')
         .data(data)
@@ -95,18 +113,7 @@ function renderSectionBlocks (canvas, data){
         .attr('width', 12)
         .attr('fill', 'grey')
         .attr('x', d => d.stackOrdinal * 15 + 15)
-        .attr('y', d => {
-            switch(d.type){
-                case 'bridge':
-                    return 15
-                case 'chorus':
-                    return 30
-                case 'verse':
-                    return 45
-                case 'intro':
-                    return 60
-            }
-        })
+        .attr('y', d => d.stackLevel * -15 + 60)
 }
 
 

@@ -83,7 +83,6 @@ class section {
     setType(){
         const words = this.title.split(' ')
         this.type = words[0]
-        this.typeOrdinal = words[1]
     }
 
 }

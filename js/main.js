@@ -46,7 +46,7 @@ function getSections(songTitle){
                 new section ('chorus 1', 'default song', 'B'),
                 new section ('verse 2', 'default song', 'A'),
                 new section ('chorus 2', 'default song', 'B'),
-                new section ('bridge 1', 'default song', 'B'),
+                new section ('bridge 1', 'default song', 'C'),
                 new section ('chorus 3', 'default song', 'B')
             ]
     }
@@ -83,52 +83,29 @@ function sortSectionsIntoStacks(sections){
 
         i = i + subSequence.length - 1
         
-        
-      /*   const thisSection = sections[i]
-        const nextSection = sections[i + 1]
-
-        if(thisSection.type === 'verse' && nextSection.type === 'chorus'){
-            thisSection.stackOrdinal = stackOrdinal
-            nextSection.stackOrdinal = stackOrdinal
-            thisSection.stackLevel = getSectionLevel(thisSection)
-            nextSection.stackLevel = getSectionLevel(nextSection)
-            i = i + 1
-        } else {
-            thisSection.stackOrdinal = stackOrdinal
-            thisSection.stackLevel = getSectionLevel(thisSection)
-        } */
         stackOrdinal = stackOrdinal + 1
     }
 }
 
 function getSubSequence(sections, i){
 
-    const subSequence = [sections[i]]
+    const arr = [sections[i]]
 
-    if(isTransitionSequence(sections, i) && isFormMatchedSequence(sections, i)){
-        subSequence.push(sections[i + 1])
-
-        if(isVerseChorusSequence(sections, i + 1)){
-            subSequence.push(sections[i + 2])
+    if(i < sections.length){
+        if(isTransitionSequence(sections, i) && isFormMatchedSequence(sections, i)){
+            arr.push(sections[i + 1])
+    
+            if(isVerseChorusSequence(sections, i + 1)){
+                arr.push(sections[i + 2])
+            }
+        } else if (isVerseChorusSequence(sections, i)){
+            arr.push(sections[i + 1])
         }
-    } else if (isVerseChorusSequence(sections, i)){
-        subSequence.push(sections[i + 1])
     }
 
-    return subSequence
+    return arr
 
-
-/*     if(isTransitionSequence(sections, i) && isFormMatchedSequence(sections, i)){
-        
-        return [sections[i], sections[i + 1]]
-    } else if (isVerseChorusSequence(sections, i)){
-        return [sections[i], sections[i + 1]]
-    }else {
-        return [sections[i]]
-    } */
 }
-
-
 
 function applyStackOrdinal(subSequence, stackOrdinal){
     subSequence.forEach(section => {
@@ -150,8 +127,13 @@ function isVerseChorusSequence(sections, i){
 }
 
 function isTransitionSequence(sections, i){
-    if(sections[i].type === 'intro' && sections[i + 1].type === 'verse'){
-        return true
+    if(sections[i].type === 'intro'){
+        return sections[i + 1].type === 'verse' || sections[i + 1].type === 'chorus'
+    }
+
+    if(sections[i].type === 'verse' || sections[i].type === 'chorus'){
+        try{return sections[i + 1].type === 'outro'}
+        catch{return false}
     }
 }
 

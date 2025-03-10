@@ -25,7 +25,7 @@ function getData(){
     const goodAfterBadSections = getSections('good after bad')
     sortSectionsIntoStacks(goodAfterBadSections)
 
-    return defaultSections
+    return goodAfterBadSections
     
 }
 
@@ -73,38 +73,74 @@ function sortSectionsIntoStacks(sections){
 
     let stackOrdinal = 0
     let stackLevel = 0
+    let stack = []
 
     for(let i = 0; i < sections.length; i++){
-        
-        const subSequence = getSubSequence(sections, i)
-
-        applyStackOrdinal(subSequence, stackOrdinal)
-        applyStackLevel(subSequence, stackLevel)
-
-        i = i + subSequence.length - 1
-        
-        stackOrdinal = stackOrdinal + 1
+        stack.push(sections[i])
+        if(isLastInStack(sections, i)){
+            applyStackOrdinal(stack, stackOrdinal)
+            applyStackLevel(stack, stackLevel)
+            stack = []
+            stackOrdinal = stackOrdinal + 1
+        }
     }
 }
 
+function isLastInStack(sections, i){
+    const subSequence = getSubSequence(sections, i)
+    return isStackable(subSequence) ? false : true
+}
+
 function getSubSequence(sections, i){
+    if(i === sections.length - 1){
+        return [sections[i]]
+    } else {
+        return [sections[i],sections[i + 1]]
+    }
+}
 
-    const arr = [sections[i]]
+function isStackable(subSequence){
+    const sequenceDescription = getSequenceDescription(subSequence)
+    switch(sequenceDescription){
+        case 'intro-verse':
+            return getFormalSectionLevel(subSequence[0]) === 0
+        case 'chorus-bridge':
+            return getFormalSectionLevel(subSequence[0]) > 0 && isFormMatched(subSequence) === false
+        case 'verse-chorus':
+            return true
+        default:
+            return false
+    }
+}
 
-    if(i < sections.length){
-        if(isTransitionSequence(sections, i) && isFormMatchedSequence(sections, i)){
-            arr.push(sections[i + 1])
-    
-            if(isVerseChorusSequence(sections, i + 1)){
-                arr.push(sections[i + 2])
-            }
-        } else if (isVerseChorusSequence(sections, i)){
-            arr.push(sections[i + 1])
+function getFormalSectionLevel(section){
+    const letterNumber = section.formalSection.toLowerCase().charCodeAt(0) - 96;
+    return letterNumber > 0 && letterNumber < 27 ? letterNumber : 0
+}
+
+function getSequenceDescription(subSequence){
+    let description = ''
+    for(let i = 0; i < subSequence.length; i++){
+        if(i === 0){
+            description = subSequence[i].type
+        } else {
+            description = description + "-" + subSequence[i].type
         }
     }
+    return description
+}
 
-    return arr
-
+function isFormMatched(subSequence){
+    let form = ''
+    for(let i = 0; i < subSequence.length; i++){
+        if(i === 0){
+            form = subSequence[i].formalSection
+        }
+        else if (form !== subSequence[i].formalSection) {
+            return false
+        }
+    }
+    return true
 }
 
 function applyStackOrdinal(subSequence, stackOrdinal){
@@ -119,46 +155,6 @@ function applyStackLevel(subSequence, stackLevel){
     });
 }
 
-
-function isVerseChorusSequence(sections, i){
-    if(sections[i].type === 'verse' && sections[i + 1].type === 'chorus'){
-        return true
-    }
-}
-
-function isTransitionSequence(sections, i){
-    if(sections[i].type === 'intro'){
-        return sections[i + 1].type === 'verse' || sections[i + 1].type === 'chorus'
-    }
-
-    if(sections[i].type === 'verse' || sections[i].type === 'chorus'){
-        try{return sections[i + 1].type === 'outro'}
-        catch{return false}
-    }
-}
-
-function isFormMatchedSequence(sections, i){
-    if(sections[i].formalSection === sections[i + 1].formalSection){
-        return true
-    }
-}
-
-
-
-function getFormalSectionLevel(section){
-    const letterNumber = section.formalSection.toLowerCase().charCodeAt(0) - 96;
-    return letterNumber > 0 && letterNumber < 27 ? letterNumber : getSectionLevel(section)
-}
-
-
-function getSectionLevel(section){
-    switch(section.type){
-        case 'bridge':
-            return 4
-        case 'intro':
-            return 0
-    }
-}
 
 function renderSectionBlocks (canvas, data){
     canvas.selectAll('rect')

@@ -1,8 +1,8 @@
-window.onload = function(){
+window.onload = async function(){
 
     createCanvas()
     const canvas = getCanvas()
-    const data = getData()
+    const data = await getData()
     renderSectionBlocks(canvas, data)
 
 
@@ -18,16 +18,48 @@ function getCanvas(){
     return d3.select('#songLayouts')
 }
 
-function getData(){
-    const defaultSections = getSections()
-    sortSectionsIntoStacks(defaultSections)
-    
-    const goodAfterBadSections = getSections('good after bad')
-    sortSectionsIntoStacks(goodAfterBadSections)
+async function getData(){
 
-    return goodAfterBadSections
+    const csvData = await loadSongsData()
+    const sections = transformStructuralSectionsData(csvData)
+    console.log(sections)
+
+    return Promise.resolve()
     
 }
+
+async function loadSongsData(){
+    return {
+        songs: await d3.csv('data/songs.csv'),
+        structuralSections: await d3.csv('data/structural_sections.csv'),
+        formalSections: await d3.csv('data/formal_sections.csv')
+    }
+}
+
+function transformStructuralSectionsData(csvData){
+    const arr = []
+    csvData.structuralSections.forEach(section => {
+        const thisSection = new songSection(section.title)
+        thisSection.ordinal = section.sequence_in_song
+        thisSection.songID = section.song_id
+        thisSection.formalSectionID = section.formal_section_id
+        thisSection.type = section.type
+        arr.push(thisSection)
+    })
+    return arr
+}
+
+
+
+class songSection {
+    constructor(id){
+        this.id = id
+    }
+}
+
+
+
+
 
 function getSections(songTitle){
     switch(songTitle){

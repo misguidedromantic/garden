@@ -1,3 +1,5 @@
+let formalSections = []
+
 window.onload = async function(){
 
     createCanvas()
@@ -20,15 +22,14 @@ function getCanvas(){
 
 async function getData(){
 
-    const csvData = await loadSongsData()
-    const sections = transformStructuralSectionsData(csvData)
-    console.log(sections)
+    const data = await extractSongsData()
+    const sections = prepareStructualData(data)
 
-    return Promise.resolve()
+    return Promise.resolve(sections)
     
 }
 
-async function loadSongsData(){
+async function extractSongsData(){
     return {
         songs: await d3.csv('data/songs.csv'),
         structuralSections: await d3.csv('data/structural_sections.csv'),
@@ -36,9 +37,16 @@ async function loadSongsData(){
     }
 }
 
-function transformStructuralSectionsData(csvData){
+function prepareStructualData(data){
+    const sectionData = loadStructuralSectionData(data.structuralSections)
+    formalSections = loadFormalSectionData(data.formalSections)
+    sortSectionsIntoStacks(sectionData)
+    return sectionData
+}
+
+function loadStructuralSectionData(sectionData){
     const arr = []
-    csvData.structuralSections.forEach(section => {
+    sectionData.forEach(section => {
         const thisSection = new songSection(section.title)
         thisSection.ordinal = section.sequence_in_song
         thisSection.songID = section.song_id
@@ -47,6 +55,23 @@ function transformStructuralSectionsData(csvData){
         arr.push(thisSection)
     })
     return arr
+}
+
+function loadFormalSectionData(sectionData){
+    const arr = []
+    sectionData.forEach(section => {
+        const thisSection = new songSection(section.title)
+        thisSection.songID = section.song_id
+        thisSection.type = section.type
+        arr.push(thisSection)
+    })
+    return arr
+
+}
+
+function transformStructuralSectionData(data){
+    sortSectionsIntoStacks(data)
+    return data
 }
 
 
@@ -146,8 +171,14 @@ function isStackable(subSequence){
 }
 
 function getFormalSectionLevel(section){
-    const letterNumber = section.formalSection.toLowerCase().charCodeAt(0) - 96;
+    const formalSectionType = getFormalSectionType(section.formalSectionID)
+    const letterNumber = formalSectionType.toLowerCase().charCodeAt(0) - 96;
     return letterNumber > 0 && letterNumber < 27 ? letterNumber : 0
+}
+
+function getFormalSectionType(formalSectionID){
+    const formalSection = formalSections.find(formalSection => formalSection.id === formalSectionID)
+    return formalSection.type
 }
 
 function getSequenceDescription(subSequence){
@@ -166,9 +197,9 @@ function isFormMatched(subSequence){
     let form = ''
     for(let i = 0; i < subSequence.length; i++){
         if(i === 0){
-            form = subSequence[i].formalSection
+            form = getFormalSectionType(subSequence[i].formalSectionID)
         }
-        else if (form !== subSequence[i].formalSection) {
+        else if (form !== getFormalSectionType(subSequence[i].formalSectionID)) {
             return false
         }
     }

@@ -212,7 +212,7 @@ class songStructuring {
             case 'intro-verse':
                 return this.isFormMatched(thisSection, previousSection) === false
             case 'chorus-bridge':
-                return this.isFormMatched(thisSection, previousSection) === false && this.getFormalSectionType(thisSection) === ''
+                return this.isFormMatched(thisSection, previousSection) === false && this.getFormalSectionType(thisSection) !== ''
             case 'verse-chorus':
                 return true
             default:
@@ -318,6 +318,7 @@ function renderSectionBlocks (canvas, data){
     canvas.selectAll('rect')
         .data(data)
         .join('rect')
+        .attr('id', d => d.id)
         .attr('height', 12)
         .attr('width', 12)
         .attr('fill', 'grey')

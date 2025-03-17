@@ -1,221 +1,316 @@
-let formalSections = []
-
 window.onload = async function(){
+    await prepareData()
+    loadSongLayouts()
+}
 
-    createCanvas()
-    const canvas = getCanvas()
-    const data = await getData()
-    renderSectionBlocks(canvas, data)
+async function prepareData(){
+    await songsDataInterface.initialise()
+    await songStructureDataInterface.initialise()
+    return Promise.resolve()
+}
 
+function loadSongLayouts(){
+    const songLayoutCanvas = new canvas('songLayout')
+    const sections = songStructureDataInterface.getAllSections()
+    renderSectionBlocks(songLayoutCanvas, sections)
+}
+
+class canvas{
+    constructor(id, container = d3.select('body')){
+        this.id = id
+        this.container = container
+        this.createElement(id)
+        return this.getElement()
+    }
+    createElement(){
+        this.container.append('svg').attr('id',this.id)
+    }
+
+    getElement(){
+        return d3.select('#' + this.id)
+    }
+}
+
+
+class songsDataInterface {
+
+    static #songs = []
+
+    static async initialise(){
+        const songsData = await this.#extract()
+        this.#load(songsData)
+        return Promise.resolve()
+    }
+
+    static getSectionCount(songID){
+        return songStructureDataInterface.getSongSections(songID).length
+    }
+
+    static #extract(){
+        return d3.csv('data/songs.csv')
+    }
+
+    static #load(songsData){
+        const setup = new songsSetup(songsData)
+        this.#songs = setup.createSongs()
+    }
+
+    static getSongIndex(songID){
+        return this.#songs.findIndex(song => song.id === songID)
+    }
+}
+
+class songsSetup {
+    constructor(songsData){
+        this.songsData = songsData
+    }
+    
+    createSongs(){
+        const songs = []
+        this.songsData.forEach(songDatum => {
+            const thisSong = new song(songDatum.short_title)
+            songs.push(thisSong)
+        })
+        return songs
+    }
+}
+
+
+class songStructureDataInterface{
+
+    static #sections = []
+    static #form = []
+
+    static async initialise(){
+        const data = await this.#extract()
+        this.#load(data)
+        this.#transform()
+        return Promise.resolve()
+    }
+
+    static async #extract(){
+        return {
+            formalSections: await d3.csv('data/formal_sections.csv'),
+            structuralSections: await d3.csv('data/structural_sections.csv')
+        }
+    }
+
+    static #load(data){
+        const sectionSetup = new songSectionSetup(data)
+        this.#form = sectionSetup.createFormalSections()
+        this.#sections = sectionSetup.createStructuralSections()
+    }
+
+    static #transform(){
+        const structuring = new songStructuring(this.#sections)
+        structuring.createStacks()
+    }
+
+    static getAllSections(){
+        return this.#sections
+    }
+
+    static getSongSections(songID){
+        return this.#sections.filter(section => section.songID === songID)
+    }
+
+    static getFormalSectionType(formalSectionID){
+        const section = this.getFormalSection(formalSectionID)
+        return section.type
+    }
+        
+    static getFormalSection(formalSectionID){
+        return this.#form.find(section => section.id === formalSectionID)
+    }
+
+    static getSectionIndexInSong(thisSection){
+        const songSections = this.getSongSections(thisSection.songID)
+        return songSections.findIndex(section => section.id === thisSection.id)
+    }
 
 }
 
-function createCanvas(){
-    d3.select('body')
-        .append('svg')
-        .attr('id','songLayouts')
+class songSectionSetup {
+    constructor(data){
+        this.formData = data.formalSections
+        this.sectionData = data.structuralSections
+    }
+
+    createStructuralSections(){
+        const sections = []
+        this.sectionData.forEach(section => {
+            const thisSection = this.createStructuralSection(section)
+            sections.push(thisSection)
+        })
+        return sections
+    }
+
+    createStructuralSection(section){
+        const thisSection = new songSection(section.title, section.type)
+        thisSection.setReferences(section.song_id, section.formal_section_id)
+        thisSection.setPositionInSong(section.sequence_in_song)
+        return thisSection
+    }
+
+
+    createFormalSections(){
+        const formalSections = []
+        this.formData.forEach(section => {
+            const thisSection = this.createFormalSection(section)
+            formalSections.push(thisSection)
+        })
+        return formalSections
+    }
+
+    createFormalSection(section){
+        const thisSection = new formalSection(section.title)
+        thisSection.songID = section.song_id
+        thisSection.type = section.type
+        return thisSection
+    }
+
 }
 
-function getCanvas(){
-    return d3.select('#songLayouts')
-}
 
-async function getData(){
+class songStructuring {
+    constructor(sections){
+        this.sections = sections
+        this.stacks = []
+    }
 
-    const data = await extractSongsData()
-    const sections = prepareStructualData(data)
+    createStacks(){
+        let stack = {}
+        for(let i = 0; i < this.sections.length; i++){
+            if(this.newStackRequired(this.sections, i)){
+                stack = new songSectionStack(this.stacks.length)
+                this.stacks.push(stack)
+            }
+            stack.addSection(this.sections[i])
+        }
+    }
 
-    return Promise.resolve(sections)
+
+    newStackRequired(sections, i){
+        return this.isStackable(sections[i], sections[i - 1]) ? false : true
+    }
+
+
+    getSubSequence(sections, i){
+        if(i === sections.length - 1){
+            return [sections[i]]
+        } else {
+            return [sections[i],sections[i + 1]]
+        }
+    }
+
+
+
+    isStackable(thisSection, previousSection){
+        const pairDescription = this.getSectionPairDescription(thisSection, previousSection)
+
+       switch(pairDescription){
+            case 'intro-verse':
+                return this.isFormMatched(thisSection, previousSection) === false
+            case 'chorus-bridge':
+                return this.isFormMatched(thisSection, previousSection) === false && this.getFormalSectionType(thisSection) === ''
+            case 'verse-chorus':
+                return true
+            default:
+                return false
+        } 
+    }
+
+    getSectionPairDescription(thisSection, previousSection){
+        try{return previousSection.type + "-" + thisSection.type}
+        catch{return thisSection.type}
+        
+    }
+
+    
+    isFormMatched(thisSection, thatSection){
+        return this.getFormalSectionType(thisSection) === this.getFormalSectionType(thatSection)
+    }
+
+    getFormalSectionType(section){
+        return songStructureDataInterface.getFormalSectionType(section.formalSectionID)
+    }
     
 }
 
-async function extractSongsData(){
-    return {
-        songs: await d3.csv('data/songs.csv'),
-        structuralSections: await d3.csv('data/structural_sections.csv'),
-        formalSections: await d3.csv('data/formal_sections.csv')
+class songSectionStack {
+
+    #sections = []
+
+    constructor(stackIndex){
+        this.stackIndex = stackIndex
     }
-}
 
-function prepareStructualData(data){
-    const sectionData = loadStructuralSectionData(data.structuralSections)
-    formalSections = loadFormalSectionData(data.formalSections)
-    sortSectionsIntoStacks(sectionData)
-    return sectionData
-}
+    addSection(section){
+        section.levelInStack = this.#getSectionLevel(section)
+        section.stackOrdinal = this.stackIndex
+        this.#sections.push(section)
+    }
 
-function loadStructuralSectionData(sectionData){
-    const arr = []
-    sectionData.forEach(section => {
-        const thisSection = new songSection(section.title)
-        thisSection.ordinal = section.sequence_in_song
-        thisSection.songID = section.song_id
-        thisSection.formalSectionID = section.formal_section_id
-        thisSection.type = section.type
-        arr.push(thisSection)
-    })
-    return arr
-}
+    getSections(){
+        return this.#sections
+    }
 
-function loadFormalSectionData(sectionData){
-    const arr = []
-    sectionData.forEach(section => {
-        const thisSection = new songSection(section.title)
-        thisSection.songID = section.song_id
-        thisSection.type = section.type
-        arr.push(thisSection)
-    })
-    return arr
+    #getSectionLevel(section){
+        const formalSection = songStructureDataInterface.getFormalSection(section.formalSectionID)
+        return formalSection.getLevel()
+    }
+
+
+
 
 }
 
-function transformStructuralSectionData(data){
-    sortSectionsIntoStacks(data)
-    return data
-}
-
-
-
-class songSection {
+class song {
     constructor(id){
         this.id = id
     }
+
+    getSectionCount(){
+        return this.sectionIDs.length
+    }
 }
 
-
-
-
-
-function getSections(songTitle){
-    switch(songTitle){
-        case 'good after bad':
-            return [
-                new section ('intro 1', 'good after bad', 'A'),
-                new section ('verse 1', 'good after bad', 'A'),
-                new section ('chorus 1', 'good after bad', 'B'),
-                new section ('verse 2', 'good after bad', 'A'),
-                new section ('chorus 2', 'good after bad', 'B'),
-                new section ('chorus 3', 'good after bad', 'B')
-            ]
-        default:
-            return [
-                new section ('verse 1', 'default song', 'A'),
-                new section ('chorus 1', 'default song', 'B'),
-                new section ('verse 2', 'default song', 'A'),
-                new section ('chorus 2', 'default song', 'B'),
-                new section ('bridge 1', 'default song', 'C'),
-                new section ('chorus 3', 'default song', 'B')
-            ]
+class songSection {
+    constructor(id, type){
+        this.id = id
+        this.type = type
     }
 
-
-}
-
-class section {
-    constructor(sectionTitle, songTitle, formalSection){
-        this.title = sectionTitle
-        this.song = songTitle
-        this.formalSection = formalSection
-        this.setType()
+    setReferences(songID, formalSectionID){
+        this.songID = songID
+        this.formalSectionID = formalSectionID
     }
 
-    setType(){
-        const words = this.title.split(' ')
-        this.type = words[0]
+    setPositionInSong(ordinal){
+        this.ordinal = ordinal
     }
 
 }
 
-function sortSectionsIntoStacks(sections){
 
-    let stackOrdinal = 0
-    let stackLevel = 0
-    let stack = []
 
-    for(let i = 0; i < sections.length; i++){
-        stack.push(sections[i])
-        if(isLastInStack(sections, i)){
-            applyStackOrdinal(stack, stackOrdinal)
-            applyStackLevel(stack, stackLevel)
-            stack = []
-            stackOrdinal = stackOrdinal + 1
-        }
+class formalSection {
+    constructor(title){
+        this.id = title
     }
-}
 
-function isLastInStack(sections, i){
-    const subSequence = getSubSequence(sections, i)
-    return isStackable(subSequence) ? false : true
-}
-
-function getSubSequence(sections, i){
-    if(i === sections.length - 1){
-        return [sections[i]]
-    } else {
-        return [sections[i],sections[i + 1]]
+    getLevel(){
+        const letterNumber = this.getLetterNumber() 
+        const songIndex = songsDataInterface.getSongIndex(this.songID) 
+        return letterNumber + songIndex
     }
-}
 
-function isStackable(subSequence){
-    const sequenceDescription = getSequenceDescription(subSequence)
-    switch(sequenceDescription){
-        case 'intro-verse':
-            return getFormalSectionLevel(subSequence[0]) === 0
-        case 'chorus-bridge':
-            return getFormalSectionLevel(subSequence[0]) > 0 && isFormMatched(subSequence) === false
-        case 'verse-chorus':
-            return true
-        default:
-            return false
+    getLetterNumber(){
+        const charCode = this.type.toLowerCase().charCodeAt(0) - 96;
+        return charCode > 0 && charCode < 27 ? charCode : 0
     }
-}
 
-function getFormalSectionLevel(section){
-    const formalSectionType = getFormalSectionType(section.formalSectionID)
-    const letterNumber = formalSectionType.toLowerCase().charCodeAt(0) - 96;
-    return letterNumber > 0 && letterNumber < 27 ? letterNumber : 0
-}
 
-function getFormalSectionType(formalSectionID){
-    const formalSection = formalSections.find(formalSection => formalSection.id === formalSectionID)
-    return formalSection.type
-}
-
-function getSequenceDescription(subSequence){
-    let description = ''
-    for(let i = 0; i < subSequence.length; i++){
-        if(i === 0){
-            description = subSequence[i].type
-        } else {
-            description = description + "-" + subSequence[i].type
-        }
-    }
-    return description
-}
-
-function isFormMatched(subSequence){
-    let form = ''
-    for(let i = 0; i < subSequence.length; i++){
-        if(i === 0){
-            form = getFormalSectionType(subSequence[i].formalSectionID)
-        }
-        else if (form !== getFormalSectionType(subSequence[i].formalSectionID)) {
-            return false
-        }
-    }
-    return true
-}
-
-function applyStackOrdinal(subSequence, stackOrdinal){
-    subSequence.forEach(section => {
-        section.stackOrdinal = stackOrdinal
-    });
-}
-
-function applyStackLevel(subSequence, stackLevel){
-    subSequence.forEach(section => {
-        section.stackLevel = getFormalSectionLevel(section)
-    });
 }
 
 
@@ -227,7 +322,7 @@ function renderSectionBlocks (canvas, data){
         .attr('width', 12)
         .attr('fill', 'grey')
         .attr('x', d => d.stackOrdinal * 15 + 15)
-        .attr('y', d => d.stackLevel * -15 + 60)
+        .attr('y', d => d.levelInStack * -15 + 150)
 }
 
 

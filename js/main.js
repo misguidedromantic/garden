@@ -249,7 +249,7 @@ class songLayoutRendering {
             .attr('fill', 'grey')
             .attr('x', (d, i) => classGrid.getPosX(i))
             .attr('y', (d, i) => classGrid.getPosY(i))
-            .on('mouseover', d => console.log(d))
+            .on('mouseover', sectionRectHover)
     }
 }
 
@@ -429,6 +429,11 @@ class arithmetic {
         return dividend - (divisor * quotient)
     }
 
+}
+
+function sectionRectHover(){
+    const classText = d3.select(this).attr('class')
+    d3.selectAll('rect.' + classText).attr('fill', 'red')
 }
 
 

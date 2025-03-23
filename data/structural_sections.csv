@@ -34,10 +34,10 @@ filling4,fillingA,verse,4,sub-structure,filling
 damage1,damageA,verse,1,,damage
 damage2,damageA,verse,2,,damage
 damage3,damageB,chorus,3,,damage
-damage1,toilingA,intro,1,instrumental,damage
-damage2,toilingA,verse,2,,damage
-damage3,toilingA,bridge,3,instrumental,damage
-damage4,toilingA,verse,4,,damage
-damage5,toilingA,bridge,5,"instrumental,sub-structure,chords,minor transitional",damage
-damage6,toilingA,verse,6,melody pitch,damage
-damage7,toilingA,outro,7,"sub-structure,instrumental,melody pitch",damage
+toiling1,toilingA,intro,1,instrumental,toiling
+toiling2,toilingA,verse,2,,toiling
+toiling3,toilingA,bridge,3,instrumental,toiling
+toiling4,toilingA,verse,4,,toiling
+toiling5,toilingA,bridge,5,"instrumental,sub-structure,chords,minor transitional",toiling
+toiling6,toilingA,verse,6,melody pitch,toiling
+toiling7,toilingA,outro,7,"sub-structure,instrumental,melody pitch",toiling

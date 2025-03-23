@@ -4,15 +4,20 @@ window.onload = async function(){
 }
 
 async function prepareData(){
-    await songsDataInterface.initialise()
-    await songStructureDataInterface.initialise()
+    await songsData.load()
+    await songSectionsData.load()
     return Promise.resolve()
 }
 
 function loadSongLayouts(){
     const songLayoutCanvas = new canvas('songLayout')
-    const sections = songStructureDataInterface.getAllSections()
-    renderSectionBlocks(songLayoutCanvas, sections)
+    const sections = songSectionsData.getAllSections()
+    const multiLayout = new multiSongLayoutSetup(sections)
+    const data = multiLayout.getDataToRender()
+    const rendering = new songLayoutRendering()
+    rendering.renderLayout(songLayoutCanvas, data)
+
+    //renderSectionBlocks(songLayoutCanvas, sections)
 }
 
 class canvas{
@@ -32,59 +37,46 @@ class canvas{
 }
 
 
-class songsDataInterface {
+class songsData {
 
     static #songs = []
 
-    static async initialise(){
-        const songsData = await this.#extract()
-        this.#load(songsData)
+    static async load(){
+        const songsData = await d3.csv('data/songs.csv')
+        songsData.forEach(songDatum => {this.#songs.push(new song(songDatum.short_title))})
         return Promise.resolve()
     }
 
     static getSectionCount(songID){
-        return songStructureDataInterface.getSongSections(songID).length
-    }
-
-    static #extract(){
-        return d3.csv('data/songs.csv')
-    }
-
-    static #load(songsData){
-        const setup = new songsSetup(songsData)
-        this.#songs = setup.createSongs()
+        return songSectionsData.getSongSections(songID).length
     }
 
     static getSongIndex(songID){
         return this.#songs.findIndex(song => song.id === songID)
     }
-}
 
-class songsSetup {
-    constructor(songsData){
-        this.songsData = songsData
+    static getSongIDByIndex(songIndex){
+        try{return this.#songs[songIndex].id}
+        catch{return undefined}
     }
-    
-    createSongs(){
-        const songs = []
-        this.songsData.forEach(songDatum => {
-            const thisSong = new song(songDatum.short_title)
-            songs.push(thisSong)
-        })
-        return songs
+
+    static getRandomSongID(){
+        return this.#songs[Math.floor(Math.random() * this.#songs.length)]
     }
+
 }
 
 
-class songStructureDataInterface{
+
+class songSectionsData{
 
     static #sections = []
     static #form = []
+    static #stacks = []
 
-    static async initialise(){
+    static async load(){
         const data = await this.#extract()
-        this.#load(data)
-        this.#transform()
+        this.#setup(data)
         return Promise.resolve()
     }
 
@@ -95,18 +87,16 @@ class songStructureDataInterface{
         }
     }
 
-    static #load(data){
+    static #setup(data){
         const sectionSetup = new songSectionSetup(data)
         this.#form = sectionSetup.createFormalSections()
         this.#sections = sectionSetup.createStructuralSections()
     }
 
-    static #transform(){
-        const structuring = new songStructuring(this.#sections)
-        structuring.createStacks()
-    }
-
     static getAllSections(){
+        const structuring = new songStructuring(this.#sections)
+        //this.#stacks = structuring.createStacks()
+        //console.log(this.#stacks)
         return this.#sections
     }
 
@@ -127,6 +117,15 @@ class songStructureDataInterface{
         const songSections = this.getSongSections(thisSection.songID)
         return songSections.findIndex(section => section.id === thisSection.id)
     }
+
+    static getTallestStack(songID){
+        const songStacks = this.#stacks.filter(stack => stack.songID === songID)
+        try{return songStacks.reduce((largest, current) => current.length > largest.length ? current : largest)}
+        catch{return 0}
+    }
+
+
+
 
 }
 
@@ -171,6 +170,92 @@ class songSectionSetup {
 
 }
 
+class multiSongLayoutSetup {
+
+    #sections = []
+
+    constructor(sections){
+        this.#sections = sections
+    }
+
+    getDataToRender(){
+        return this.getSuffledSections()
+    }
+
+    getSuffledSections(sections = this.#sections){
+        for (let i = sections.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [sections[i], sections[j]] = [sections[j], sections[i]];
+        }
+        return sections;
+    }
+
+    
+
+}
+
+class songSectionGrid {
+    #sections =[]
+    #height = 0
+    #width = 0
+
+
+    constructor(sections){
+        this.#sections = sections
+        this.#setDimensions()
+    }
+
+    getPosX(i){ 
+        const remainder = arithmetic.getRemainder(i, this.#width)
+        //console.log(remainder)
+        return remainder * 15
+    }
+
+    getPosY(i){
+        const quotient = arithmetic.getQuotient(i, this.#width)
+        console.log(quotient)
+        return quotient * 15
+    }
+
+    #setDimensions(){
+        const sideLengths = this.#getGridDimensions(this.#sections.length)
+        console.log(sideLengths)
+        this.#width = sideLengths.long
+        this.#height = sideLengths.short
+        
+    }
+
+    #getGridDimensions(sectionCount){
+        return {
+            short: Math.round(Math.sqrt(sectionCount / 1.618)),
+            long: Math.round(Math.sqrt(sectionCount * 1.618))
+        }
+
+    }
+}
+
+class songLayoutRendering {
+    renderLayout(canvas, data){
+
+        const classGrid = new songSectionGrid (data)
+
+        canvas.selectAll('rect')
+            .data(data)
+            .join('rect')
+            .attr('id', d => d.id)
+            .attr('class', d => d.songID)
+            .attr('height', 12)
+            .attr('width', 12)
+            .attr('fill', 'grey')
+            .attr('x', (d, i) => classGrid.getPosX(i))
+            .attr('y', (d, i) => classGrid.getPosY(i))
+            .on('mouseover', d => console.log(d))
+    }
+}
+
+
+
+
 
 class songStructuring {
     constructor(sections){
@@ -187,7 +272,10 @@ class songStructuring {
             }
             stack.addSection(this.sections[i])
         }
+
+        return this.stacks
     }
+
 
 
     newStackRequired(sections, i){
@@ -220,6 +308,7 @@ class songStructuring {
         } 
     }
 
+
     getSectionPairDescription(thisSection, previousSection){
         try{return previousSection.type + "-" + thisSection.type}
         catch{return thisSection.type}
@@ -232,7 +321,7 @@ class songStructuring {
     }
 
     getFormalSectionType(section){
-        return songStructureDataInterface.getFormalSectionType(section.formalSectionID)
+        return songSectionsData.getFormalSectionType(section.formalSectionID)
     }
     
 }
@@ -251,14 +340,17 @@ class songSectionStack {
         this.#sections.push(section)
     }
 
-    getSections(){
-        return this.#sections
+    getSectionCount(){
+        return this.#sections.length
     }
 
     #getSectionLevel(section){
-        const formalSection = songStructureDataInterface.getFormalSection(section.formalSectionID)
+        const formalSection = songSectionsData.getFormalSection(section.formalSectionID)
+        const songIndex = songsData.getSongIndex(this.songID)
         return formalSection.getLevel()
     }
+
+    
 
 
 
@@ -300,18 +392,18 @@ class formalSection {
     }
 
     getLevel(){
-        const letterNumber = this.getLetterNumber() 
-        const songIndex = songsDataInterface.getSongIndex(this.songID) 
-        return letterNumber + songIndex
+        const charCode = this.getCharacterCode() 
+        return charCode > 0 && charCode < 27 ? charCode : 0
     }
 
-    getLetterNumber(){
-        const charCode = this.type.toLowerCase().charCodeAt(0) - 96;
-        return charCode > 0 && charCode < 27 ? charCode : 0
+    getCharacterCode(){
+        return this.type.toLowerCase().charCodeAt(0) - 96;
     }
 
 
 }
+
+
 
 
 function renderSectionBlocks (canvas, data){
@@ -325,6 +417,21 @@ function renderSectionBlocks (canvas, data){
         .attr('x', d => d.stackOrdinal * 15 + 15)
         .attr('y', d => d.levelInStack * -15 + 150)
 }
+
+
+class arithmetic {
+    static getQuotient(dividend, divisor){
+        return Math.floor(dividend / divisor)
+    }
+    
+    static getRemainder(dividend, divisor){
+        const quotient = this.getQuotient(dividend, divisor)
+        return dividend - (divisor * quotient)
+    }
+
+}
+
+
 
 
 

@@ -250,6 +250,7 @@ class songLayoutRendering {
             .attr('x', (d, i) => classGrid.getPosX(i))
             .attr('y', (d, i) => classGrid.getPosY(i))
             .on('mouseover', sectionRectHover)
+            .on('mouseout', sectionRectOff)
     }
 }
 
@@ -434,6 +435,12 @@ class arithmetic {
 function sectionRectHover(){
     const classText = d3.select(this).attr('class')
     d3.selectAll('rect.' + classText).attr('fill', 'red')
+    d3.selectAll('rect:not(.' + classText).attr('fill', 'grey')
+}
+
+function sectionRectOff(){
+    const classText = d3.select(this).attr('class')
+    d3.selectAll('rect.' + classText).attr('fill', 'grey')
 }
 
 

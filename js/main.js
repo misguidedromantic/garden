@@ -43,7 +43,12 @@ class songsData {
 
     static async load(){
         const songsData = await d3.csv('data/songs.csv')
-        songsData.forEach(songDatum => {this.#songs.push(new song(songDatum.short_title))})
+        songsData.forEach(songDatum => {
+            const thisSong = new song(songDatum.short_title)
+            thisSong.title = songDatum.title
+            this.#songs.push(thisSong)
+        })
+
         return Promise.resolve()
     }
 
@@ -64,9 +69,11 @@ class songsData {
         return this.#songs[Math.floor(Math.random() * this.#songs.length)]
     }
 
+    static getSong(songID){
+        return this.#songs.find(song => song.id === songID)
+    }
+
 }
-
-
 
 class songSectionsData{
 
@@ -219,7 +226,6 @@ class songSectionGrid {
 
     #setDimensions(){
         const sideLengths = this.#getGridDimensions(this.#sections.length)
-        console.log(sideLengths)
         this.#width = sideLengths.long
         this.#height = sideLengths.short
         
@@ -251,6 +257,21 @@ class songLayoutRendering {
             .attr('y', (d, i) => classGrid.getPosY(i))
             .on('mouseover', sectionRectHover)
             .on('mouseout', sectionRectOff)
+    }
+
+    renderSongTitle(canvas, song){
+        canvas.selectAll('text#songTitle')
+            .data(song)
+            .join(
+                enter => enter.append('text')
+                    .attr('id', 'songTitle')
+                    .attr('fill', 'purple')
+                    .attr('x', 100)
+                    .attr('y', 100)
+                    .text(d => d.title),
+                update => update.text(d => d.title),
+                exit => exit.attr('fill', 'black')
+            )
     }
 }
 
@@ -433,9 +454,14 @@ class arithmetic {
 }
 
 function sectionRectHover(){
+    const rendering = new songLayoutRendering()
     const classText = d3.select(this).attr('class')
     d3.selectAll('rect.' + classText).attr('fill', 'red')
     d3.selectAll('rect:not(.' + classText).attr('fill', 'grey')
+    const svg = d3.select('#songLayout')
+    const song = songsData.getSong(classText)
+    rendering.renderSongTitle(svg,[song])
+
 }
 
 function sectionRectOff(){

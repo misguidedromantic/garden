@@ -11,13 +11,75 @@ async function prepareData(){
 
 function loadSongLayouts(){
     const songLayoutCanvas = new canvas('songLayout')
-    const sections = songSectionsData.getAllSections()
-    const multiLayout = new multiSongLayoutSetup(sections)
-    const data = multiLayout.getDataToRender()
-    const rendering = new songLayoutRendering()
-    rendering.renderLayout(songLayoutCanvas, data)
+    //const sections = songSectionsData.getAllSections()
+    const songs = songsData.getAllSongs()
+    console.log(songs)
+    
+    //const multiLayout = new multiSongLayoutSetup(sections)
+    //const data = multiLayout.getDataToRender()
+    const rendering = new songListRendering
+    rendering.renderList(songLayoutCanvas, songs)
 
     //renderSectionBlocks(songLayoutCanvas, sections)
+}
+
+class songListRendering{
+
+    renderList(canvas, songs){
+        const songPos = new songPositioning (songs)
+        const enterFn = this.#enter
+
+        canvas.selectAll('g.songTitle')
+            .data(songs, d => d.id)
+            .join(
+                enter => enterFn(enter, songPos),
+                update => update,
+                exit => exit
+            )
+    }
+
+    #enter(selection, songPos){
+        const g = selection.append('g')
+            .attr('class', 'songTitle')
+            .attr('id', d => d.id)
+            .attr('transform', (d, i) => songPos.getTranslate(i))
+
+        g.append('text')
+            .text(d => d.title)
+            .style('fill', 'white') 
+    }
+
+}
+
+class d3Helper {
+    static getTranslateString(x, y){
+        return "translate(" + x + "," + y + ")"
+    }
+} 
+
+class songPositioning {
+    #songs = []
+
+    constructor (songs){
+        this.#songs = songs
+    } 
+
+    getTranslate(i){
+        const x = this.getPosX()
+        const y = this.getPosY(i)
+        return d3Helper.getTranslateString(x, y)
+    }
+
+    getPosX(){
+        return 10
+    }
+    
+    getPosY(i){
+        const distanceFromSelected = i - songsData.getSelectedIndex()
+        return distanceFromSelected * 16
+    }
+
+
 }
 
 class canvas{
@@ -52,6 +114,14 @@ class songsData {
         return Promise.resolve()
     }
 
+    static getAllSongs(){
+        return this.#songs
+    }
+
+    static getSelectedIndex(){
+        return this.#songs.findIndex(song => song.selected === true)
+    }
+
     static getSectionCount(songID){
         return songSectionsData.getSongSections(songID).length
     }
@@ -71,6 +141,10 @@ class songsData {
 
     static getSong(songID){
         return this.#songs.find(song => song.id === songID)
+    }
+
+    static getAllSongTitles(){
+        return this.#songs.map(song => song.title)
     }
 
 }
@@ -177,6 +251,18 @@ class songSectionSetup {
 
 }
 
+class songLayoutSetup {
+    #sections = []
+
+    constructor(sections){
+        this.#sections = sections
+    }
+
+    getDataToRender(){
+         
+    }
+}
+
 class multiSongLayoutSetup {
 
     #sections = []
@@ -274,10 +360,6 @@ class songLayoutRendering {
             )
     }
 }
-
-
-
-
 
 class songStructuring {
     constructor(sections){
@@ -382,10 +464,15 @@ class songSectionStack {
 class song {
     constructor(id){
         this.id = id
+        this.selected = false
     }
 
     getSectionCount(){
         return this.sectionIDs.length
+    }
+
+    toggleSelection(){
+        this.selected = true
     }
 }
 
@@ -424,8 +511,6 @@ class formalSection {
 
 
 }
-
-
 
 
 function renderSectionBlocks (canvas, data){

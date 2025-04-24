@@ -1,6 +1,13 @@
 window.onload = async function(){
     await prepareData()
-    loadSongLayouts()
+    loadSongList()
+    //loadSongLayouts()
+}
+
+function loadSongList(){
+    const songs = songsData.getAllSongs()
+    const songList = new list('songs', songs)
+    console.log(songList)
 }
 
 async function prepareData(){
@@ -84,19 +91,54 @@ class songPositioning {
 
 class canvas{
     constructor(id, container = d3.select('body')){
-        this.id = id
+        this.id = 'canvas' + id
         this.container = container
         this.createElement(id)
-        return this.getElement()
     }
     createElement(){
-        this.container.append('svg').attr('id',this.id)
+        this.container.append('svg')
+            .attr('id', this.id)
+            .attr('width', '100%')
+            .attr('height', '100%')
     }
 
     getElement(){
         return d3.select('#' + this.id)
     }
+
+    resize(width, height){
+        const elem = this.getElement()
+        elem.attr('width', width)
+            .attr('height', height)
+    }
+
+
 }
+
+class div {
+    constructor(id, container = d3.select('body')){
+        this.id = 'div' + id
+        this.container = container
+        this.createElement(id)
+    }
+
+    createElement(){
+        this.container.append('div').attr('id', this.id)
+    }
+
+    getElement(){
+        return d3.select('#' + this.id)
+    }
+
+    resize(width, height, transition){
+        const elem = this.getElement()
+        elem.transition(transition)
+            .style('width', width + 'px')
+            .style('height', height + 'px')
+    }
+
+}
+
 
 
 class songsData {

@@ -90,16 +90,16 @@ class songPositioning {
 }
 
 class canvas{
-    constructor(id, container = d3.select('body')){
+    constructor(id, container = d3.select('body'), dimensions){
         this.id = 'canvas' + id
         this.container = container
-        this.createElement(id)
+        this.createElement(dimensions.width, dimensions.height)
     }
-    createElement(){
+    createElement(width, height){
         this.container.append('svg')
             .attr('id', this.id)
-            .attr('width', '100%')
-            .attr('height', '100%')
+            .attr('width', width)
+            .attr('height', height)
     }
 
     getElement(){

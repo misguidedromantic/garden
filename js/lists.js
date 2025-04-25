@@ -1,4 +1,5 @@
 class list {
+
     constructor(name, items){
         this.name = name
         this.items = items
@@ -23,12 +24,12 @@ class list {
 
     setDimensions(){
         const width = window.innerWidth / 2
-        const height = this.items.length * 16
+        const height = this.items.length * listItem.fontSize * 2
         this.div.resize(width, height)
     }
 
     update(items = this.items){
-        this.rendering.render(this.canvas.getElement(), this.items)
+        this.rendering.render(this.canvas.getElement(), items)
     }
 
 
@@ -37,6 +38,38 @@ class list {
     }
 
 
+}
+
+function onItemHover(){
+    const elem = d3.select(this)
+    const rect = elem.selectAll('rect.bar')
+    const text = elem.selectAll('text')
+    
+    rect.attr('fill', 'pink')
+        .attr('opacity', 1)
+
+    text.style('fill', 'pink')
+}
+
+function onItemOut(){
+    const elem = d3.select(this)
+    const rect = elem.selectAll('rect.bar')
+    const text = elem.selectAll('text')
+
+    rect.attr('fill', 'white')
+        .attr('opacity', 0.4)
+
+    text.style('fill', 'white')
+}
+
+function onItemClick(){
+    
+
+}
+
+class listItem {
+    static fontSize = 16
+    static padding = 4
 }
 
 
@@ -61,15 +94,32 @@ class listItemRendering {
             .attr('class', 'songTitle')
             .attr('id', d => d.id)
             .attr('transform', (d, i) => positioning.getTranslate(i))
+            .on('mouseover', onItemHover)
+            .on('mouseout', onItemOut)
+            .on('click', onItemClick)
 
         g.append('text')
             .text(d => d.title)
-            .style('fill', 'white') 
+            .style('fill', 'white')
+            .style('font-size', listItem.fontSize) 
+            .attr('dx', listItem.padding * 2)
+            .attr('dy', listItem.fontSize + listItem.padding / 2)
+
+        g.append('rect')
+            .attr('class', 'container')
+            .attr('width', 300)
+            .attr('height', listItem.fontSize * 2 - listItem.padding)
+            .attr('fill', 'white')
+            .attr('opacity', 0)
+
+        g.append('rect')
+            .attr('class', 'bar')
+            .attr('width', 4) // 218 about right, but need to make this dynamic
+            .attr('height', listItem.fontSize * 2 - listItem.padding)
+            .attr('fill', 'white')
+            .attr('opacity', 0.4)
+
     }
-
-
-
-
 }
 
 class listItemPositioning {
@@ -90,7 +140,7 @@ class listItemPositioning {
     
     getPosY(i){
         const distanceFromSelected = i - this.getSelectedItemIndex()
-        return distanceFromSelected * 16
+        return distanceFromSelected * listItem.fontSize * 2
     }
 
     getSelectedItemIndex(){

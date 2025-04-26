@@ -1,7 +1,11 @@
 window.onload = async function(){
     await prepareData()
-    loadSongList()
-    //loadSongLayouts()
+    loadSongLayouts()
+}
+
+function loadSongLayouts(){
+    songLayoutsDisplay.setup()
+    songLayoutsDisplay.load()
 }
 
 function loadSongList(){
@@ -16,18 +20,129 @@ async function prepareData(){
     return Promise.resolve()
 }
 
-function loadSongLayouts(){
-    const songLayoutCanvas = new canvas('songLayout')
-    //const sections = songSectionsData.getAllSections()
-    const songs = songsData.getAllSongs()
-    console.log(songs)
-    
-    //const multiLayout = new multiSongLayoutSetup(sections)
-    //const data = multiLayout.getDataToRender()
-    const rendering = new songListRendering
-    rendering.renderList(songLayoutCanvas, songs)
+class songLayoutsDisplay {
 
-    //renderSectionBlocks(songLayoutCanvas, sections)
+    static #songMenu = {}
+    static #layoutViewer = {}
+
+    static setup (){
+        this.#setupMenu()
+        //this.#layoutViewer = new viewer ('songLayout')
+    }
+
+
+    static #setupMenu(){
+        this.#songMenu = new menu ('songs', 'songs')
+        this.#songMenu.setup()
+
+        
+        //prepare items
+        //position and dimension
+    }
+
+    static #setPosition(){}
+    static #setDimensions(){
+
+    }
+
+
+    static load (){
+        const songs = songsData.getAllSongs()
+        this.#songMenu.update(songs)
+    }
+
+
+}
+
+class menu {
+
+    #items = []
+    #itemRendering = {}
+
+    constructor(id, title){
+        this.id = id
+        this.title = title
+    }
+
+    setup(){
+        this.setupControllers()
+        this.setupWindow()
+    }
+
+    setupWindow(){
+        this.div = new div (this.id)
+        this.svg = new canvas (this.id, this.div.getElement())
+    }
+
+    setupControllers(){
+        this.#itemRendering = new listItemRendering
+    }
+
+    update(items){
+        this.#items = items
+        this.fitToItems()
+        this.#itemRendering.render(this.svg.getElement(), this.#items)
+    }
+
+    fitToItems(){
+        const divDimensions = this.getDivDimensions()
+        const SVGDimensions = this.getSVGDimensions(this.#items.length)
+        this.div.resize(divDimensions.width, divDimensions.height)
+        this.svg.resize(SVGDimensions.width, SVGDimensions.height)
+    }
+
+    renderItems(){
+
+    }
+
+    getSVGDimensions(menuItemCount){
+        return {
+            width: '100%',
+            height: menuItemCount * menuItem.fontSize * 2 - menuItem.padding
+        }
+    }
+
+    getDivDimensions(){
+        return {
+            width: window.innerWidth / 2,
+            height: this.calculateDivHeight()
+        }
+    }
+
+    calculateDivHeight(){
+        const scaledWindowHeight = window.innerHeight * 0.618
+        const maxItemCount = Math.floor(scaledWindowHeight / (menuItem.fontSize * 2))
+        return maxItemCount * menuItem.fontSize * 2 + menuItem.padding * 3
+    }
+}
+
+class menuItem {
+    static fontSize = 16
+    static padding = 4
+}
+
+
+class viewer {
+    constructor(id){
+        this.id = id
+    }
+
+    setupWindow(){
+        this.div = new div (this.id)
+        this.svg = new canvas (this.id, this.div.getElement())
+    }
+}
+
+
+
+
+
+class navigation {
+    static #displays = []
+
+    static loadSongLayouts(){
+
+    }
 }
 
 class songListRendering{
@@ -89,17 +204,30 @@ class songPositioning {
 
 }
 
+class container {
+    
+    constructor(id, container = d3.select('body')){
+
+    }
+
+    setPosition(){}
+    setDimensions(){}
+    createElement(){}
+
+
+}
+
 class canvas{
-    constructor(id, container = d3.select('body'), dimensions){
+    constructor(id, container = d3.select('body')){
         this.id = 'canvas' + id
         this.container = container
-        this.createElement(dimensions.width, dimensions.height)
+        this.createElement()
     }
-    createElement(width, height){
+    createElement(width = 10, height = 10){
         this.container.append('svg')
             .attr('id', this.id)
-            .attr('width', width)
-            .attr('height', height)
+            //.attr('width', width)
+            //.attr('height', height)
     }
 
     getElement(){

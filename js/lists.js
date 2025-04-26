@@ -55,7 +55,31 @@ class list {
         return this.items.findIndex(item => item.selected === true)
     }
 
+    selectItem(){
+        
+    }
 
+
+}
+
+class songListControl {
+
+    static #songs = []
+    static #list = {}
+
+    static load (){
+        this.#songs = songsData.getAllSongs()
+        this.#list = new list('songs', this.#songs)
+    }
+
+
+    static selectSong (songID) {
+       const thisSong = this.#songs.find(song => song.id === songID)
+       thisSong.selected = true
+    }
+
+
+     
 }
 
 function onItemHover(){
@@ -81,7 +105,9 @@ function onItemOut(){
 }
 
 function onItemClick(){
-
+    //get list name
+    //load/unload relevant content
+    //update list
 
 }
 
@@ -98,7 +124,7 @@ class listItemRendering {
         const positioning = new listItemPositioning (items)
         const enterFn = this.#enter
 
-        canvas.selectAll('g.songTitle')
+        canvas.selectAll('g.listItem')
             .data(items, d => d.id)
             .join(
                 enter => enterFn(enter, positioning),
@@ -109,7 +135,7 @@ class listItemRendering {
 
     #enter(selection, positioning){
         const g = selection.append('g')
-            .attr('class', 'songTitle')
+            .attr('class', 'listItem')
             .attr('id', d => d.id)
             .attr('transform', (d, i) => positioning.getTranslate(i))
             .on('mouseover', onItemHover)

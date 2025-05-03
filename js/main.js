@@ -4,7 +4,7 @@ window.onload = async function(){
 }
 
 function loadSongLayouts(){
-    //songLayoutsDisplay.setup()
+    songLayoutsDisplay.setup()
     songLayoutsDisplay.load()
 }
 
@@ -25,42 +25,177 @@ class songLayoutsDisplay {
     static #songMenu = {}
     static #layoutViewer = {}
 
-
-    static setup (){
-        
-        
-        
-        //this.#setupMenu()
-        //this.#layoutViewer = new viewer ('songLayout')
+    static setup(){
+        this.div = new div ('songLayout')
+        this.svg = new canvas ('songLayout', this.div.getElement())
     }
-
-
-    static #setupMenu(){
-        this.#songMenu = new menu ('songs', 'songs')
-        this.#songMenu.setup()
-
-        
-        //prepare items
-        //position and dimension
-    }
-
-    static #setPosition(){}
-    static #setDimensions(){
-
-    }
-
 
     static load (){
-        songListControl.load()
-        //const songs = songsData.getAllSongs()
-        //this.#songMenu.update(songs)
+        songListControl.load(this.div, this.svg)
     }
 
-
-    static #buildMenu(){
-        this.#songMenu = new menu ('songs', songsData.getAllSongs())
+    static loadLayout(songID){
+        const sections = songSectionsData.getSongSections(songID)
+        const structuring = new songStructuring (sections)
+        const stacks = structuring.createStacks()
+        renderSectionBlocks(this.svg.getElement(), sections)
     }
 
+}
+
+class songListControl {
+
+    static #songs = []
+    static #songMenu = {}
+
+    static load (div, svg){
+        this.#songMenu = new menu ('songs', 'songs')
+        this.#songMenu.setup(div, svg)
+        this.#songs = songsData.getAllSongs()
+        this.#songMenu.update(this.#songs)
+    }
+
+    static selectSong (songID) {
+        this.deselectAll()
+        const thisSong = this.#songs.find(song => song.id === songID)
+        thisSong.selected = true
+        this.#songMenu.update(this.#songs)
+        songLayoutsDisplay.loadLayout(songID)
+    }
+
+    static deselectAll(){
+        this.#songs.forEach(song => song.selected === false)
+    }
+
+}
+
+function onItemHover(){
+    const elem = d3.select(this)
+    const rect = elem.selectAll('rect.bar')
+    const text = elem.selectAll('text')
+    
+    rect.attr('fill', 'pink')
+        .attr('opacity', 1)
+
+    text.style('fill', 'pink')
+}
+
+function onItemOut(){
+    const elem = d3.select(this)
+    const rect = elem.selectAll('rect.bar')
+    const text = elem.selectAll('text')
+
+    rect.attr('fill', 'white')
+        .attr('opacity', 0.4)
+
+    text.style('fill', 'white')
+}
+
+function onItemClick(){
+    const clickedSongID = d3.select(this).attr('id')
+    songListControl.selectSong(clickedSongID)
+
+}
+
+class listItem {
+    static fontSize = 16
+    static padding = 4
+}
+
+
+class listItemRendering {
+
+    render(canvas, items){
+        const positioning = new listItemPositioning (items)
+        const enterFn = this.#enter
+        const updateFn = this.#update
+
+        canvas.selectAll('g.listItem')
+            .data(items, d => d.id)
+            .join(
+                enter => enterFn(enter, positioning),
+                update => updateFn(update, positioning),
+                exit => exit
+            )
+    }
+
+    #enter(selection, positioning){
+        const g = selection.append('g')
+            .attr('class', 'listItem')
+            .attr('id', d => d.id)
+            .attr('transform', (d, i) => positioning.getTranslate(d, i))
+            .on('mouseover', onItemHover)
+            .on('mouseout', onItemOut)
+            .on('click', onItemClick)
+
+        g.append('text')
+            .text(d => d.title)
+            .style('fill', 'white')
+            .style('font-size', listItem.fontSize) 
+            .attr('dx', listItem.padding * 2)
+            .attr('dy', listItem.fontSize + listItem.padding / 2)
+
+        g.append('rect')
+            .attr('class', 'container')
+            .attr('width', 300)
+            .attr('height', listItem.fontSize * 2 - listItem.padding)
+            .attr('fill', 'white')
+            .attr('opacity', 0)
+
+        g.append('rect')
+            .attr('class', 'bar')
+            .attr('width', 4) // 218 about right, but need to make this dynamic
+            .attr('height', listItem.fontSize * 2 - listItem.padding)
+            .attr('fill', 'white')
+            .attr('opacity', 0.4)
+
+    }
+
+    #update(selection, positioning){
+
+        const gT = d3.transition('g').duration(500)
+        const textT = d3.transition('text').duration(500)
+
+        const g = selection.transition(gT)
+            .attr('transform', (d, i) => positioning.getTranslate(d, i))
+            
+        g.select('text').style('fill', d => {return d.selected ? 'white' : 'transparent'})
+
+
+    }
+}
+
+class listItemPositioning {
+
+    constructor(items){
+        this.items = items
+    }
+
+    getTranslate(d, i){
+        const x = this.getPosX()
+        const y = this.getPosY(d, i)
+        return d3Helper.getTranslateString(x, y)
+    }
+
+    getPosX(){
+        return 10
+    }
+    
+    getPosY(d, i){
+        if(this.getSelectedItemIndex() === -1){
+            return (i + 1) * listItem.fontSize * 2
+        } else {
+            return d.selected ? listItem.fontSize * 2 : -50
+        }
+
+
+        const distanceFromSelected = i - this.getSelectedItemIndex()
+        return distanceFromSelected * listItem.fontSize * 2
+    }
+
+    getSelectedItemIndex(){
+        return this.items.findIndex(item => item.selected === true)
+    }
 
 }
 
@@ -74,25 +209,18 @@ class menu {
         this.#items = items
     }
 
-    createWindow(){
-        this.div = new div (this.id)
-        this.svg = new canvas (this.id, this.div.getElement())
-    }
-   
     createMenuItems(data){
 
     }
 
 
-    setup(){
+    setup(div, svg){
         this.setupControllers()
-        this.setupWindow()
+        this.div = div
+        this.svg = svg
+        //this.setupWindow()
     }
 
-    setupWindow(){
-        this.div = new div (this.id)
-        this.svg = new canvas (this.id, this.div.getElement())
-    }
 
     setupControllers(){
         this.#itemRendering = new listItemRendering
@@ -149,20 +277,6 @@ class menuItem {
 }
 
 
-class viewer {
-    constructor(id){
-        this.id = id
-    }
-
-    setupWindow(){
-        this.div = new div (this.id)
-        this.svg = new canvas (this.id, this.div.getElement())
-    }
-}
-
-
-
-
 
 class navigation {
     static #displays = []
@@ -172,77 +286,11 @@ class navigation {
     }
 }
 
-class songListRendering{
-
-    renderList(canvas, songs){
-        const songPos = new songPositioning (songs)
-        const enterFn = this.#enter
-
-        canvas.selectAll('g.songTitle')
-            .data(songs, d => d.id)
-            .join(
-                enter => enterFn(enter, songPos),
-                update => update,
-                exit => exit
-            )
-    }
-
-    #enter(selection, songPos){
-        const g = selection.append('g')
-            .attr('class', 'songTitle')
-            .attr('id', d => d.id)
-            .attr('transform', (d, i) => songPos.getTranslate(i))
-
-        g.append('text')
-            .text(d => d.title)
-            .style('fill', 'white') 
-    }
-
-}
-
 class d3Helper {
     static getTranslateString(x, y){
         return "translate(" + x + "," + y + ")"
     }
 } 
-
-class songPositioning {
-    #songs = []
-
-    constructor (songs){
-        this.#songs = songs
-    } 
-
-    getTranslate(i){
-        const x = this.getPosX()
-        const y = this.getPosY(i)
-        return d3Helper.getTranslateString(x, y)
-    }
-
-    getPosX(){
-        return 10
-    }
-    
-    getPosY(i){
-        const distanceFromSelected = i - songsData.getSelectedIndex()
-        return distanceFromSelected * 16
-    }
-
-
-}
-
-class container {
-    
-    constructor(id, container = d3.select('body')){
-
-    }
-
-    setPosition(){}
-    setDimensions(){}
-    createElement(){}
-
-
-}
 
 class canvas{
     constructor(id, container = d3.select('body')){
@@ -293,8 +341,6 @@ class div {
     }
 
 }
-
-
 
 class songsData {
 
@@ -448,17 +494,6 @@ class songSectionSetup {
 
 }
 
-class songLayoutSetup {
-    #sections = []
-
-    constructor(sections){
-        this.#sections = sections
-    }
-
-    getDataToRender(){
-         
-    }
-}
 
 class multiSongLayoutSetup {
 
@@ -711,9 +746,10 @@ class formalSection {
 
 
 function renderSectionBlocks (canvas, data){
-    canvas.selectAll('rect')
+    canvas.selectAll('rect.section')
         .data(data)
         .join('rect')
+        .attr('class','section')
         .attr('id', d => d.id)
         .attr('height', 12)
         .attr('width', 12)

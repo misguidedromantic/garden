@@ -4,7 +4,7 @@ window.onload = async function(){
 }
 
 function loadSongLayouts(){
-    songLayoutsDisplay.setup()
+    //songLayoutsDisplay.setup()
     songLayoutsDisplay.load()
 }
 
@@ -25,8 +25,12 @@ class songLayoutsDisplay {
     static #songMenu = {}
     static #layoutViewer = {}
 
+
     static setup (){
-        this.#setupMenu()
+        
+        
+        
+        //this.#setupMenu()
         //this.#layoutViewer = new viewer ('songLayout')
     }
 
@@ -47,8 +51,14 @@ class songLayoutsDisplay {
 
 
     static load (){
-        const songs = songsData.getAllSongs()
-        this.#songMenu.update(songs)
+        songListControl.load()
+        //const songs = songsData.getAllSongs()
+        //this.#songMenu.update(songs)
+    }
+
+
+    static #buildMenu(){
+        this.#songMenu = new menu ('songs', songsData.getAllSongs())
     }
 
 
@@ -59,10 +69,20 @@ class menu {
     #items = []
     #itemRendering = {}
 
-    constructor(id, title){
+    constructor(id, items){
         this.id = id
-        this.title = title
+        this.#items = items
     }
+
+    createWindow(){
+        this.div = new div (this.id)
+        this.svg = new canvas (this.id, this.div.getElement())
+    }
+   
+    createMenuItems(data){
+
+    }
+
 
     setup(){
         this.setupControllers()
@@ -119,6 +139,13 @@ class menu {
 class menuItem {
     static fontSize = 16
     static padding = 4
+
+    constructor(label, action){
+        this.label = label
+        this.action = action
+    }
+
+
 }
 
 

@@ -1,11 +1,12 @@
 window.onload = async function(){
     await prepareData()
-    loadSongLayouts()
+    displays.loadSongsDisplay()
+    //loadSongLayouts()
 }
 
 function loadSongLayouts(){
-    songLayoutsDisplay.setup()
-    songLayoutsDisplay.load()
+    songLayoutDisplay.setup()
+    songLayoutDisplay.load()
 }
 
 function loadSongList(){
@@ -20,18 +21,153 @@ async function prepareData(){
     return Promise.resolve()
 }
 
-class songLayoutsDisplay {
+class displays {
 
-    static #songMenu = {}
+    static #songDisplay = {}
+
+    static loadSongsDisplay (){
+        this.#songDisplay = new songDisplay
+        this.#songDisplay.setup()
+        this.#songDisplay.loadMenu()
+    }
+
+}
+
+class songDisplay {
+
+    #menuControl = {}
+    #windowControl = {}
+
+    setup(){        
+        this.setupWindow()
+        this.setupMenu()
+    }
+
+    setupWindow(id = this.constructor.name + 'Window'){
+        this.#windowControl = new windowControl
+        this.#windowControl.createDiv(id)
+        this.#windowControl.createSVG(id)
+    }
+
+    setupMenu(){
+        this.#menuControl = new menuControl
+        this.#menuControl.create('songs')
+        this.#menuControl.setItems(songsData.getAllSongs())
+    }
+
+    loadMenu(){
+        const dimensions = this.#menuControl.getDimensionsExpanded()
+        console.log(dimensions)
+        this.#windowControl.resize(dimensions)
+        this.#menuControl.update(this.#windowControl.svg)
+    }
+}
+
+class windowControl {
+    
+    div = {}
+    svg = {}
+    divWidth = 0
+    divHeight = 0
+    svgWidth = 0
+    svgHeight = 0
+
+    createDiv(id, container = d3.select('body')){
+        this.div = container.append('div').attr('id', id + 'Div')
+    }
+    
+    createSVG(id, container = this.div){
+        this.svg = container.append('svg').attr('id', id + 'Svg')
+    }
+
+    resize(dimensions){
+        this.resizeDiv(dimensions.width, dimensions.divHeight)
+        this.resizeSVG(dimensions.width, dimensions.svgHeight)
+    }
+
+
+    resizeDiv(width, height){
+        this.div.style('width', width + "px").style('height', height + "px")
+    }
+
+    resizeSVG(width, height){
+        this.svg.attr('width', width).attr('height', height)
+    }
+
+}
+
+class menuControl {
+
+    #menu = {}
+    #itemRendering = {}
+    
+    create(menuName){
+        this.#menu = new menu (menuName)
+        this.#itemRendering = new menuItemRendering
+    }
+
+    setItems(items){
+        this.#menu.items = items
+    }
+
+    getDimensionsExpanded(){
+        return {
+            divHeight: this.#getMaxWindowHeight(),
+            svgHeight: this.#getAllItemsHeight(),
+            width: this.#menu.maxWidth
+        }
+    }
+
+    #getAllItemsHeight(){
+        return this.#calculateHeightForItems(this.#menu.items.length)
+    }
+
+    #getMaxWindowHeight(){
+        const allItemsHeight = this.#getAllItemsHeight()
+        return allItemsHeight < this.#menu.maxHeight ? allItemsHeight : this.#menu.maxHeight
+    }
+
+    #calculateHeightForItems(itemCount){
+        return (itemCount + 1) * menuItem.fontSize * 2 + menuItem.padding * 3
+    }
+
+    update(svg){
+        this.#itemRendering.render(svg, this.#menu.items)
+    }
+}
+
+
+class songLayoutDisplay {
+
+    static #menu = {}
+    static #windowSettings = {}
     static #layoutViewer = {}
+    static #menuItemRendering = {}
 
     static setup(){
+        this.#setupWindow()
+        
+
+
+    }
+
+    static #setupWindow(){
         this.div = new div ('songLayout')
-        this.svg = new canvas ('songLayout', this.div.getElement())
+        this.svg = new svg ('songLayout', this.div.getElement())
+        this.#windowSettings = new layoutWindowSettings (this.div, this.svg)
+    }
+
+    static #setupMenu(){
+        this.#menu = new menu ('songs')
+        this.#menuItemRendering = new menuItemRendering
     }
 
     static load (){
-        songListControl.load(this.div, this.svg)
+        this.#menu.items = songsData.getAllSongs()
+        this.#menuItemRendering.render(this.svg, this.#menu.items)
+        this.#windowSettings.setDimensionsToExpandedMenu(this.#menu.items.length)
+        this.div.resize()
+        this.svg.resize()
     }
 
     static loadLayout(songID){
@@ -40,8 +176,57 @@ class songLayoutsDisplay {
         const stacks = structuring.createStacks()
         renderSectionBlocks(this.svg.getElement(), sections)
     }
+}
+
+class layoutWindowRendering {
+
+    createWindow(){
+
+    }
 
 }
+
+class windowSettings {
+
+    constructor(div, svg){
+        this.div = div
+        this.svg = svg
+        this.#setBounds()
+    }
+
+    setDimensionsToExpandedMenu(itemCount){
+        this.setToMenuExpandedHeight(itemCount)
+        this.setToMenuWidth()
+    }
+
+    setToMenuWidth(){
+        this.div.width = this.maxMenuWidth
+        this.svg.width = '100%'
+    }
+
+    setToMenuExpandedHeight(itemCount){
+        this.div.height = this.#getExpandedMenuHeight(itemCount)
+        this.svg.height = this.#getExpandedMenuHeight(itemCount)
+    }
+
+    #setBounds(){
+        this.minHeight = this.#getHeightForItemCount(2)
+        this.maxHeight = window.innerHeight * 0.618
+        this.maxMenuWidth = window.innerWidth / 2
+    }
+
+    #getExpandedMenuHeight(itemCount){
+        const allItemsHeight = this.#getHeightForItemCount(itemCount)
+        return allItemsHeight < this.maxHeight ? allItemsHeight : this.maxHeight
+    }
+
+    #getHeightForItemCount(itemCount){
+        return itemCount * menuItem.fontSize * 2 + menuItem.padding * 3
+    }
+
+}
+
+
 
 class songListControl {
 
@@ -103,14 +288,16 @@ class listItem {
 }
 
 
-class listItemRendering {
+class menuItemRendering {
 
-    render(canvas, items){
+    #svg = {}
+
+    render(svg, items){
         const positioning = new listItemPositioning (items)
         const enterFn = this.#enter
         const updateFn = this.#update
 
-        canvas.selectAll('g.listItem')
+        svg.selectAll('g.listItem')
             .data(items, d => d.id)
             .join(
                 enter => enterFn(enter, positioning),
@@ -200,67 +387,18 @@ class listItemPositioning {
 }
 
 class menu {
+    items = []
+    maxHeight = 0
+    maxWidth = 0
 
-    #items = []
-    #itemRendering = {}
-
-    constructor(id, items){
+    constructor(id){
         this.id = id
-        this.#items = items
+        this.setMaxDimensions()
     }
 
-    createMenuItems(data){
-
-    }
-
-
-    setup(div, svg){
-        this.setupControllers()
-        this.div = div
-        this.svg = svg
-        //this.setupWindow()
-    }
-
-
-    setupControllers(){
-        this.#itemRendering = new listItemRendering
-    }
-
-    update(items){
-        this.#items = items
-        this.fitToItems()
-        this.#itemRendering.render(this.svg.getElement(), this.#items)
-    }
-
-    fitToItems(){
-        const divDimensions = this.getDivDimensions()
-        const SVGDimensions = this.getSVGDimensions(this.#items.length)
-        this.div.resize(divDimensions.width, divDimensions.height)
-        this.svg.resize(SVGDimensions.width, SVGDimensions.height)
-    }
-
-    renderItems(){
-
-    }
-
-    getSVGDimensions(menuItemCount){
-        return {
-            width: '100%',
-            height: menuItemCount * menuItem.fontSize * 2 - menuItem.padding
-        }
-    }
-
-    getDivDimensions(){
-        return {
-            width: window.innerWidth / 2,
-            height: this.calculateDivHeight()
-        }
-    }
-
-    calculateDivHeight(){
-        const scaledWindowHeight = window.innerHeight * 0.618
-        const maxItemCount = Math.floor(scaledWindowHeight / (menuItem.fontSize * 2))
-        return maxItemCount * menuItem.fontSize * 2 + menuItem.padding * 3
+    setMaxDimensions(){
+        this.maxHeight = window.innerHeight * 0.618
+        this.maxWidth = window.innerWidth / 2
     }
 }
 
@@ -292,9 +430,14 @@ class d3Helper {
     }
 } 
 
-class canvas{
+class svg{
+
+    width = 0
+    height = 0
+    
+
     constructor(id, container = d3.select('body')){
-        this.id = 'canvas' + id
+        this.id = 'svg' + id
         this.container = container
         this.createElement()
     }
@@ -319,6 +462,12 @@ class canvas{
 }
 
 class div {
+
+    width = 0
+    height = 0
+    top = 0
+    left = 0
+    
     constructor(id, container = d3.select('body')){
         this.id = 'div' + id
         this.container = container
@@ -559,11 +708,11 @@ class songSectionGrid {
 }
 
 class songLayoutRendering {
-    renderLayout(canvas, data){
+    renderLayout(svg, data){
 
         const classGrid = new songSectionGrid (data)
 
-        canvas.selectAll('rect')
+        svg.selectAll('rect')
             .data(data)
             .join('rect')
             .attr('id', d => d.id)
@@ -577,8 +726,8 @@ class songLayoutRendering {
             .on('mouseout', sectionRectOff)
     }
 
-    renderSongTitle(canvas, song){
-        canvas.selectAll('text#songTitle')
+    renderSongTitle(svg, song){
+        svg.selectAll('text#songTitle')
             .data(song)
             .join(
                 enter => enter.append('text')
@@ -745,8 +894,8 @@ class formalSection {
 }
 
 
-function renderSectionBlocks (canvas, data){
-    canvas.selectAll('rect.section')
+function renderSectionBlocks (svg, data){
+    svg.selectAll('rect.section')
         .data(data)
         .join('rect')
         .attr('class','section')

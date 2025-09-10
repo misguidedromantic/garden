@@ -1,46 +1,189 @@
 window.onload = async function(){
-    await prepareData()
-    displays.loadSongsDisplay()
-    //loadSongLayouts()
+
+    songsData.loadSongwritingArtefacts()
+
+    function createGoodAfterBad(){
+        const artefacts = songsData.getAllSongwritingArtefacts()
+        const gab = new song('gab', 'Good After Bad')
+        gab.addSongwritingEvent(new songwritingEvent(gab, 'structure', artefacts[3]))
+
+        function createSectionArchetypes(gab){
+            function setupVerse(songID){
+                const verse = new songSectionArchetype(songID + 'Verse', 'verse')
+                gab.addSongwritingEvent(new songwritingEvent(verse, 'melody', artefacts[0])),
+                gab.addSongwritingEvent(new songwritingEvent(verse, 'chords', artefacts[0]))
+                return verse
+            }
+    
+            function setupChorus(songID){
+                const chorus = new songSectionArchetype(songID + 'Chorus', 'chorus')
+                gab.addSongwritingEvent(new songwritingEvent(chorus, 'melody', artefacts[2])),
+                gab.addSongwritingEvent(new songwritingEvent(chorus, 'chords', artefacts[2]))
+                return chorus
+            }
+            
+            gab.addSectionArchetype(setupVerse(gab.id))
+            gab.addSectionArchetype(setupChorus(gab.id))
+        }
+    
+        function createSectionInstances(gab){
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Intro', 'Verse', 1))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 2))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus1', 'Chorus', 3))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 4))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus2', 'Chorus', 5))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus3', 'Chorus', 6))
+            gab.addSectionInstance(new songSectionInstance(gab.id, 'Outro', 'Chorus', 7))
+        }
+
+        createSectionArchetypes(gab)
+        createSectionInstances(gab)
+        return gab
+    }
+
+    function getHistories(song){
+        return song.sectionArchetypes.flatMap(outerObject => 
+            outerObject.history.map(innerObject => ({
+                sectionID: outerObject.id,
+                historyEvent: innerObject.event,
+                historyDate: innerObject.date
+            })))
+
+    }
+
+    
+
+    
+    const goodAfterBad = createGoodAfterBad()
+    const histories = getHistories(goodAfterBad)
+    displays.loadSongHistoryDisplay(goodAfterBad, histories)
+
 }
 
-function loadSongLayouts(){
-    songLayoutDisplay.setup()
-    songLayoutDisplay.load()
-}
 
-function loadSongList(){
-    const songs = songsData.getAllSongs()
-    const songList = new list('songs', songs)
-    console.log(songList)
-}
+class song {
+    constructor(id, title){
+        this.id = id
+        this.title = title
+        this.sectionArchetypes = []
+        this.sectionInstances = []
+        this.history = []
+    }
 
-async function prepareData(){
-    await songsData.load()
-    await songSectionsData.load()
-    return Promise.resolve()
-}
+    addSectionArchetype(archetype){
+        this.sectionArchetypes.push(archetype)
+    }
 
-class displays {
+    addSectionInstance(instance){
+        this.sectionInstances.push(instance)
+    }
 
-    static #songDisplay = {}
+    addSongwritingEvent(event){
+        this.history.push(event)
+    }
 
-    static loadSongsDisplay (){
-        this.#songDisplay = new songDisplay
-        this.#songDisplay.setup()
-        this.#songDisplay.loadMenu()
+    addKeyDate(event, year, month){
+        month = month - 1
+        const eventDate = new Date (year, month)
+        this.history.push({event: event, date: eventDate})
+    }
+
+    getArchetype(archetypeID){
+        return this.sectionArchetypes.find(obj => obj.id = archetypeID)
     }
 
 }
 
-class songDisplay {
 
-    #menuControl = {}
+class songSectionArchetype {
+    constructor(id, type, parentID = null){
+        this.id = id
+        this.type = type
+        this.parentID = parentID
+        this.history = []
+    }
+
+    addKeyDate(event, year, month){
+
+        month = month - 1
+        const eventDate = new Date (year, month)
+        this.history.push({event: event, date: eventDate})
+    }
+
+    getConceptionDate(){
+        const entry = this.history.find(entry => entry.event === 'conception')
+        console.log(entry)
+    }
+}
+
+class songwritingEvent {
+    constructor(structuralElement, musicalElement, sourceArtefact){
+
+    }
+}
+
+class songwritingArtefact {
+    constructor(dateString, type, title){
+        this.date = getDate(dateString)
+        this.type = type
+        this.title = title
+        this.events = []
+    }
+
+    addSongwritingEvent(event){
+        this.events.push(event)
+    }
+
+}
+
+function getDate(string){
+    const arr = string.split("-")
+    return new Date (arr[0], arr[1], arr[2])
+}
+
+class songSectionInstance {
+    constructor(songID, sectionType, archetypeType, sequenceNumber){
+        this.id = songID + sectionType
+        this.type = sectionType
+        this.archetypeID = songID + archetypeType
+        this.sequenceNumber = sequenceNumber
+    }
+
+}
+
+
+
+async function prepareData(){
+    await songsData.load()
+    await songSectionsData.load()
+    //songConceptModelData.load()
+    return Promise.resolve()
+}
+
+function loadDisplay(displayName){
+
+}
+
+class displays {
+
+    static #songsHistoryDisplay = {}
+
+    static loadSongHistoryDisplay(song, histories){
+        this.#songsHistoryDisplay = new songHistoryDisplay(song)
+        this.#songsHistoryDisplay.renderArchetypeHistories(histories)
+        //this.#songsHistoryDisplay.renderHistory(song)
+    }
+
+}
+class songHistoryDisplay {
+
     #windowControl = {}
+    static timeSpan = {}
+    static xScale = {}
 
-    setup(){        
+    constructor(song){        
         this.setupWindow()
-        this.setupMenu()
+        this.setScale(song)
     }
 
     setupWindow(id = this.constructor.name + 'Window'){
@@ -48,6 +191,165 @@ class songDisplay {
         this.#windowControl.createDiv(id)
         this.#windowControl.createSVG(id)
     }
+
+    setScale(song){
+        songHistoryDisplay.xScale = {
+            min: 15,
+            max: 250
+        }
+        this.setTimeSpan(this.getSectionArray(song))
+    }
+
+    renderHistory(song){
+
+        const svg = d3.select('#songHistoryDisplayWindowSvg')
+        const data = this.getSectionArray(song)
+        this.setTimeSpan(data)
+        
+        const func = {
+            getPosX: this.getPosX,
+            getPosY: this.getPosY,
+            scalePoint: this.scalePoint
+        }
+
+        console.log(data)
+
+        svg.selectAll('rect')
+            .data(data, d => d.id)
+            .join(
+                enter => enter.append('rect')
+                    .attr('id', d => d.id)
+                    .attr('height', 12)
+                    .attr('width', 12)
+                    .attr('fill', 'grey')
+                    .attr('x', d => func.getPosX(d, func.scalePoint))
+                    .attr('y', d => func.getPosY(d)),
+                update => update,
+                exit => exit
+            )
+    }
+
+    renderArchetypeHistories(historyData){
+        
+        const svg = d3.select('#songHistoryDisplayWindowSvg')
+        const func = {
+            getPosX: this.getPosX,
+            getPosY: this.getPosY,
+            scalePoint: this.scalePoint
+        }
+
+        console.log(historyData)
+        
+        svg.selectAll('rect')
+            .data(historyData, d => d.id)
+            .join(
+                enter => enter.append('rect')
+                    .attr('id', d => d.id)
+                    .attr('height', 12)
+                    .attr('width', 12)
+                    .attr('fill', 'grey')
+                    .attr('x', d => func.scalePoint(d.historyDate.getTime()))
+                    .attr('y', 30),
+                update => update,
+                exit => exit
+            )
+
+
+
+    }
+
+    getPosX(d, scaleFunc){
+        
+        
+        if(d.constructor.name === 'songSectionArchetype'){
+            const conception = d.history.find(obj => obj.event === 'conception')
+            return scaleFunc(conception.date.getTime())
+        }
+
+        else{
+            return songHistoryDisplay.xScale.max + 15
+        }
+    }
+
+    getPosY(d){
+        let multiplier = 0
+        if(d.constructor.name === 'songSectionArchetype'){
+            switch(d.type){
+                case 'verse':
+                    multiplier = 1
+                    break;
+                
+                case 'chorus':
+                    multiplier = 2
+                    break;
+            }
+        } else {
+            multiplier = d.sequenceNumber
+        }
+        
+        return multiplier * 15
+    }
+
+    getSectionArray(song){
+        return [...song.sectionArchetypes, ...song.sectionInstances]
+    }
+
+    getArchetypeHistories(song){
+        const histories = song.sectionArchetypes.map(obj => obj.history)
+        
+    }
+
+    setTimeSpan(sections){
+        const events = this.getSectionHistorySerials(sections)
+        songHistoryDisplay.timeSpan = {
+            min: Math.min(...events),
+            max: Math.max(...events)
+        }
+    }
+
+    getSectionHistorySerials(sections){
+        const events = new Set()
+        
+        sections.forEach(section => {
+            if(section.constructor.name === 'songSectionArchetype'){
+                section.history.forEach(historyEvent => {
+                    events.add(historyEvent.date.getTime())
+                })
+            }
+        })
+
+        return events
+    }
+
+    scalePoint(value){
+        const inMin = songHistoryDisplay.timeSpan.min
+        const inMax = songHistoryDisplay.timeSpan.max
+        const outMin = songHistoryDisplay.xScale.min
+        const outMax = songHistoryDisplay.xScale.max
+        const scaledValue = (value - inMin) * (outMax -outMin) / (inMax - inMin) + outMin
+        return scaledValue
+    }
+}
+
+
+
+class songsDisplay {
+
+    #menuControl = {}
+    #windowControl = {}
+    #historyControl = {}
+
+    setup(){        
+        this.setupWindow()
+        //this.setupMenu()
+    }
+
+    setupWindow(id = this.constructor.name + 'Window'){
+        this.#windowControl = new windowControl
+        this.#windowControl.createDiv(id)
+        this.#windowControl.createSVG(id)
+    }
+
 
     setupMenu(){
         this.#menuControl = new menuControl
@@ -57,9 +359,15 @@ class songDisplay {
 
     loadMenu(){
         const dimensions = this.#menuControl.getDimensionsExpanded()
-        console.log(dimensions)
         this.#windowControl.resize(dimensions)
         this.#menuControl.update(this.#windowControl.svg)
+    }
+
+    loadSongLayout(songID){
+        const sections = songSectionsData.getSongSections(songID)
+        const structuring = new songStructuring (sections)
+        structuring.createStacks()
+        renderSectionBlocks(this.#windowControl.svg, sections)
     }
 }
 
@@ -96,10 +404,14 @@ class windowControl {
 
 }
 
+
 class menuControl {
+    
+    items = []
 
     #menu = {}
     #itemRendering = {}
+    
     
     create(menuName){
         this.#menu = new menu (menuName)
@@ -108,6 +420,12 @@ class menuControl {
 
     setItems(items){
         this.#menu.items = items
+    }
+
+    selectItem(clickedItemID){
+        const clickedItem = this.#menu.items.find(item => item.id = clickedItemID)
+        clickedItem.selected = true
+        
     }
 
     getDimensionsExpanded(){
@@ -241,8 +559,10 @@ class songListControl {
     }
 
     static selectSong (songID) {
+        console.log(this.#songs)
         this.deselectAll()
         const thisSong = this.#songs.find(song => song.id === songID)
+        console.log(thisSong)
         thisSong.selected = true
         this.#songMenu.update(this.#songs)
         songLayoutsDisplay.loadLayout(songID)
@@ -278,7 +598,8 @@ function onItemOut(){
 
 function onItemClick(){
     const clickedSongID = d3.select(this).attr('id')
-    songListControl.selectSong(clickedSongID)
+
+    //songListControl.selectSong(clickedSongID)
 
 }
 
@@ -491,116 +812,7 @@ class div {
 
 }
 
-class songsData {
 
-    static #songs = []
-
-    static async load(){
-        const songsData = await d3.csv('data/songs.csv')
-        songsData.forEach(songDatum => {
-            const thisSong = new song(songDatum.short_title)
-            thisSong.title = songDatum.title
-            this.#songs.push(thisSong)
-        })
-
-        return Promise.resolve()
-    }
-
-    static getAllSongs(){
-        return this.#songs
-    }
-
-    static getSelectedIndex(){
-        return this.#songs.findIndex(song => song.selected === true)
-    }
-
-    static getSectionCount(songID){
-        return songSectionsData.getSongSections(songID).length
-    }
-
-    static getSongIndex(songID){
-        return this.#songs.findIndex(song => song.id === songID)
-    }
-
-    static getSongIDByIndex(songIndex){
-        try{return this.#songs[songIndex].id}
-        catch{return undefined}
-    }
-
-    static getRandomSongID(){
-        return this.#songs[Math.floor(Math.random() * this.#songs.length)]
-    }
-
-    static getSong(songID){
-        return this.#songs.find(song => song.id === songID)
-    }
-
-    static getAllSongTitles(){
-        return this.#songs.map(song => song.title)
-    }
-
-}
-
-class songSectionsData{
-
-    static #sections = []
-    static #form = []
-    static #stacks = []
-
-    static async load(){
-        const data = await this.#extract()
-        this.#setup(data)
-        return Promise.resolve()
-    }
-
-    static async #extract(){
-        return {
-            formalSections: await d3.csv('data/formal_sections.csv'),
-            structuralSections: await d3.csv('data/structural_sections.csv')
-        }
-    }
-
-    static #setup(data){
-        const sectionSetup = new songSectionSetup(data)
-        this.#form = sectionSetup.createFormalSections()
-        this.#sections = sectionSetup.createStructuralSections()
-    }
-
-    static getAllSections(){
-        const structuring = new songStructuring(this.#sections)
-        //this.#stacks = structuring.createStacks()
-        //console.log(this.#stacks)
-        return this.#sections
-    }
-
-    static getSongSections(songID){
-        return this.#sections.filter(section => section.songID === songID)
-    }
-
-    static getFormalSectionType(formalSectionID){
-        const section = this.getFormalSection(formalSectionID)
-        return section.type
-    }
-        
-    static getFormalSection(formalSectionID){
-        return this.#form.find(section => section.id === formalSectionID)
-    }
-
-    static getSectionIndexInSong(thisSection){
-        const songSections = this.getSongSections(thisSection.songID)
-        return songSections.findIndex(section => section.id === thisSection.id)
-    }
-
-    static getTallestStack(songID){
-        const songStacks = this.#stacks.filter(stack => stack.songID === songID)
-        try{return songStacks.reduce((largest, current) => current.length > largest.length ? current : largest)}
-        catch{return 0}
-    }
-
-
-
-
-}
 
 class songSectionSetup {
     constructor(data){
@@ -842,37 +1054,9 @@ class songSectionStack {
 
 }
 
-class song {
-    constructor(id){
-        this.id = id
-        this.selected = false
-    }
 
-    getSectionCount(){
-        return this.sectionIDs.length
-    }
 
-    toggleSelection(){
-        this.selected = true
-    }
-}
 
-class songSection {
-    constructor(id, type){
-        this.id = id
-        this.type = type
-    }
-
-    setReferences(songID, formalSectionID){
-        this.songID = songID
-        this.formalSectionID = formalSectionID
-    }
-
-    setPositionInSong(ordinal){
-        this.ordinal = ordinal
-    }
-
-}
 
 
 

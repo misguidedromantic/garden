@@ -1,6 +1,10 @@
+const gRatio = 1.618
+
 window.onload = async function(){
 
-    songsData.loadSongwritingArtefacts()
+
+
+/*     songsData.loadSongwritingArtefacts()
 
     function createGoodAfterBad(){
         const artefacts = songsData.getAllSongwritingArtefacts()
@@ -51,14 +55,201 @@ window.onload = async function(){
 
     }
 
-    
 
-    
     const goodAfterBad = createGoodAfterBad()
     const histories = getHistories(goodAfterBad)
-    displays.loadSongHistoryDisplay(goodAfterBad, histories)
+    displays.loadSongHistoryDisplay(goodAfterBad, histories) */
+
+    loadPageTitle()
 
 }
+
+function loadPageTitle(text){
+    
+    
+    function create(){
+        const factory = new cardFactory
+        return factory.createCard('mgrTitle', 'titleCard')
+    }
+
+    function configureCard(){
+
+        console.log(window.innerWidth)
+        
+
+        const width = window.innerWidth / gRatio * window.devicePixelRatio
+        const height = width * 9 / 16 * window.devicePixelRatio
+        card.canvas.attr('width', width +'px').attr('height', height + 'px')
+
+
+        //card.div.style('width', width + 'px')
+        //card.canvas.style('width', width + 'px')
+
+    }
+
+    function configureText(text){
+        const lines = text.split(' ')
+
+    }
+
+    
+
+    function getConfiguredContext(canvas, lines){
+
+            function addLines(ctx, lines){
+                let y = 15
+                let lineHeight = 35
+        
+                for (let i = 0; i < lines.length; i++) {
+                    ctx.fillText(lines[i], 50, y + (i * lineHeight));
+                }
+            }
+
+            const ctx = canvas.getContext('2d')
+            ctx.font = '36px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            addLines(ctx, lines)
+
+            return ctx
+    }
+
+    function getImg(imgPath){
+        const img = new Image();
+        img.src = imgPath
+        return img
+    }
+
+    function render(canvas, img, ctx){
+        
+        img.onload = () => {
+            ctx.globalCompositeOperation = 'source-in';
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+    }
+
+    const card = create()
+
+    configureCard(card)
+
+    const canvas = card.canvas.node()
+    const lines = ['MISGUIDED', 'ROMANTIC']
+    const imgPath = 'images/pexels-francesco-ungaro-2325447.jpg'
+    const img = getImg(imgPath)
+    const ctx = getConfiguredContext(canvas, lines)
+    const metrics = ctx.measureText('MISGUIDED')
+    console.log(metrics.width)
+
+
+    console.log(canvas.width)
+
+    render(canvas, img, ctx)
+
+}
+
+function createImageText(canvas){
+            const ctx = canvas.getContext('2d')
+            ctx.textAlign = 'left'
+
+            const img = new Image();
+            img.src = 'images/pexels-francesco-ungaro-2325447.jpg';  // Replace with your image path
+
+            img.onload = () => {
+                ctx.font = '30px Arial';
+                //ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('MISGUIDED', 15, 15);
+                ctx.fillText('ROMANTIC', 15, 45)
+
+                // Set compositing operation to clip the image to the text
+                ctx.globalCompositeOperation = 'source-in';
+
+                console.log(canvas.height)
+
+                // Draw the image, which will now be clipped by the text
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+        }
+
+class card {
+
+    stdCanvas = false
+    svgCanvas = true
+    backgroundColour = 'transparent'
+
+    constructor(id){
+        this.id = id
+    }
+
+}
+
+class titleCard extends card {
+
+    stdCanvas = true
+    svgCanvas = false
+    //backgroundColour = 'transparent'
+
+
+    constructor(id){
+        super(id)
+    }
+}
+
+class cardFactory {
+
+    createCard(id, type = undefined){
+        const card = this.#createObject(id, type)
+        this.#createDomElements(card)
+        return card
+    }
+
+    #createObject(id, type){
+        switch(type){
+            case 'titleCard':
+                return new titleCard(id)
+            default:
+                return new card(id)
+        }
+    }
+
+    #createDomElements(card){
+        this.#addDiv(card)
+        
+        if(card.stdCanvas){
+            this.#addCanvas(card)
+        }
+
+        if(card.svgCanvas){
+            this.#addSvg(card)
+        }
+    }
+
+    #addDiv(card){
+        card.div = d3.select('body')
+            .append('div')
+            .attr('id', card.id + 'Div')
+            .style('position', 'absolute')
+            .style('width', '80%')
+            //.style('border-radius', '10px')
+            .style('background-color', card.backgroundColour)
+            //.style('box-shadow', '0px 0px 0px rgba(0, 0, 0, 0)')
+    }
+
+    #addCanvas(card){
+        card.canvas = card.div.append('canvas')
+            .attr('id', card.id + 'Canvas')
+
+    }
+
+    #addSvg(card){
+        card.svg = card.div.append('svg')
+            .attr('id', card.id + 'Svg')
+    }
+
+}
+
+
 
 
 class song {

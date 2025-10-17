@@ -72,56 +72,63 @@ function loadPageTitle(text){
         return factory.createCard('mgrTitle', 'titleCard')
     }
 
-    function configureCard(){
-
-        console.log(window.innerWidth)
-        
-
+    function configureCard(card){
         const width = window.innerWidth / gRatio * window.devicePixelRatio
         const height = width * 9 / 16 * window.devicePixelRatio
         card.canvas.attr('width', width +'px').attr('height', height + 'px')
-
-
-        //card.div.style('width', width + 'px')
-        //card.canvas.style('width', width + 'px')
-
+        return card.canvas.node()
     }
 
-    function configureText(text){
+    function configureText(canvas, text){
         const lines = text.split(' ')
+        //const lineHeight = canvas.height / (lines.length + 1)
+        const fontHeight = lineHeight * 0.95
+        const ctx = canvas.getContext('2d')
+        ctx.font = fontHeight + 'px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
 
-    }
+        const y = lineHeight / 2
+
+        const widestFontWidth = (lines) => {
+            let widest = 0
+            for (let i = 0; i < lines.length; i++){
+                widest = ctx.measureText(lines[i]).width
+            }
+            return widest
+        }
+
+        function setFontHeight(ctx, canvas, lines){
+            let fontHeight = canvas.height / (lines.length + 1)
+            ctx.font = fontHeight + 'px Arial';
+
+            while (widestFontWidth(lines) > canvas.width){
+                console.log(fontHeight)
+                fontHeight = fontHeight - 1
+                ctx.font = fontHeight + 'px Arial';
+            }
+
+        }
+
+        setFontHeight(ctx, canvas, lines)
+
+
+        for (let i = 0; i < lines.length; i++) {
+            if(ctx.measureText(lines[i]).width > 50){
+                ctx.font = (fontHeight * 0.5) + 'px Arial'
+            }
+
+            ctx.fillText(lines[i], 0, y + (i * lineHeight));
+        }
 
     
 
-    function getConfiguredContext(canvas, lines){
-
-            function addLines(ctx, lines){
-                let y = 15
-                let lineHeight = 35
-        
-                for (let i = 0; i < lines.length; i++) {
-                    ctx.fillText(lines[i], 50, y + (i * lineHeight));
-                }
-            }
-
-            const ctx = canvas.getContext('2d')
-            ctx.font = '36px Arial';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-
-            addLines(ctx, lines)
-
-            return ctx
+        return ctx
     }
 
-    function getImg(imgPath){
+    function render(canvas, imgPath, ctx){
         const img = new Image();
         img.src = imgPath
-        return img
-    }
-
-    function render(canvas, img, ctx){
         
         img.onload = () => {
             ctx.globalCompositeOperation = 'source-in';
@@ -131,20 +138,16 @@ function loadPageTitle(text){
 
     const card = create()
 
-    configureCard(card)
-
-    const canvas = card.canvas.node()
-    const lines = ['MISGUIDED', 'ROMANTIC']
+    const canvas = configureCard(card)
+    const ctx = configureText(canvas, 'MISGUIDED ROMANTIC')
     const imgPath = 'images/pexels-francesco-ungaro-2325447.jpg'
-    const img = getImg(imgPath)
-    const ctx = getConfiguredContext(canvas, lines)
     const metrics = ctx.measureText('MISGUIDED')
     console.log(metrics.width)
 
 
     console.log(canvas.width)
 
-    render(canvas, img, ctx)
+    render(canvas, imgPath, ctx)
 
 }
 

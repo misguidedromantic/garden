@@ -2,8 +2,6 @@ const gRatio = 1.618
 
 window.onload = async function(){
 
-
-
 /*     songsData.loadSongwritingArtefacts()
 
     function createGoodAfterBad(){
@@ -65,120 +63,107 @@ window.onload = async function(){
 }
 
 function loadPageTitle(text){
-    
+
+    let card = {}
+    const fontSize = 200
+    const words = ['MISGUIDED', 'ROMANTIC']
+    const rendering = new cardRendering
     
     function create(){
         const factory = new cardFactory
-        return factory.createCard('mgrTitle', 'titleCard')
+        card = factory.createCard('mgrTitle', 'titleCard')
     }
 
-    function configureCard(card){
-        const width = window.innerWidth / gRatio * window.devicePixelRatio
-        const height = width * 9 / 16 * window.devicePixelRatio
-        card.canvas.attr('width', width +'px').attr('height', height + 'px')
-        return card.canvas.node()
+    function configureCard(){
+        const config = new cardConfiguration
+        config.setDimensions(card)
+        rendering.resizeStatic(card)
     }
 
-    function configureText(canvas, text){
-        const lines = text.split(' ')
-        //const lineHeight = canvas.height / (lines.length + 1)
-        const fontHeight = lineHeight * 0.95
-        const ctx = canvas.getContext('2d')
-        ctx.font = fontHeight + 'px Arial';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-
-        const y = lineHeight / 2
-
-        const widestFontWidth = (lines) => {
-            let widest = 0
-            for (let i = 0; i < lines.length; i++){
-                widest = ctx.measureText(lines[i]).width
-            }
-            return widest
-        }
-
-        function setFontHeight(ctx, canvas, lines){
-            let fontHeight = canvas.height / (lines.length + 1)
-            ctx.font = fontHeight + 'px Arial';
-
-            while (widestFontWidth(lines) > canvas.width){
-                console.log(fontHeight)
-                fontHeight = fontHeight - 1
-                ctx.font = fontHeight + 'px Arial';
-            }
-
-        }
-
-        setFontHeight(ctx, canvas, lines)
-
-
-        for (let i = 0; i < lines.length; i++) {
-            if(ctx.measureText(lines[i]).width > 50){
-                ctx.font = (fontHeight * 0.5) + 'px Arial'
-            }
-
-            ctx.fillText(lines[i], 0, y + (i * lineHeight));
-        }
-
-    
-
-        return ctx
-    }
-
-    function render(canvas, imgPath, ctx){
-        const img = new Image();
-        img.src = imgPath
+    function addText(){
         
-        img.onload = () => {
-            ctx.globalCompositeOperation = 'source-in';
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
+        card.svg.selectAll('text')
+            .data(words)
+            .join('text')
+            .text(d => d)
+            .attr('id', d => d)
+            .style('fill', 'white')
+            .style('font-size', fontSize)
+            .attr('y', (d, i) => i * fontSize + fontSize)
+
     }
 
-    const card = create()
+    create()
+    configureCard()
+    addText()
+    rendering.fitText(card)
 
-    const canvas = configureCard(card)
-    const ctx = configureText(canvas, 'MISGUIDED ROMANTIC')
-    const imgPath = 'images/pexels-francesco-ungaro-2325447.jpg'
-    const metrics = ctx.measureText('MISGUIDED')
-    console.log(metrics.width)
-
-
-    console.log(canvas.width)
-
-    render(canvas, imgPath, ctx)
 
 }
 
-function createImageText(canvas){
-            const ctx = canvas.getContext('2d')
-            ctx.textAlign = 'left'
 
-            const img = new Image();
-            img.src = 'images/pexels-francesco-ungaro-2325447.jpg';  // Replace with your image path
+class cardConfiguration {
 
-            img.onload = () => {
-                ctx.font = '30px Arial';
-                //ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('MISGUIDED', 15, 15);
-                ctx.fillText('ROMANTIC', 15, 45)
-
-                // Set compositing operation to clip the image to the text
-                ctx.globalCompositeOperation = 'source-in';
-
-                console.log(canvas.height)
-
-                // Draw the image, which will now be clipped by the text
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
+    setDimensions(card){
+        if(card.constructor.name === 'titleCard'){
+            card.width = Math.round(window.innerWidth / gRatio)
+            card.height = Math.round(card.width * 9 / 16)
         }
+    }
+
+}
+
+class cardRendering {
+    resizeStatic(card){
+        card.div.style('width', card.width + 'px').style('height', card.height + 'px')
+        card.svg.attr('width', card.width).attr('height', card.height)
+    }
+
+    fitText(card){
+        const txtSize = this.getTextDimensions(card)
+        const svgSize = this.getSvgDimensions(card)
+        const scale = Math.min(
+            svgSize.width / txtSize.width, 
+            svgSize.height / txtSize.height)
+            * 0.9
+        
+        const textElem = card.svg.selectAll('text').attr('transform', 'translate(' + 0 + ',' + 0 + ') scale(' + scale + ')')
+    }
+
+    getTextDimensions(card){
+        const textElems = card.svg.selectAll('text')
+        let widestWidth = 0
+        let height = 0
+        
+        textElems.each(d => {
+            const elem = d3.select('#' + d)
+            const bbox = elem.node().getBBox()
+            if(bbox.width > widestWidth){
+                widestWidth = bbox.width
+                height = bbox.height
+            }
+        })
+
+        return {
+            height: height,
+            width: widestWidth
+        }
+
+    }
+
+
+    getSvgDimensions(card){
+        return {
+            height: card.svg.attr('height'),
+            width: card.svg.attr('width')
+        }
+    }
+
+
+}
 
 class card {
 
-    stdCanvas = false
-    svgCanvas = true
     backgroundColour = 'transparent'
 
     constructor(id){
@@ -188,11 +173,6 @@ class card {
 }
 
 class titleCard extends card {
-
-    stdCanvas = true
-    svgCanvas = false
-    //backgroundColour = 'transparent'
-
 
     constructor(id){
         super(id)
@@ -218,14 +198,7 @@ class cardFactory {
 
     #createDomElements(card){
         this.#addDiv(card)
-        
-        if(card.stdCanvas){
-            this.#addCanvas(card)
-        }
-
-        if(card.svgCanvas){
-            this.#addSvg(card)
-        }
+        this.#addSvg(card)
     }
 
     #addDiv(card){

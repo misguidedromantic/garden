@@ -90,11 +90,114 @@ class concept {
     }
 }
 
+class recordsData {
+    static #titles = [
+        'misguided romantic'
+    ]
+
+    static getTitles (){
+        return this.#titles
+    }
+
+    static getRecord(title){
+        return new record (title)
+    }
+
+    static getRecordMap(record){
+
+        return new Map([
+            ['history', this.getRecordHistory(record)]
+            ['songs', this.getRecordSongs(record)]
+        ])
+    }
+    
+    static getRecordHistory(record){
+        switch(record.title){
+            case 'misguided romantic':
+                record.addEvent('released', null)
+                record.addEvent('mastered', '2025-10-20')
+                record.addEvent('mixed', '2025-09-29')
+                record.addEvent('tracked', '2025-07-13')
+                return record.history
+        }
+    }
+
+
+    static getRecordSongs(record){
+        switch(record.title){
+            case 'misguided romantic':
+                record.addSong()
+                return 
+        }
+    }
+}
+
+class record {
+    constructor(title){
+        this.title = title
+        this.history = new Map()
+        this.songs = new Map()
+    }
+
+    addEvent(event, stringDate){
+        let date = undefined
+        if(stringDate !== null){
+            date = new Date(stringDate.slice(0,4),stringDate.slice(5,7),stringDate.slice(8))
+        } else {
+            date = stringDate
+        }
+        
+        this.history.set(event, date)
+    }
+
+    addSong(song){
+        this.songs.set(song)
+    }
+
+}
+
+class song {
+    constructor(id, title){
+        this.id = id
+        this.title = title
+        this.sectionArchetypes = []
+        this.sectionInstances = []
+        this.history = []
+    }
+
+    addSectionArchetype(archetype){
+        this.sectionArchetypes.push(archetype)
+    }
+
+    addSectionInstance(instance){
+        this.sectionInstances.push(instance)
+    }
+
+    addSongwritingEvent(event){
+        this.history.push(event)
+    }
+
+    addKeyDate(event, year, month){
+        month = month - 1
+        const eventDate = new Date (year, month)
+        this.history.push({event: event, date: eventDate})
+    }
+
+    getArchetype(archetypeID){
+        return this.sectionArchetypes.find(obj => obj.id = archetypeID)
+    }
+
+}
+
 class songsData {
 
     static #songs = []
     static #artefacts = []
     static #sections = []
+
+    static getSongsForRecord(recordTitle){
+        
+    }
 
     static async load(){
         const songsData = await d3.csv('data/songs.csv')

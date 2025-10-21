@@ -58,76 +58,181 @@ window.onload = async function(){
     const histories = getHistories(goodAfterBad)
     displays.loadSongHistoryDisplay(goodAfterBad, histories) */
 
-    loadPageTitle()
-
+    //loadPageTitle()
+    orchestrator.setup()
+    orchestrator.loadDisplay('misguided romantic')
 }
 
-function loadPageTitle(text){
+class orchestrator {
 
-    let card = {}
-    const fontSize = 200
-    const words = ['MISGUIDED', 'ROMANTIC']
-    const rendering = new cardRendering
-    
-    function create(){
+    static dataMap = {}
+    static displayMap = {}
+
+    static setup(){
+        this.setupDataMap()
+        this.setupDisplayMap()
+    }
+
+    static setupDataMap(){
+        this.dataMap = new Map([
+            ['records', dataHandler.getRecordsMap()]
+        ])
+    }
+
+    static setupDisplayMap(){
+        this.displayMap = new Map([
+            ['misguided romantic', null]
+        ])
+    }
+
+    static loadDisplay(title){
+        const display = this.displayMap.get(title)
+        if(title === 'misguided romantic'){
+            this.loadMGRDisplay()
+        }
+    }
+
+    static loadMGRDisplay(displayTitle = 'misguided romantic'){
+        const cards = this.getCards(displayTitle)
+        this.configureCards(displayTitle, cards)
+
+    }
+
+    static getCards(displayTitle){
         const factory = new cardFactory
-        card = factory.createCard('mgrTitle', 'titleCard')
+        const cardsToCreate = this.getCardsToCreate(displayTitle)
+        const cards = []
+        cardsToCreate.forEach(cardType => {
+            const id = this.calculateCardID(cardType, displayTitle)
+            cards.push(factory.createCard(id, cardType))
+        })
+        return cards
     }
 
-    function configureCard(){
+    static getCardsToCreate(displayTitle){
+        switch(displayTitle){
+            case 'misguided romantic':
+                return [
+                    'title',
+                    'menu'
+                ]
+        }
+    }
+
+    static calculateCardID(type, displayTitle){
+        const typeSuffix = type.charAt(0).toUpperCase() + type.slice(1)
+        switch(displayTitle){
+            case 'misguided romantic':
+                return 'mgr' + typeSuffix
+        }
+
+    }
+
+    static configureCards(displayTitle, cards){
         const config = new cardConfiguration
-        config.setDimensions(card)
-        rendering.resizeStatic(card)
-    }
-
-    function addText(){
+        for(const card of cards){
+            config.setData(card, displayTitle)
+            config.setDimensions(card)
+        }
         
-        card.svg.selectAll('text')
-            .data(words)
-            .join('text')
-            .text(d => d)
-            .attr('id', d => d)
-            .style('fill', 'white')
-            .style('font-size', fontSize)
-            .attr('y', (d, i) => i * fontSize + fontSize)
-
     }
 
-    create()
-    configureCard()
-    addText()
-    rendering.fitText(card)
+    static loadCard(id, type){
+        
+        
+
+    }
+}
 
 
+class dataHandler {
+    static map = {}
+
+    static getRecordsMap(){
+        const records = new Map()
+        const titles = recordsData.getTitles()
+        titles.forEach(title => {
+            
+            
+            records.set(title, recordsData.getRecordMap(title))
+        })
+        return records
+    }
+    
 }
 
 
 class cardConfiguration {
 
-    setDimensions(card){
+    setData(card, displayTitle){
         if(card.constructor.name === 'titleCard'){
-            card.width = Math.round(window.innerWidth / gRatio)
-            card.height = Math.round(card.width * 9 / 16)
+            this.setTitleWords(card, displayTitle)
+        } else if (card.constructor.name === 'menuCard'){
+            
         }
     }
 
-}
+    setDimensions(card){
+        this.setDefaultDimensions(card)
+        this.fitTitleText(card)
+    }
 
-class cardRendering {
-    resizeStatic(card){
+    setDefaultDimensions(card){
+        if(card.constructor.name === 'titleCard'){
+            card.width = Math.round(window.innerWidth / gRatio),
+            card.height = Math.round(card.width * 9 / 16)
+        } else if (card.constructor.name === 'menuCard'){
+            card.width = Math.round(window.innerWidth / gRatio)
+            card.height = card.fontSize
+        }
+        this.renderSizeChange(card)
+    }
+
+    fitText(card){
+        if(card.constructor.name === 'titleCard'){
+
+        } else if (card.constructor.name === 'menuCard'){
+
+        }
+    }
+
+    fitTitleText(card){
+        this.renderText(card)
+        const scale = this.getScaleFactor(card)
+        card.fontSize = card.fontSize * scale
+        card.height = card.fontSize * 2 + 30
+        this.renderSizeChange(card)
+        this.renderText(card)
+        
+    }
+
+    renderSizeChange(card){
         card.div.style('width', card.width + 'px').style('height', card.height + 'px')
         card.svg.attr('width', card.width).attr('height', card.height)
     }
 
-    fitText(card){
-        const txtSize = this.getTextDimensions(card)
-        const svgSize = this.getSvgDimensions(card)
-        const scale = Math.min(
-            svgSize.width / txtSize.width, 
-            svgSize.height / txtSize.height)
-            * 0.9
-        
-        const textElem = card.svg.selectAll('text').attr('transform', 'translate(' + 0 + ',' + 0 + ') scale(' + scale + ')')
+    renderText(card){
+        card.svg.selectAll('text')
+            .data(card.words)
+            .join(
+                enter => enter.append('text')
+                    .text(d => d)
+                    .attr('id', d => d)
+                    .style('fill', 'white')
+                    .style('font-size', card.fontSize)
+                    .attr('y', (d, i) => i * card.fontSize + card.fontSize),
+                update => update.style('font-size', card.fontSize)
+                    .attr('y', (d, i) => i * card.fontSize + card.fontSize),
+                exit => exit
+            )
+    }
+
+    getScaleFactor(card){
+        const textDimensions = this.getTextDimensions(card)
+        return Math.min(
+                card.width / textDimensions.width, 
+                card.height / textDimensions.height
+            ) * 0.9
     }
 
     getTextDimensions(card){
@@ -151,20 +256,19 @@ class cardRendering {
 
     }
 
-
-    getSvgDimensions(card){
-        return {
-            height: card.svg.attr('height'),
-            width: card.svg.attr('width')
-        }
+    setTitleWords(card, titleText){
+        const words = titleText.split(' ')
+        words.forEach(word => {
+            card.words.push(word.toUpperCase())
+        })
     }
-
-
 }
+
 
 class card {
 
     backgroundColour = 'transparent'
+    textFill = 'white'
 
     constructor(id){
         this.id = id
@@ -173,9 +277,25 @@ class card {
 }
 
 class titleCard extends card {
-
     constructor(id){
         super(id)
+        this.words = []
+        this.fontSize = 200
+    }
+}
+
+class subTitleCard extends card {
+    constructor(id){
+        super(id)
+        this.textFill = 'yellow'
+    }
+}
+class menuCard extends card {
+    constructor(id){
+        super(id)
+        this.items = []
+        this.textFill = 'yellow'
+        this.fontSize = 100
     }
 }
 
@@ -189,8 +309,10 @@ class cardFactory {
 
     #createObject(id, type){
         switch(type){
-            case 'titleCard':
+            case 'title':
                 return new titleCard(id)
+            case 'menu':
+                return new menuCard(id)
             default:
                 return new card(id)
         }
@@ -227,39 +349,6 @@ class cardFactory {
 
 
 
-
-class song {
-    constructor(id, title){
-        this.id = id
-        this.title = title
-        this.sectionArchetypes = []
-        this.sectionInstances = []
-        this.history = []
-    }
-
-    addSectionArchetype(archetype){
-        this.sectionArchetypes.push(archetype)
-    }
-
-    addSectionInstance(instance){
-        this.sectionInstances.push(instance)
-    }
-
-    addSongwritingEvent(event){
-        this.history.push(event)
-    }
-
-    addKeyDate(event, year, month){
-        month = month - 1
-        const eventDate = new Date (year, month)
-        this.history.push({event: event, date: eventDate})
-    }
-
-    getArchetype(archetypeID){
-        return this.sectionArchetypes.find(obj => obj.id = archetypeID)
-    }
-
-}
 
 
 class songSectionArchetype {
@@ -432,7 +521,6 @@ class songHistoryDisplay {
             const conception = d.history.find(obj => obj.event === 'conception')
             return scaleFunc(conception.date.getTime())
         }
-
         else{
             return songHistoryDisplay.xScale.max + 15
         }

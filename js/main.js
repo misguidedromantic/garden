@@ -106,7 +106,7 @@ class orchestrator {
                 this.#displays.set(title, new display (title))
         }
     }
-
+ 
     static #configureDisplay(display){ 
         const controller = new displayController(display)     
         controller.configure(display)
@@ -154,9 +154,33 @@ class displayController {
     }
 
     configure(display){
+        this.#setBackground(display)
         this.#createCards(display)
         this.#configureCards(display)
     }
+
+    #setBackground(){
+        const background = this.#config.background()
+        const width = window.innerWidth * gRatio
+        const height = width * 16 / 9
+        const top = -725
+        const left = -400
+        console.log(height)
+        if(background !== null){
+            d3.select('body')
+                .append('div')
+                .style('position', 'absolute')
+                .style('top', top + 'px')
+                .style('left', left + 'px')
+                .style('width', width + 'px')
+                //.style('height', height + 'px')
+                .append('img')
+                .attr('src',  background)
+                .style('width', '100%')
+                .style('opacity', 0.38)
+        }
+    }
+
 
     #createCards(display){
         const factory = new cardFactory
@@ -180,6 +204,14 @@ class displayConfiguration {
     constructor(display){
         this.display = display
         this.#content = new contentManager
+    }
+
+    background(){
+        if(this.display.id === 'jamesparrysongs'){
+            return 'images/jp.JPEG'
+        } else {
+            return null
+        }
     }
 
     cardSchema(){

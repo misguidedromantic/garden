@@ -57,7 +57,7 @@ class cardSizing {
                 }
             case 'canvasCard':
                 return {
-                    width: w() / gRatio / 2,
+                    width: w() / 2 - 15,
                     height: window.innerHeight - h(w(), 9 / 16)
                 }
         }
@@ -77,9 +77,7 @@ class cardPositioning {
     }
 
     top(card, cardAbove){
-        
         if(cardAbove !== null){
-            console.log(cardAbove.height)
             return cardAbove.top + cardAbove.height + this.gap
         }
         return this.gap 
@@ -170,7 +168,7 @@ class cardController {
 
     applyScaledDimensions(card){
         const scale = this.getScaleFactor(card)
-        card.fontSize = card.fontSize * scale, card.height = card.fontSize * 2 + 30
+        card.fontSize = card.fontSize * scale, card.height = card.fontSize * card.words.length + 15
         this.renderSizeChange(card)
     }
 
@@ -203,8 +201,10 @@ class cardController {
                 enter => enter.append('text')
                     .text(d => d)
                     .attr('id', d => d)
-                    .style('fill', 'white')
+                    .style('fill', '#FFF5EE')
                     .style('font-size', card.fontSize)
+                    .style('text-anchor', 'middle')
+                    .attr('x', card.width / 2)
                     .attr('y', (d, i) => i * card.fontSize + card.fontSize),
                 update => update.style('font-size', card.fontSize)
                     .attr('y', (d, i) => i * card.fontSize + card.fontSize),
@@ -215,7 +215,47 @@ class cardController {
     renderSongSquares(card, songs){
         const columnCount = this.getColumnCount(card.width)
         const x = (i) => {return i % columnCount * 25}
-        const y = (i) => {return (card.height) + Math.floor(i / columnCount) * - 25 - 25}
+        const y = (i) => {return Math.floor(i / columnCount) * 25}
+        const fill = () => {
+            const armyCammo = [
+                '#c6d6cc',
+                '#7c9881',
+                '#4e6b4d',
+                '#2e4028',
+                '#262f1b'
+            ]
+
+            const navyCombat = [
+                '#B2B4CB',
+                '#515A6B',
+                '#27395F',
+                '#322F42'
+            ]
+
+            const ribbonBars = [
+                '#5F8575', //eucalyptus green
+                '#007fff', //azure blue
+                '#FFC000', //gold
+                '#7591AA', //silver blue
+                '#913831', //ochre red
+                '#DC143C', //crimson
+                '#C2B280', //sand
+                '#00008B', //dark blue
+            ]
+
+            const colours = [
+                '#B2B4CB',
+                '#515A6B',
+                '#c6d6cc',
+                '#7c9881',
+                '#5F8575',
+                '#DC143C',
+                '#7591AA'
+            ]
+
+            const randomIndex = Math.floor(Math.random() * colours.length)
+            return colours[randomIndex]
+        }
 
         card.svg.selectAll('rect')
             .data(songs)
@@ -227,7 +267,7 @@ class cardController {
             .transition()
                 .duration(200)
                 .delay((d,i) => i * 15)
-                .attr('fill', 'green')
+                .attr('fill', () => fill())
                 .attr('y', (d, i) => y(i))
     }
 

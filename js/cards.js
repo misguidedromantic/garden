@@ -57,7 +57,7 @@ class cardSizing {
                 }
             case 'canvasCard':
                 return {
-                    width: w() / 2,
+                    width: w() / gRatio / 2,
                     height: window.innerHeight - h(w(), 9 / 16)
                 }
         }
@@ -159,6 +159,7 @@ class cardController {
         const {width, height} = this.sizing.defaultDimensions(card)
         card.width = width, card.height = height
         card.div.style('width', width + 'px').style('height', height + 'px')
+        card.svg.attr('width', width ).attr('height', height)
     }
 
     applyPosition(card, adjacentCards){
@@ -183,13 +184,16 @@ class cardController {
                 this.renderText(card)
                 break;
             case 'canvasCard':
-                console.log(content)
+                if(content !== null){
+                    this.renderSongSquares(card, content)
+                }
+                
         }
     }
 
     renderSizeChange(card){
         card.div.style('width', card.width + 'px').style('height', card.height + 'px')
-        card.svg.attr('width', card.width).attr('height', card.height)
+        card.svg.attr('width', card.width ).attr('height', card.height)
     }
 
     renderText(card){
@@ -209,22 +213,26 @@ class cardController {
     }
 
     renderSongSquares(card, songs){
-        const columnCount = Math.ceil(containerWidth)
+        const columnCount = this.getColumnCount(card.width)
+        const x = (i) => {return i % columnCount * 25}
+        const y = (i) => {return (card.height) + Math.floor(i / columnCount) * - 25 - 25}
 
         card.svg.selectAll('rect')
             .data(songs)
             .join('rect')
-            .attr('class','section')
             .attr('id', d => d.id)
-            .attr('height', 12)
-            .attr('width', 12)
-            .attr('fill', 'green')
-            .attr('x', d => d.stackOrdinal * 15 + 15) //calculate colum index
-            .attr('y', d => d.levelInStack * -15 + 150) //calculate row index
+            .attr('height', 20)
+            .attr('width', 20)
+            .attr('x', (d, i) => x(i))
+            .transition()
+                .duration(200)
+                .delay((d,i) => i * 15)
+                .attr('fill', 'green')
+                .attr('y', (d, i) => y(i))
     }
 
     getColumnCount(containerWidth){
-        const minColumnWidth = 12;
+        const minColumnWidth = 20;
         const columnGap = 5;
 
         if (containerWidth < minColumnWidth) {

@@ -210,6 +210,7 @@ class displayConfiguration {
 
     async applyContentScaledLayout(cards, controller, layout){
         for (const card of cards.values()) {
+            console.log(card)
             const content = await this.#content.getCardContent(card, this.display)
             controller.applyContent(card, content)
             controller.applyPosition(card, layout.adjacentCards(card))
@@ -304,6 +305,8 @@ class contentManager {
             await songsData.load()
             return songsData.getAllSongs()
         }
+        return null
+
     }
 
     titleWords(card, display){
@@ -1488,10 +1491,9 @@ class formalSection {
 
 
 function renderSectionBlocks (svg, data){
-    svg.selectAll('rect.section')
+    svg.selectAll('rect')
         .data(data)
         .join('rect')
-        .attr('class','section')
         .attr('id', d => d.id)
         .attr('height', 12)
         .attr('width', 12)

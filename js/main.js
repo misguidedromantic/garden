@@ -1,6 +1,11 @@
 const gRatio = 1.618
 
+
 window.onload = async function(){
+    //loadRecordDisplay('misguided romantic')
+
+
+
 
 /*     songsData.loadSongwritingArtefacts()
 
@@ -60,90 +65,375 @@ window.onload = async function(){
 
     //loadPageTitle()
     orchestrator.setup()
-    orchestrator.loadDisplay('misguided romantic')
+    //orchestrator.loadDisplay('misguided romantic', 'record')
+    orchestrator.loadDisplay('jamesparrysongs', 'paterre')
 }
+
+
+window.onresize = function (){
+    orchestrator.handleResize()
+}
+
+
 
 class orchestrator {
 
-    static dataMap = {}
-    static displayMap = {}
+    static #displays = {}
+    //static #controller = {}
+    static #currentDisplayTitle = ''
 
     static setup(){
-        this.setupDataMap()
-        this.setupDisplayMap()
+        this.#displays = new Map
+        this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
     }
 
-    static setupDataMap(){
-        this.dataMap = new Map([
-            ['records', dataHandler.getRecordsMap()]
-        ])
+    static loadDisplay(title, type){
+        this.#createDisplay(title, type)
+        this.#configureDisplay(this.#displays.get(title))
+        //this.#renderDisplay(title)
+        this.#currentDisplayTitle = title   
     }
 
-    static setupDisplayMap(){
-        this.displayMap = new Map([
-            ['misguided romantic', null]
-        ])
-    }
-
-    static loadDisplay(title){
-        const display = this.displayMap.get(title)
-        if(title === 'misguided romantic'){
-            this.loadMGRDisplay()
+    static #createDisplay(title, type){
+        switch(type){
+            case 'paterre':
+                this.#displays.set(title, new parterre (title))
+                break;
+            case 'record':
+                this.#displays.set(title, new recordDisplay (title))
+                break;
+            default:
+                this.#displays.set(title, new display (title))
         }
     }
 
-    static loadMGRDisplay(displayTitle = 'misguided romantic'){
-        const cards = this.getCards(displayTitle)
-        this.configureCards(displayTitle, cards)
+    static #configureDisplay(display){ 
+        const controller = new displayController(display)     
+        controller.configure(display)
+    }
+
+    static handleResize(){
+        this.throttledResize()
+    }
+
+    static reconfigureCurrentDisplay(){
+        const display = this.#displays.get(this.#currentDisplayTitle)
+        console.log(display)
 
     }
 
-    static getCards(displayTitle){
+    static #throttle(func, delay) {
+        let timeoutId;
+        let lastArgs;
+        let lastThis;
+      
+        return function(...args) {
+          lastArgs = args;
+          lastThis = this;
+      
+          if (!timeoutId) {
+            timeoutId = setTimeout(() => {
+              func.apply(lastThis, lastArgs);
+              timeoutId = null;
+            }, delay);
+          }
+        };
+      }
+
+
+}
+
+class displayController {
+
+    #content = {}
+    #config = {}
+    
+    constructor(display){  
+        this.#content = new contentManager
+        this.#config = new displayConfiguration(display)     
+    }
+
+    configure(display){
+        this.#createCards(display)
+        this.#configureCards(display)
+    }
+
+    #createCards(display){
         const factory = new cardFactory
-        const cardsToCreate = this.getCardsToCreate(displayTitle)
-        const cards = []
-        cardsToCreate.forEach(cardType => {
-            const id = this.calculateCardID(cardType, displayTitle)
-            cards.push(factory.createCard(id, cardType))
+        const schema = this.#config.cardSchema()
+        schema.forEach(entry => {
+            display.cards.set(entry.id, factory.createCard(entry.id, entry.type))
         })
-        return cards
     }
 
-    static getCardsToCreate(displayTitle){
-        switch(displayTitle){
-            case 'misguided romantic':
-                return [
-                    'title',
-                    'menu'
-                ]
+    #configureCards(display){
+        this.#config.arrangeCards(display.cards)
+        //const words = this.#content.getWords(card, display)
+    }
+
+}
+
+class displayConfiguration {
+
+    #content = {}
+
+    constructor(display){
+        this.display = display
+        this.#content = new contentManager
+    }
+
+    cardSchema(){
+        const schema = [this.#title()]
+        switch(this.display.constructor.name){
+            case 'parterre':
+                return [...schema, ...this.#canvases()]
+            case 'recordDisplay':
+                return [...schema, ...this.#viewTitles()]
+            default:
+                return null    
         }
     }
 
-    static calculateCardID(type, displayTitle){
-        const typeSuffix = type.charAt(0).toUpperCase() + type.slice(1)
-        switch(displayTitle){
-            case 'misguided romantic':
-                return 'mgr' + typeSuffix
-        }
-
+    arrangeCards(cards){
+        const layout = new layoutManager (cards)
+        const controller = new cardController
+        this.applyDefaultLayout(cards, controller, layout)
+        this.applyContentScaledLayout(cards, controller, layout)
     }
 
-    static configureCards(displayTitle, cards){
-        const config = new cardConfiguration
-        for(const card of cards){
-            config.setData(card, displayTitle)
-            config.setDimensions(card)
+    applyDefaultLayout(cards, controller, layout){
+        for (const card of cards.values()) {
+            controller.applyDefaultDimensions(card)
+            controller.applyPosition(card, layout.adjacentCards(card))
         }
-        
     }
 
-    static loadCard(id, type){
-        
-        
+    async applyContentScaledLayout(cards, controller, layout){
+        for (const card of cards.values()) {
+            const content = await this.#content.getCardContent(card, this.display)
+            controller.applyContent(card, content)
+            controller.applyPosition(card, layout.adjacentCards(card))
+        }
+    }
 
+    #schemaEntry(cardId, cardType){
+        return {id: cardId, type: cardType}
+    }
+
+    #title(){
+        return this.#schemaEntry('displayTitle', 'title')
+    }
+    #viewTitles(){
+        const viewTitles = this.#content.viewTitles(this.display.constructor.name)
+        return viewTitles.map(viewTitle => this.#schemaEntry(viewTitle, 'viewTitle'))
+    }
+
+    #canvases(){
+        const canvasIds = this.#content.canvases(this.display.constructor.name, this.display.title)
+        return canvasIds.map(canvasId => this.#schemaEntry(canvasId + 'Canvas', 'canvas'))
     }
 }
 
+class layoutManager {
+    constructor(cards){
+        this.cards = cards
+    }
+
+    adjacentCards(card){
+        return {
+            left: this.#cardToLeft(card),
+            above: this.#cardAbove(card)
+        }
+    }
+
+    #cardToLeft(card){
+        switch(card.constructor.name){
+            default:
+                return null
+            case 'canvasCard':
+                const canvasArray = Array.from(this.cards.values()).filter(card => card.constructor.name === 'canvasCard')
+                const i = canvasArray.findIndex(canvasCard => canvasCard.id === card.id)
+                return i > 0 ? canvasArray[i - 1] : null
+        }
+    }
+
+    #cardAbove(card){
+        switch(card.constructor.name){
+            case 'titleCard':
+                return null
+            case 'viewTitleCard':
+            case 'canvasCard':
+                return this.cards.get('displayTitle')
+        }
+    }
+}
+
+class contentManager {
+    getCardContent(card, display){
+        switch(card.constructor.name){
+            case 'titleCard':
+            case 'viewTitleCard':
+                return this.titleWords(card, display)
+            case 'canvasCard':
+                return this.gardenBedContent(card.id)
+        }
+    }
+
+    viewTitles(displayType){
+        switch(displayType){
+            case 'recordDisplay':
+                return ['history', 'songs']
+        } 
+    }
+
+    canvases(displayType, displayTitle){
+        switch(displayType){
+            case 'parterre':
+                return this.gardenBedTitles(displayTitle)
+        } 
+    }
+
+    gardenBedTitles(parterreTitle){
+        if(parterreTitle === 'jamesparrysongs'){
+            return ['records', 'songs']
+        }
+    }
+
+    async gardenBedContent(cardID){
+        if(cardID === 'songsCanvas'){
+            await songsData.load()
+            return songsData.getAllSongs()
+        }
+    }
+
+    titleWords(card, display){
+        switch(card.constructor.name){
+            case 'titleCard':
+                return display.title.toUpperCase().split(' ')
+            case 'viewTitleCard':
+                    console.log(card)
+                
+        }
+    }
+
+    getViewTitleFromCardId(cardId){
+        return cardId.charAt(9).toLowerCase() + cardId.slice(1)
+    }
+}
+
+class cardRendering {
+    updateDivDimensions(div, dimensions){
+        div.style('width', dimensions.width + 'px')
+        div.style('height', dimensions.height + 'px')
+    }
+
+    updateDivPosition(div, coordinates){
+        div.style('left', coordinates.left + 'px')
+        div.style('top', coordinates.top + 'px')
+    }
+}
+
+function loadRecordDisplay(title){
+
+    const factory = new cardFactory
+
+    function createTitleCard(){
+        return factory.createCard(title.replaceAll(' ','') + 'Title','title') 
+    }
+
+    function createMenuCard(){
+        return factory.createCard(title.replaceAll(' ','') + 'Menu','menu')
+    }
+
+    function configureMenuCard(card){
+        card.top = 5
+        card.left = 5
+        card.items = ['start','history','songs','end']
+        card.width = Math.round(window.innerWidth / gRatio)
+        card.height = 41
+        card.borderTop = '1px solid grey'
+        card.borderBottom = '1px solid grey'
+    }
+
+    function configureTitleCard(card, cardAbove){
+        card.top = cardAbove.top + cardAbove.height + 15
+        card.left = 0
+        card.words = title.toUpperCase().split(' ')
+        card.width = Math.round(window.innerWidth / gRatio)
+        card.height = Math.round(card.width * 9 / 16)
+    }
+
+    function renderDimensions(card){
+        card.div.style('width', card.width + 'px')
+        card.div.style('height', card.height + 'px')
+    }
+
+    function renderPosition(card){
+        card.div.style('left', card.left + 'px')
+        card.div.style('top', card.top + 'px')
+    }
+
+    function renderBorder(card){
+        card.div.style('border-bottom', card.borderBottom)
+        card.div.style('border-top', card.borderTop)
+    }
+
+    function renderMenuItems(card){
+        card.svg.selectAll('g')
+            .data(card.items, d => d)
+            .join(
+                enter => {
+                    enter.append('circle')
+                        .attr('id', d => d)
+                        .attr('fill', 'yellow')
+                        .attr('fill-opacity', 0.62)
+                        .attr('r', card.height / 2 / gRatio)
+                        .attr('cx',  (d, i) => i * card.height / 2 * gRatio + card.height / 2)
+                        .attr('cy', card.height / 2)
+                        .on('mouseover', (event, d) => {
+                            const circle = d3.select('#' + d)
+                            circle.attr('fill-opacity', 1)
+                        })
+                        .on('mouseout', (event, d) => {
+                            const circle = d3.select('#' + d)
+                            circle.attr('fill-opacity', 0.62)
+                        })
+                        
+/*                     g.append('text')
+                        .text(d => d)
+                        .attr('fill', 'yellow')
+                        .attr('font-size', card.height * 0.9)
+                        .attr('dy', card.height / 2)
+                        .attr('dominant-baseline', 'middle') */
+                }
+
+            )
+    }
+
+    function renderTitleCard(card){
+        const sizing = new titleCardSizing
+        sizing.fitTitleText(card)
+    }
+
+    const menuCard = createMenuCard()
+    const titleCard = createTitleCard()
+    
+    configureMenuCard(menuCard)
+    configureTitleCard(titleCard, menuCard)
+
+    renderDimensions(menuCard)
+    renderDimensions(titleCard)
+    renderPosition(menuCard)
+    renderPosition(titleCard)
+
+    renderBorder(menuCard)
+    renderMenuItems(menuCard)
+
+    renderTitleCard(titleCard)
+
+
+
+}
 
 class dataHandler {
     static map = {}
@@ -161,40 +451,7 @@ class dataHandler {
     
 }
 
-
-class cardConfiguration {
-
-    setData(card, displayTitle){
-        if(card.constructor.name === 'titleCard'){
-            this.setTitleWords(card, displayTitle)
-        } else if (card.constructor.name === 'menuCard'){
-            
-        }
-    }
-
-    setDimensions(card){
-        this.setDefaultDimensions(card)
-        this.fitTitleText(card)
-    }
-
-    setDefaultDimensions(card){
-        if(card.constructor.name === 'titleCard'){
-            card.width = Math.round(window.innerWidth / gRatio),
-            card.height = Math.round(card.width * 9 / 16)
-        } else if (card.constructor.name === 'menuCard'){
-            card.width = Math.round(window.innerWidth / gRatio)
-            card.height = card.fontSize
-        }
-        this.renderSizeChange(card)
-    }
-
-    fitText(card){
-        if(card.constructor.name === 'titleCard'){
-
-        } else if (card.constructor.name === 'menuCard'){
-
-        }
-    }
+class titleCardSizing {
 
     fitTitleText(card){
         this.renderText(card)
@@ -203,7 +460,6 @@ class cardConfiguration {
         card.height = card.fontSize * 2 + 30
         this.renderSizeChange(card)
         this.renderText(card)
-        
     }
 
     renderSizeChange(card){
@@ -255,101 +511,7 @@ class cardConfiguration {
         }
 
     }
-
-    setTitleWords(card, titleText){
-        const words = titleText.split(' ')
-        words.forEach(word => {
-            card.words.push(word.toUpperCase())
-        })
-    }
 }
-
-
-class card {
-
-    backgroundColour = 'transparent'
-    textFill = 'white'
-
-    constructor(id){
-        this.id = id
-    }
-
-}
-
-class titleCard extends card {
-    constructor(id){
-        super(id)
-        this.words = []
-        this.fontSize = 200
-    }
-}
-
-class subTitleCard extends card {
-    constructor(id){
-        super(id)
-        this.textFill = 'yellow'
-    }
-}
-class menuCard extends card {
-    constructor(id){
-        super(id)
-        this.items = []
-        this.textFill = 'yellow'
-        this.fontSize = 100
-    }
-}
-
-class cardFactory {
-
-    createCard(id, type = undefined){
-        const card = this.#createObject(id, type)
-        this.#createDomElements(card)
-        return card
-    }
-
-    #createObject(id, type){
-        switch(type){
-            case 'title':
-                return new titleCard(id)
-            case 'menu':
-                return new menuCard(id)
-            default:
-                return new card(id)
-        }
-    }
-
-    #createDomElements(card){
-        this.#addDiv(card)
-        this.#addSvg(card)
-    }
-
-    #addDiv(card){
-        card.div = d3.select('body')
-            .append('div')
-            .attr('id', card.id + 'Div')
-            .style('position', 'absolute')
-            .style('width', '80%')
-            //.style('border-radius', '10px')
-            .style('background-color', card.backgroundColour)
-            //.style('box-shadow', '0px 0px 0px rgba(0, 0, 0, 0)')
-    }
-
-    #addCanvas(card){
-        card.canvas = card.div.append('canvas')
-            .attr('id', card.id + 'Canvas')
-
-    }
-
-    #addSvg(card){
-        card.svg = card.div.append('svg')
-            .attr('id', card.id + 'Svg')
-    }
-
-}
-
-
-
-
 
 class songSectionArchetype {
     constructor(id, type, parentID = null){
@@ -368,7 +530,6 @@ class songSectionArchetype {
 
     getConceptionDate(){
         const entry = this.history.find(entry => entry.event === 'conception')
-        console.log(entry)
     }
 }
 
@@ -468,7 +629,6 @@ class songHistoryDisplay {
             scalePoint: this.scalePoint
         }
 
-        console.log(data)
 
         svg.selectAll('rect')
             .data(data, d => d.id)
@@ -493,8 +653,6 @@ class songHistoryDisplay {
             getPosY: this.getPosY,
             scalePoint: this.scalePoint
         }
-
-        console.log(historyData)
         
         svg.selectAll('rect')
             .data(historyData, d => d.id)
@@ -814,10 +972,8 @@ class songListControl {
     }
 
     static selectSong (songID) {
-        console.log(this.#songs)
         this.deselectAll()
         const thisSong = this.#songs.find(song => song.id === songID)
-        console.log(thisSong)
         thisSong.selected = true
         this.#songMenu.update(this.#songs)
         songLayoutsDisplay.loadLayout(songID)
@@ -1148,13 +1304,11 @@ class songSectionGrid {
 
     getPosX(i){ 
         const remainder = arithmetic.getRemainder(i, this.#width)
-        //console.log(remainder)
         return remainder * 15
     }
 
     getPosY(i){
         const quotient = arithmetic.getQuotient(i, this.#width)
-        console.log(quotient)
         return quotient * 15
     }
 

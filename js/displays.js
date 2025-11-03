@@ -10,9 +10,9 @@ class display {
     }
 }
 
-class parterre extends display {
+class parterre  {
     constructor(title){
-        super(title)
+        this.title = title
     }
 }
 

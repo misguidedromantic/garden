@@ -2,6 +2,9 @@ const gRatio = 1.618
 
 
 window.onload = async function(){
+    orchestrator.setup()
+    orchestrator.loadParterre('jps')
+
     //loadRecordDisplay('misguided romantic')
 
 
@@ -64,9 +67,9 @@ window.onload = async function(){
     displays.loadSongHistoryDisplay(goodAfterBad, histories) */
 
     //loadPageTitle()
-    orchestrator.setup()
+    //orchestrator.setup()
     //orchestrator.loadDisplay('misguided romantic', 'record')
-    orchestrator.loadDisplay('jamesparrysongs', 'paterre')
+    //orchestrator.loadDisplay('jamesparrysongs', 'paterre')
 }
 
 
@@ -75,9 +78,9 @@ window.onresize = function (){
 }
 
 
-
 class orchestrator {
 
+    static #parterres = {}
     static #displays = {}
     //static #controller = {}
     static #currentDisplayTitle = ''
@@ -85,6 +88,10 @@ class orchestrator {
     static setup(){
         this.#displays = new Map
         this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
+    }
+
+    static loadParterre(id){
+        console.log(window.innerHeight)
     }
 
     static loadDisplay(title, type){
@@ -143,6 +150,74 @@ class orchestrator {
 
 }
 
+class contentManager {
+    parterres(){
+        return [
+            new parterre ('blueprints'),
+            new parterre ('records')
+        ]
+    }
+
+    getParterreData(parterreTitle){
+        if(parterreTitle === 'records'){
+            
+        }
+    }
+
+    getCardContent(card, display){
+        switch(card.constructor.name){
+            case 'titleCard':
+            case 'viewTitleCard':
+                return this.titleWords(card, display)
+            case 'canvasCard':
+                return this.gardenBedContent(card.id)
+        }
+    }
+
+    viewTitles(displayType){
+        switch(displayType){
+            case 'recordDisplay':
+                return ['history', 'songs']
+        } 
+    }
+
+    canvases(displayType, displayTitle){
+        switch(displayType){
+            case 'parterre':
+                return this.gardenBedTitles(displayTitle)
+        } 
+    }
+
+    gardenBedTitles(parterreTitle){
+        if(parterreTitle === 'jamesparrysongs'){
+            return ['records', 'songs']
+        }
+    }
+
+    async gardenBedContent(cardID){
+        if(cardID === 'songsCanvas'){
+            await songsData.load()
+            return songsData.getAllSongs()
+        }
+        return null
+
+    }
+
+    titleWords(card, display){
+        switch(card.constructor.name){
+            case 'titleCard':
+                return display.title.toUpperCase().split(' ')
+            case 'viewTitleCard':
+                    console.log(card)
+                
+        }
+    }
+
+    getViewTitleFromCardId(cardId){
+        return cardId.charAt(9).toLowerCase() + cardId.slice(1)
+    }
+}
+
 class displayController {
 
     #content = {}
@@ -163,7 +238,7 @@ class displayController {
         const background = this.#config.background()
         const width = window.innerWidth * gRatio
         const height = width * 16 / 9
-        const top = -725
+        const top = -600
         const left = -400
         console.log(height)
         if(background !== null){
@@ -176,7 +251,7 @@ class displayController {
                 //.style('height', height + 'px')
                 .append('img')
                 .attr('src',  background)
-                .style('width', '100%')
+                .style('height', '100%')
                 .style('opacity', 0.38)
         }
     }
@@ -208,7 +283,7 @@ class displayConfiguration {
 
     background(){
         if(this.display.id === 'jamesparrysongs'){
-            return 'images/jp.JPEG'
+            return 'images/jp-esb-square.JPEG'
         } else {
             return null
         }
@@ -301,60 +376,7 @@ class layoutManager {
     }
 }
 
-class contentManager {
-    getCardContent(card, display){
-        switch(card.constructor.name){
-            case 'titleCard':
-            case 'viewTitleCard':
-                return this.titleWords(card, display)
-            case 'canvasCard':
-                return this.gardenBedContent(card.id)
-        }
-    }
 
-    viewTitles(displayType){
-        switch(displayType){
-            case 'recordDisplay':
-                return ['history', 'songs']
-        } 
-    }
-
-    canvases(displayType, displayTitle){
-        switch(displayType){
-            case 'parterre':
-                return this.gardenBedTitles(displayTitle)
-        } 
-    }
-
-    gardenBedTitles(parterreTitle){
-        if(parterreTitle === 'jamesparrysongs'){
-            return ['records', 'songs']
-        }
-    }
-
-    async gardenBedContent(cardID){
-        if(cardID === 'songsCanvas'){
-            await songsData.load()
-            return songsData.getAllSongs()
-        }
-        return null
-
-    }
-
-    titleWords(card, display){
-        switch(card.constructor.name){
-            case 'titleCard':
-                return display.title.toUpperCase().split(' ')
-            case 'viewTitleCard':
-                    console.log(card)
-                
-        }
-    }
-
-    getViewTitleFromCardId(cardId){
-        return cardId.charAt(9).toLowerCase() + cardId.slice(1)
-    }
-}
 
 class cardRendering {
     updateDivDimensions(div, dimensions){

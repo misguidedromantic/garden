@@ -91,9 +91,18 @@ class concept {
 }
 
 class recordsData {
-    static #titles = [
-        'misguided romantic'
-    ]
+    static #titles = []
+
+    static async load(){
+        const data = await d3.csv('data/records.csv')
+        data.forEach(d => {
+            const thisRecord = new record(d.short_title, d.title, d.record_type)
+            this.#titles.push(thisRecord)
+        })
+
+        return Promise.resolve()
+    } 
+
 
     static getTitles (){
         return this.#titles
@@ -133,8 +142,10 @@ class recordsData {
 }
 
 class record {
-    constructor(title){
+    constructor(shortTitle, title, recordType){
+        this.id = shortTitle
         this.title = title
+        this.type = recordType
         this.history = new Map()
         this.songs = new Map()
     }

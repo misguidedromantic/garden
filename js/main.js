@@ -15,22 +15,23 @@ class orchestrator {
     //static #parterres = {}
     static #content = {}
     static #displays = {}
-    //static #controller = {}
+    static #controller = {}
     static #currentDisplayTitle = ''
 
     static setup(){
         this.#content = new contentManager
         this.#displays = new Map
-        this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
+        this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 50)
     }
 
     static async loadParterre(title){
-        const controller = new parterreController
+        this.#controller = new parterreController
         const content = await this.#content.getParterreContent(title)
         const thisParterre = new parterre (title)
         this.#displays.set(title, thisParterre)
-        thisParterre.backgroundDiv = controller.loadBackground(content.imageUrl, content.imageDimensions)
-        thisParterre.titleCard = controller.loadTitle(title)
+        thisParterre.backgroundImage = {url: content.imageUrl, dimensions: content.imageDimensions}
+        thisParterre.backgroundDiv = this.#controller.loadBackground(content.imageUrl, content.imageDimensions)
+        thisParterre.titleCard = this.#controller.loadTitle(title)
         this.#currentDisplayTitle = title   
     }
 
@@ -65,8 +66,8 @@ class orchestrator {
 
     static reconfigureCurrentDisplay(){
         const display = this.#displays.get(this.#currentDisplayTitle)
-        
-
+        console.log(display)
+        this.#controller.scale(display)
     }
 
     static #throttle(func, delay) {
@@ -91,7 +92,20 @@ class orchestrator {
 }
 
 class parterreController {
-    loadBackground(imageUrl, imageDimensions){
+
+    createBackground(imageUrl){
+        function applyImage(div, src){
+            div.append('img')
+                .attr('src',  src)
+                .style('height', '100%')
+                .style('opacity', 0.38)
+        }
+        const div = d3.select('body').append('div')
+        applyImage(div, imageUrl)
+        return div
+    }
+
+    configureBackground(div, imageDimensions){
 
         const position = () => {return {left: -400,top: -600}}
         const dimensions = (imageDimensions) => {
@@ -112,37 +126,49 @@ class parterreController {
                 
         }
 
-        function applyImage(div, src){
-            div.append('img')
-                .attr('src',  src)
-                .style('height', '100%')
-                .style('opacity', 0.38)
-        }
-
-        const div = d3.select('body').append('div')
         applyPosition(div, position())
         applyDimensions(div, dimensions(imageDimensions))
-        applyImage(div, imageUrl)
+    }
+
+    loadBackground(imageUrl, imageDimensions){
+        const div = this.createBackground(imageUrl)
+        this.configureBackground(div, imageDimensions)
         return div
     }
 
     loadTitle(titleText){
 
-        const wordsArray = (text) => {
-            return text.toUpperCase().split(' ')
+        function create(){
+            const factory = new cardFactory
+            return factory.createCard('parterreTitle', 'title')
         }
 
-        const factory = new cardFactory
+        function configure(controller, card){
+            const wordsArray = (text) => {return text.toUpperCase().split(' ')}
+            controller.applyDefaultDimensions(card)
+            card.words = wordsArray(titleText)
+        }
+
+        function render(controller, card){
+            controller.renderText(card)
+            controller.scale(card)
+        }
+
+        const titleCard = create()
         const controller = new cardController
-        const titleCard = factory.createCard('parterreTitle', 'title')
-        controller.applyDefaultDimensions(titleCard)
-        titleCard.words = wordsArray(titleText)
-        controller.renderText(titleCard)
-        controller.applyScaledDimensions(titleCard)
-        controller.renderText(titleCard)
+        configure(controller, titleCard)
+        render(controller, titleCard)
         return titleCard
     }
+
+    scale(parterre){
+        const controller = new cardController
+        controller.scale(parterre.titleCard)
+        this.configureBackground(parterre.backgroundDiv, parterre.backgroundImage.dimensions)
+    }
+
 }
+
 
 class contentManager {
     parterres(){

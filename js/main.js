@@ -1,75 +1,8 @@
 const gRatio = 1.618
 
-
 window.onload = async function(){
     orchestrator.setup()
-    orchestrator.loadParterre('jps')
-
-    //loadRecordDisplay('misguided romantic')
-
-
-
-
-/*     songsData.loadSongwritingArtefacts()
-
-    function createGoodAfterBad(){
-        const artefacts = songsData.getAllSongwritingArtefacts()
-        const gab = new song('gab', 'Good After Bad')
-        gab.addSongwritingEvent(new songwritingEvent(gab, 'structure', artefacts[3]))
-
-        function createSectionArchetypes(gab){
-            function setupVerse(songID){
-                const verse = new songSectionArchetype(songID + 'Verse', 'verse')
-                gab.addSongwritingEvent(new songwritingEvent(verse, 'melody', artefacts[0])),
-                gab.addSongwritingEvent(new songwritingEvent(verse, 'chords', artefacts[0]))
-                return verse
-            }
-    
-            function setupChorus(songID){
-                const chorus = new songSectionArchetype(songID + 'Chorus', 'chorus')
-                gab.addSongwritingEvent(new songwritingEvent(chorus, 'melody', artefacts[2])),
-                gab.addSongwritingEvent(new songwritingEvent(chorus, 'chords', artefacts[2]))
-                return chorus
-            }
-            
-            gab.addSectionArchetype(setupVerse(gab.id))
-            gab.addSectionArchetype(setupChorus(gab.id))
-        }
-    
-        function createSectionInstances(gab){
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Intro', 'Verse', 1))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 2))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus1', 'Chorus', 3))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 4))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus2', 'Chorus', 5))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus3', 'Chorus', 6))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Outro', 'Chorus', 7))
-        }
-
-        createSectionArchetypes(gab)
-        createSectionInstances(gab)
-        return gab
-    }
-
-    function getHistories(song){
-        return song.sectionArchetypes.flatMap(outerObject => 
-            outerObject.history.map(innerObject => ({
-                sectionID: outerObject.id,
-                historyEvent: innerObject.event,
-                historyDate: innerObject.date
-            })))
-
-    }
-
-
-    const goodAfterBad = createGoodAfterBad()
-    const histories = getHistories(goodAfterBad)
-    displays.loadSongHistoryDisplay(goodAfterBad, histories) */
-
-    //loadPageTitle()
-    //orchestrator.setup()
-    //orchestrator.loadDisplay('misguided romantic', 'record')
-    //orchestrator.loadDisplay('jamesparrysongs', 'paterre')
+    orchestrator.loadParterre('songs')
 }
 
 
@@ -77,28 +10,35 @@ window.onresize = function (){
     orchestrator.handleResize()
 }
 
-
 class orchestrator {
 
-    static #parterres = {}
+    //static #parterres = {}
+    static #content = {}
     static #displays = {}
     //static #controller = {}
     static #currentDisplayTitle = ''
 
     static setup(){
+        this.#content = new contentManager
         this.#displays = new Map
         this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
     }
 
-    static loadParterre(id){
-        console.log(window.innerHeight)
+    static async loadParterre(title){
+        const controller = new parterreController
+        const content = await this.#content.getParterreContent(title)
+        const thisParterre = new parterre (title)
+        this.#displays.set(title, thisParterre)
+        thisParterre.backgroundDiv = controller.loadBackground(content.imageUrl, content.imageDimensions)
+        thisParterre.titleCard = controller.loadTitle(title)
+        this.#currentDisplayTitle = title   
     }
 
     static loadDisplay(title, type){
         this.#createDisplay(title, type)
         this.#configureDisplay(this.#displays.get(title))
         //this.#renderDisplay(title)
-        this.#currentDisplayTitle = title   
+        //this.#currentDisplayTitle = title   
     }
 
     static #createDisplay(title, type){
@@ -125,7 +65,7 @@ class orchestrator {
 
     static reconfigureCurrentDisplay(){
         const display = this.#displays.get(this.#currentDisplayTitle)
-        console.log(display)
+        
 
     }
 
@@ -150,6 +90,60 @@ class orchestrator {
 
 }
 
+class parterreController {
+    loadBackground(imageUrl, imageDimensions){
+
+        const position = () => {return {left: -400,top: -600}}
+        const dimensions = (imageDimensions) => {
+            const width = window.innerWidth * gRatio
+            const apsectRatio = imageDimensions.width / imageDimensions.height
+            return {width: width, height: width * apsectRatio}
+        }
+
+        function applyPosition(div, position){
+            div.style('position', 'fixed')
+                .style('top', position.top + 'px')
+                .style('left', position.left + 'px')
+        }
+
+        function applyDimensions(div, dimensions){
+            div.style('width', dimensions.width + 'px')
+                .style('height', dimensions.height + 'px')
+                
+        }
+
+        function applyImage(div, src){
+            div.append('img')
+                .attr('src',  src)
+                .style('height', '100%')
+                .style('opacity', 0.38)
+        }
+
+        const div = d3.select('body').append('div')
+        applyPosition(div, position())
+        applyDimensions(div, dimensions(imageDimensions))
+        applyImage(div, imageUrl)
+        return div
+    }
+
+    loadTitle(titleText){
+
+        const wordsArray = (text) => {
+            return text.toUpperCase().split(' ')
+        }
+
+        const factory = new cardFactory
+        const controller = new cardController
+        const titleCard = factory.createCard('parterreTitle', 'title')
+        controller.applyDefaultDimensions(titleCard)
+        titleCard.words = wordsArray(titleText)
+        controller.renderText(titleCard)
+        controller.applyScaledDimensions(titleCard)
+        controller.renderText(titleCard)
+        return titleCard
+    }
+}
+
 class contentManager {
     parterres(){
         return [
@@ -158,9 +152,35 @@ class contentManager {
         ]
     }
 
-    getParterreData(parterreTitle){
-        if(parterreTitle === 'records'){
-            
+    getImageDimensions(url){
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+    
+            img.onload = () => {
+              resolve({
+                width: img.naturalWidth, // Original width of the image
+                height: img.naturalHeight // Original height of the image
+              });
+            };
+        
+            img.onerror = (error) => {
+              reject(new Error(`Failed to load image: ${error}`));
+            };
+        
+            img.src = url;
+          });
+
+    }
+
+    async getParterreContent(parterreTitle){
+        if(parterreTitle === 'songs'){
+            await songsData.load()
+            const imageUrl = 'images/jp-esb-square.JPEG'
+            return {
+                imageUrl: imageUrl,
+                imageDimensions: await this.getImageDimensions(imageUrl),
+                songs: songsData.getAllSongs()
+            }
         }
     }
 

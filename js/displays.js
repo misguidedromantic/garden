@@ -14,6 +14,8 @@ class parterre  {
     constructor(title){
         this.title = title
     }
+
+    
 }
 
 class recordDisplay extends display {

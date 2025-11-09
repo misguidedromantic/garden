@@ -167,6 +167,7 @@ class cardController {
     }
 
     applyScaledDimensions(card){
+        console.log(card)
         const scale = this.getScaleFactor(card)
         card.fontSize = card.fontSize * scale, card.height = card.fontSize * card.words.length + 15
         this.renderSizeChange(card)

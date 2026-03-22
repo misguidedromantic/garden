@@ -2,6 +2,14 @@ const gRatio = 1.618
 
 
 window.onload = async function(){
+
+    orchestrator.setup()
+    orchestrator.loadDisplay('mainEntrance')
+    
+    //orchestrator.loadDisplay('jamesparrysongs', 'paterre')
+
+
+
     //loadRecordDisplay('misguided romantic')
 
 
@@ -62,19 +70,28 @@ window.onload = async function(){
     const goodAfterBad = createGoodAfterBad()
     const histories = getHistories(goodAfterBad)
     displays.loadSongHistoryDisplay(goodAfterBad, histories) */
-
-    //loadPageTitle()
-    orchestrator.setup()
     //orchestrator.loadDisplay('misguided romantic', 'record')
-    orchestrator.loadDisplay('jamesparrysongs', 'paterre')
+    //loadPageTitle()
+
 }
 
+
+function arrival(){
+    const options = [
+        'look at the map',
+        'what is this place?',
+        'start wandering',
+        'wait for something to happen',
+        'show me the code',
+        'what it means to arrive here'
+    ]
+
+    
+}
 
 window.onresize = function (){
     orchestrator.handleResize()
 }
-
-
 
 class orchestrator {
 
@@ -94,12 +111,15 @@ class orchestrator {
         this.#currentDisplayTitle = title   
     }
 
-    static #createDisplay(title, type){
-        switch(type){
-            case 'paterre':
+    static #createDisplay(title){
+        switch(title){
+            case 'mainEntrance':
+                this.#displays.set(title, new entrance (title))
+                break;
+            case 'jamesparrysongs':
                 this.#displays.set(title, new parterre (title))
                 break;
-            case 'record':
+            case 'jamesparryrecords':
                 this.#displays.set(title, new recordDisplay (title))
                 break;
             default:
@@ -178,6 +198,8 @@ class displayController {
                 .attr('src',  background)
                 .style('width', '100%')
                 .style('opacity', 0.38)
+        } else {
+            d3.select('body').style('background-color', this.#config.backgroundColour())
         }
     }
 
@@ -186,7 +208,7 @@ class displayController {
         const factory = new cardFactory
         const schema = this.#config.cardSchema()
         schema.forEach(entry => {
-            display.cards.set(entry.id, factory.createCard(entry.id, entry.type))
+            display.cards.set(entry.title, factory.createCard(entry.title, entry.type))
         })
     }
 
@@ -214,6 +236,13 @@ class displayConfiguration {
         }
     }
 
+    backgroundColour(){
+        switch(this.display.constructor.name){
+            case 'entrance':
+                return 'white'
+        }
+    }
+
     cardSchema(){
         const schema = [this.#title()]
         switch(this.display.constructor.name){
@@ -222,7 +251,7 @@ class displayConfiguration {
             case 'recordDisplay':
                 return [...schema, ...this.#viewTitles()]
             default:
-                return null    
+                return [...schema, ...this.#viewTitles()]
         }
     }
 
@@ -235,6 +264,7 @@ class displayConfiguration {
 
     applyDefaultLayout(cards, controller, layout){
         for (const card of cards.values()) {
+            console.log(layout.adjacentCards(card))
             controller.applyDefaultDimensions(card)
             controller.applyPosition(card, layout.adjacentCards(card))
         }
@@ -242,15 +272,14 @@ class displayConfiguration {
 
     async applyContentScaledLayout(cards, controller, layout){
         for (const card of cards.values()) {
-            console.log(card)
             const content = await this.#content.getCardContent(card, this.display)
             controller.applyContent(card, content)
             controller.applyPosition(card, layout.adjacentCards(card))
         }
     }
 
-    #schemaEntry(cardId, cardType){
-        return {id: cardId, type: cardType}
+    #schemaEntry(cardTitle, cardType){
+        return {title: cardTitle, type: cardType}
     }
 
     #title(){
@@ -290,14 +319,36 @@ class layoutManager {
         }
     }
 
+
     #cardAbove(card){
         switch(card.constructor.name){
             case 'titleCard':
                 return null
             case 'viewTitleCard':
+                return this.#getPreviousCard(card)
             case 'canvasCard':
-                return this.cards.get('displayTitle')
+                return this.cards.getPreviousCard(card)
         }
+    }
+
+    #getPreviousCard(card){
+        const filteredCards = this.#filterCardsByType(card.constructor.name)
+        const i = filteredCards.findIndex(filteredCard => filteredCard.title === card.title)
+        if(i > 0){ 
+            return filteredCards[i - 1]
+        } else {
+            return this.cards.get('displayTitle')
+        }
+    }
+
+    #filterCardsByType(type){
+        const filteredCards = []
+        for (const card of this.cards.values()) {
+            if(card.constructor.name === type){
+                filteredCards.push(card)
+            }
+        }
+        return filteredCards
     }
 }
 
@@ -316,6 +367,8 @@ class contentManager {
         switch(displayType){
             case 'recordDisplay':
                 return ['history', 'songs']
+            case 'entrance':
+                return ['look at the map', 'what is this place?', 'start wandering', 'wait for something to happen', 'show me the code', 'what it means to arrive here']
         } 
     }
 

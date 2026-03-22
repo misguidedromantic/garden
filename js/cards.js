@@ -3,38 +3,39 @@ class card {
     backgroundColour = 'transparent'
     textFill = 'white'
 
-    constructor(id){
-        this.id = id
+    constructor(title){
+        this.title = title
+        this.id = title.replaceAll(' ','').toLowerCase()
         this.width = Math.round(window.innerWidth / gRatio)
         this.height = Math.round(this.width * 9 / 16)
     }
 }
 
 class titleCard extends card {
-    constructor(id){
-        super(id)
+    constructor(title){
+        super(title)
         this.words = []
         this.fontSize = 200
     }
 }
 
 class viewTitleCard extends titleCard {
-    constructor(id){
-        super(id)
+    constructor(title){
+        super(title)
         this.textFill = 'yellow'
     }
 }
 
 class canvasCard extends card {
-    constructor(id){
-        super(id)
+    constructor(title){
+        super(title)
     }
 }
 
 
 class menuCard extends card {
-    constructor(id){
-        super(id)
+    constructor(title){
+        super(title)
         this.items = []
         this.textFill = 'yellow'
         this.fontSize = 100
@@ -97,24 +98,24 @@ class cardPositioning {
 //operations
 class cardFactory {
 
-    createCard(id, type = undefined){
-        const card = this.#createObject(id, type)
+    createCard(title, type = undefined){
+        const card = this.#createObject(title, type)
         this.#createDomElements(card)
         return card
     }
 
-    #createObject(id, type){
+    #createObject(title, type){
         switch(type){
             case 'title':
-                return new titleCard(id)
-            case 'viewTitle':
-                return new viewTitleCard(id)
+                return new titleCard(title)
+            case 'viewTitle':   
+                return new viewTitleCard(title)
             case 'canvas':
-                return new canvasCard(id)
+                return new canvasCard(title)
             case 'menu':
-                return new menuCard(id)
+                return new menuCard(title)
             default:
-                return new card(id)
+                return new card(title)
         }
     }
 

@@ -10,6 +10,12 @@ class display {
     }
 }
 
+class entrance extends display {
+    constructor(title){
+        super(title)
+    }
+}
+
 class parterre extends display {
     constructor(title){
         super(title)

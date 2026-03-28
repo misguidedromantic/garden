@@ -1,3 +1,5 @@
+
+
 class display {
     cards = {}
     views = {}
@@ -9,17 +11,3 @@ class display {
         this.views = new Map
     }
 }
-
-class parterre extends display {
-    constructor(title){
-        super(title)
-    }
-}
-
-class recordDisplay extends display {
-
-    constructor(title){
-        super(title)
-    } 
-}
-

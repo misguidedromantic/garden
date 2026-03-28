@@ -2,71 +2,8 @@ const gRatio = 1.618
 
 
 window.onload = async function(){
-    //loadRecordDisplay('misguided romantic')
-
-
-
-
-/*     songsData.loadSongwritingArtefacts()
-
-    function createGoodAfterBad(){
-        const artefacts = songsData.getAllSongwritingArtefacts()
-        const gab = new song('gab', 'Good After Bad')
-        gab.addSongwritingEvent(new songwritingEvent(gab, 'structure', artefacts[3]))
-
-        function createSectionArchetypes(gab){
-            function setupVerse(songID){
-                const verse = new songSectionArchetype(songID + 'Verse', 'verse')
-                gab.addSongwritingEvent(new songwritingEvent(verse, 'melody', artefacts[0])),
-                gab.addSongwritingEvent(new songwritingEvent(verse, 'chords', artefacts[0]))
-                return verse
-            }
-    
-            function setupChorus(songID){
-                const chorus = new songSectionArchetype(songID + 'Chorus', 'chorus')
-                gab.addSongwritingEvent(new songwritingEvent(chorus, 'melody', artefacts[2])),
-                gab.addSongwritingEvent(new songwritingEvent(chorus, 'chords', artefacts[2]))
-                return chorus
-            }
-            
-            gab.addSectionArchetype(setupVerse(gab.id))
-            gab.addSectionArchetype(setupChorus(gab.id))
-        }
-    
-        function createSectionInstances(gab){
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Intro', 'Verse', 1))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 2))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus1', 'Chorus', 3))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Verse1', 'Verse', 4))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus2', 'Chorus', 5))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Chorus3', 'Chorus', 6))
-            gab.addSectionInstance(new songSectionInstance(gab.id, 'Outro', 'Chorus', 7))
-        }
-
-        createSectionArchetypes(gab)
-        createSectionInstances(gab)
-        return gab
-    }
-
-    function getHistories(song){
-        return song.sectionArchetypes.flatMap(outerObject => 
-            outerObject.history.map(innerObject => ({
-                sectionID: outerObject.id,
-                historyEvent: innerObject.event,
-                historyDate: innerObject.date
-            })))
-
-    }
-
-
-    const goodAfterBad = createGoodAfterBad()
-    const histories = getHistories(goodAfterBad)
-    displays.loadSongHistoryDisplay(goodAfterBad, histories) */
-
-    //loadPageTitle()
     orchestrator.setup()
-    //orchestrator.loadDisplay('misguided romantic', 'record')
-    orchestrator.loadDisplay('jamesparrysongs', 'paterre')
+    orchestrator.loadDisplay('lifeline')
 }
 
 
@@ -75,11 +12,24 @@ window.onresize = function (){
 }
 
 
+class week {
+
+    constructor(sequenceNumber, status){
+        this.sequenceNumber = sequenceNumber
+        this.status = status
+        this.events = []
+    }
+
+    addEvent(event){
+        this.events.push(event)
+    }
+}
+
+
 
 class orchestrator {
 
     static #displays = {}
-    //static #controller = {}
     static #currentDisplayTitle = ''
 
     static setup(){
@@ -87,24 +37,14 @@ class orchestrator {
         this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
     }
 
-    static loadDisplay(title, type){
-        this.#createDisplay(title, type)
+    static loadDisplay(title){
+        this.#createDisplay(title)
         this.#configureDisplay(this.#displays.get(title))
-        //this.#renderDisplay(title)
         this.#currentDisplayTitle = title   
     }
 
-    static #createDisplay(title, type){
-        switch(type){
-            case 'paterre':
-                this.#displays.set(title, new parterre (title))
-                break;
-            case 'record':
-                this.#displays.set(title, new recordDisplay (title))
-                break;
-            default:
-                this.#displays.set(title, new display (title))
-        }
+    static #createDisplay(title){
+        this.#displays.set(title, new display(title))
     }
  
     static #configureDisplay(display){ 
@@ -118,7 +58,6 @@ class orchestrator {
 
     static reconfigureCurrentDisplay(){
         const display = this.#displays.get(this.#currentDisplayTitle)
-        console.log(display)
 
     }
 
@@ -155,8 +94,8 @@ class displayController {
 
     configure(display){
         this.#setBackground(display)
-        this.#createCards(display)
-        this.#configureCards(display)
+        this.#createViews(display)
+        this.#configureViews(display)
     }
 
     #setBackground(){
@@ -165,7 +104,6 @@ class displayController {
         const height = width * 16 / 9
         const top = -725
         const left = -400
-        console.log(height)
         if(background !== null){
             d3.select('body')
                 .append('div')
@@ -181,6 +119,22 @@ class displayController {
         }
     }
 
+    #createViews(display){
+        const factory = new viewFactory
+        const schema = this.#config.viewSchema(display.title)
+        schema.forEach(entry => {
+            display.views.set(entry.id, factory.createView(entry.id))
+        })
+    }
+
+    #configureViews(display){
+        const controller = new viewController(display.views.get('lifeline'))
+        for (const view of display.views.values()) {
+            const content = this.#content.getViewContent(view)
+            controller.renderContent(content)
+            controller.resizeToFitHeight()
+        }
+    }
 
     #createCards(display){
         const factory = new cardFactory
@@ -195,6 +149,114 @@ class displayController {
         //const words = this.#content.getWords(card, display)
     }
 
+}
+
+class view {
+    constructor(id){
+        this.id = id
+    }
+}
+
+class viewFactory {
+    constructor(){
+        this.width = Math.floor(window.innerWidth * 0.95 / 16) * 16
+        this.height = 16
+        this.gap = Math.floor((window.innerWidth - this.width) / 2)
+    }
+
+    createView(title){
+        const view = this.#createObject(title)
+        this.#createDomElements(view)
+        return view
+    }
+
+    #createObject(title){
+        return new view(title)
+    }
+
+    #createDomElements(view){
+        this.#addDiv(view)
+        this.#addSVG(view)
+    }
+
+    #addDiv(view){
+        view.div = d3.select('body')
+            .append('div')
+            .attr('id', view.id)
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+            .style('position', 'absolute')
+            .style('left', this.gap + 'px')
+            .style('top', this.gap + 'px')
+    }
+
+    #addSVG(view){
+        view.svg = view.div.append('svg')
+            .attr('width', this.width)
+            .attr('height', this.height)
+    }
+
+}
+
+class viewController {
+    constructor(view){
+        this.view = view
+        this.cellSize = 16
+    }
+
+    renderContent(data){
+        this.view.data = data
+        const svg = this.view.svg
+        const cellSize = this.cellSize
+        const cellsPerRow = this.getCellsPerRow(cellSize)
+        svg.selectAll('circle')
+            .data(data)
+            .join(
+                enter => enter.append('circle')
+                    .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
+                    .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
+                    .attr('r', cellSize / 2 - 1)
+                    .attr('fill', d => {
+                        switch(d.status) {
+                            case 'lived':
+                                return '#7c9881'
+                            case 'expected':
+                                return '#c6d6cc'
+                            case 'current':
+                                return '#FFC000'
+                            default:
+                                return 'red'
+                        }
+                    })
+        )
+    } 
+
+    resizeToFitHeight(){
+        const cellSize = this.cellSize
+        const rowCount = this.getRowCount()
+        const totalHeight = rowCount * cellSize
+        this.view.div.style('height', totalHeight + 'px')
+        this.view.svg.attr('height', totalHeight)
+    }
+
+
+
+    totalCells(){
+        return this.view.data.length
+    }
+
+
+    getRowCount(){
+        const totalCells = this.totalCells()
+        const cellsPerRow = this.getCellsPerRow()
+        return Math.ceil(totalCells / cellsPerRow)
+    }
+
+
+    getCellsPerRow(cellSize = this.cellSize){
+        const width = this.view.svg.attr('width')
+        return Math.floor(width / cellSize)
+    }
 }
 
 class displayConfiguration {
@@ -212,6 +274,10 @@ class displayConfiguration {
         } else {
             return null
         }
+    }
+
+    viewSchema(displayTitle){
+        return displayTitle === 'lifeline' ? [this.#schemaEntry('lifeline', 'view')] : []
     }
 
     cardSchema(){
@@ -242,15 +308,14 @@ class displayConfiguration {
 
     async applyContentScaledLayout(cards, controller, layout){
         for (const card of cards.values()) {
-            console.log(card)
             const content = await this.#content.getCardContent(card, this.display)
             controller.applyContent(card, content)
             controller.applyPosition(card, layout.adjacentCards(card))
         }
     }
 
-    #schemaEntry(cardId, cardType){
-        return {id: cardId, type: cardType}
+    #schemaEntry(viewID, viewType){
+        return {id: viewID, type: viewType}
     }
 
     #title(){
@@ -301,7 +366,68 @@ class layoutManager {
     }
 }
 
+class lifelineData {
+    static #dob = '1985-05-06'
+    static #lifeExpectancyYears = 80
+    static getWeeksArray(){
+        const weeksArray = []
+        this.addWeeksSinceBirth(weeksArray)
+        this.addCurrentWeek(weeksArray)
+        this.addWeeksUntilDeath(weeksArray)
+        return weeksArray
+    }
+
+    static addWeeksSinceBirth(array){
+        const dob = lifelineData.#dob
+        const weeksSinceBirth = this.#getWeekOfOccurrence(dob)
+        for(let i = weeksSinceBirth; i < 0; i++){
+            array.push(new week(i, 'lived'))
+        }
+    }
+
+    static addCurrentWeek(array){
+        array.push(new week(0, 'current'))
+    }
+
+    static addWeeksUntilDeath(array){
+        const dod = this.#getEstimatedDateOfDeath()
+        const weeksUntilDeath = this.#getWeekOfOccurrence(dod)
+        for(let i = 1; i <= weeksUntilDeath; i++){
+            array.push(new week(i, 'expected'))
+        }
+    }
+
+    static #getEstimatedDateOfDeath(){
+        const dob = lifelineData.#dob
+        const lifeExpectancyYears = lifelineData.#lifeExpectancyYears
+        return new Date (new Date(dob).getTime() + lifeExpectancyYears * 365 * 24 * 60 * 60 * 1000)
+    }
+
+    static #getWeeksSinceBirth(dob){
+        return this.#getWeekOfOccurrence(dob) * -1
+    }
+
+
+    static #getWeekOfOccurrence(dateString){
+        const now = new Date()
+        const date = new Date(dateString)
+        const diffTime = date - now
+        const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7))
+        return diffWeeks
+    }
+
+}
+
+
 class contentManager {
+    getViewContent(view){
+        if(view.id === 'lifeline'){
+            return lifelineData.getWeeksArray()
+        } else {
+            return null
+        }
+    }
+    
     getCardContent(card, display){
         switch(card.constructor.name){
             case 'titleCard':
@@ -346,7 +472,7 @@ class contentManager {
             case 'titleCard':
                 return display.title.toUpperCase().split(' ')
             case 'viewTitleCard':
-                    console.log(card)
+
                 
         }
     }

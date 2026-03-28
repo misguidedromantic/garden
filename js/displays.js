@@ -11,3 +11,10 @@ class display {
         this.views = new Map
     }
 }
+
+class lifelineDisplay extends display {
+    constructor(title){
+        super(title)
+    }
+}
+

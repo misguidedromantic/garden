@@ -96,6 +96,7 @@ class displayController {
         this.#setBackground(display)
         this.#createViews(display)
         this.#configureViews(display)
+        this.#config.arrangeViews(display.views)
     }
 
     #setBackground(){
@@ -128,13 +129,16 @@ class displayController {
     }
 
     #configureViews(display){
-        const controller = new viewController(display.views.get('lifeline'))
         for (const view of display.views.values()) {
+            const controller = new viewController(view)
             const content = this.#content.getViewContent(view)
-            controller.renderContent(content)
-            controller.resizeToFitHeight()
+            if(content !== null){
+                controller.renderContent(content)
+                controller.resizeToFitHeight()
+            }
         }
     }
+
 
     #createCards(display){
         const factory = new cardFactory
@@ -164,14 +168,14 @@ class viewFactory {
         this.gap = Math.floor((window.innerWidth - this.width) / 2)
     }
 
-    createView(title){
-        const view = this.#createObject(title)
+    createView(id){
+        const view = this.#createObject(id)
         this.#createDomElements(view)
         return view
     }
 
-    #createObject(title){
-        return new view(title)
+    #createObject(id){
+        return new view(id)
     }
 
     #createDomElements(view){
@@ -198,13 +202,47 @@ class viewFactory {
 
 }
 
+class viewSizing {}
+class viewPositioning {
+    constructor(){
+        this.gap = 15
+    }
+
+    calculateCoordinates(view, adjacentViews){
+        return {
+            top: this.top(view, adjacentViews.above),
+            left: this.left(view, adjacentViews.left)
+        }
+    }
+
+    top(view, viewAbove){
+        if(viewAbove !== null){
+            return viewAbove.top + viewAbove.height + this.gap
+        }
+        return this.gap 
+    }
+    
+    left(view, viewToLeft){
+        if(viewToLeft !== null){
+            return viewToLeft.left + viewToLeft.width + this.gap
+        } else if (view.constructor.name === 'viewTitleCard'){
+            return window.innerWidth + this.gap
+        }
+
+        return this.gap
+    }
+}
+
 class viewController {
     constructor(view){
         this.view = view
         this.cellSize = 16
+        this.sizing = new viewSizing
+        this.positioning = new viewPositioning
     }
 
     renderContent(data){
+        console.log(data)
         this.view.data = data
         const svg = this.view.svg
         const cellSize = this.cellSize
@@ -239,7 +277,11 @@ class viewController {
         this.view.svg.attr('height', totalHeight)
     }
 
-
+    applyPosition(view, adjacentViews){
+        const {left, top} = this.positioning.calculateCoordinates(view, adjacentViews)
+        view.left = left, view.top = top
+        view.div.style('left', left + 'px').style('top', top + 'px')
+    }
 
     totalCells(){
         return this.view.data.length
@@ -277,7 +319,17 @@ class displayConfiguration {
     }
 
     viewSchema(displayTitle){
-        return displayTitle === 'lifeline' ? [this.#schemaEntry('lifeline', 'view')] : []
+        const mainView = this.#schemaEntry('mainView')
+        const footer = this.#schemaEntry('footer')
+        return [mainView, footer]
+    }
+
+    arrangeViews(views){
+        const layout = new layoutManager (views)
+        
+        const adjacentViews = layout.adjacentComponents(views.get('footer'))
+        console.log(adjacentViews.above)
+
     }
 
     cardSchema(){
@@ -333,36 +385,24 @@ class displayConfiguration {
 }
 
 class layoutManager {
-    constructor(cards){
-        this.cards = cards
+    constructor(components){
+        this.components = components
+        console.log(components)
     }
 
-    adjacentCards(card){
+    adjacentComponents(component){
         return {
-            left: this.#cardToLeft(card),
-            above: this.#cardAbove(card)
+            left: this.#componentToLeft(component),
+            above: this.#componentAbove(component)
         }
     }
 
-    #cardToLeft(card){
-        switch(card.constructor.name){
-            default:
-                return null
-            case 'canvasCard':
-                const canvasArray = Array.from(this.cards.values()).filter(card => card.constructor.name === 'canvasCard')
-                const i = canvasArray.findIndex(canvasCard => canvasCard.id === card.id)
-                return i > 0 ? canvasArray[i - 1] : null
-        }
+    #componentToLeft(component){
+        return null
     }
 
-    #cardAbove(card){
-        switch(card.constructor.name){
-            case 'titleCard':
-                return null
-            case 'viewTitleCard':
-            case 'canvasCard':
-                return this.cards.get('displayTitle')
-        }
+    #componentAbove(component){
+        return component.id === 'footer' ? this.components.get('mainView') : null
     }
 }
 
@@ -421,8 +461,10 @@ class lifelineData {
 
 class contentManager {
     getViewContent(view){
-        if(view.id === 'lifeline'){
+        if(view.id === 'mainView'){
             return lifelineData.getWeeksArray()
+        } else if (view.id === 'footer') {
+            return ['backlog']
         } else {
             return null
         }

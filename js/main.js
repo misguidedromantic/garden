@@ -3,8 +3,65 @@ const gRatio = 1.618
 
 window.onload = async function(){
     orchestrator.setup()
-    orchestrator.loadDisplay('lifeline')
+    orchestrator.loadDisplay('lifeline', 'ingress')
 }
+
+class elementFactory {
+
+    constructor(){
+        this.width = Math.floor(window.innerWidth * 0.95 / 16) * 16
+        this.height = 16
+        this.gap = Math.floor((window.innerWidth - this.width) / 2)
+    }
+
+    createElement(title, type){
+        const element = this.#createObject(title, type)
+        this.#createDomElements(element)
+        return element
+    }
+
+    #createObject(title, type){
+        switch(type){
+            case 'card':
+                return new card (title)
+            case 'accordion':
+                return new accordian (title)
+            default:
+                return null
+        }
+    }
+
+    #createDomElements(title){
+        this.#addDiv(title)
+        this.#addSVG(title)
+    }
+
+    #addDiv(title){
+        title.div = d3.select('body')
+            .append('div')
+            .attr('id', title.id)
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+            .style('position', 'absolute')
+            .style('left', this.gap + 'px')
+            .style('top', this.gap + 'px')
+    }
+
+    #addSVG(title){
+        title.svg = title.div.append('svg')
+            .attr('width', this.width)
+            .attr('height', this.height)
+    }
+
+}
+
+class accordian {
+    constructor(title){
+        this.title = title
+        this.id = title.replaceAll(' ','')
+    }
+}
+
 
 
 window.onresize = function (){
@@ -37,14 +94,14 @@ class orchestrator {
         this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
     }
 
-    static loadDisplay(title){
-        this.#createDisplay(title)
+    static loadDisplay(title, type){
+        this.#createDisplay(title, type)
         this.#configureDisplay(this.#displays.get(title))
         this.#currentDisplayTitle = title   
     }
 
-    static #createDisplay(title){
-        this.#displays.set(title, new display(title))
+    static #createDisplay(title, type){
+        this.#displays.set(title, new display(title, type))
     }
  
     static #configureDisplay(display){ 
@@ -94,9 +151,23 @@ class displayController {
 
     configure(display){
         this.#setBackground(display)
-        this.#createViews(display)
+        this.#createElements(display)
+
+        
+
+/*         this.#createViews(display)
         this.#configureViews(display)
-        this.#config.arrangeViews(display.views)
+        this.#config.arrangeViews(display.views) */
+    }
+
+    #createElements(display){
+        const factory = new elementFactory
+        const schema = this.#config.elementSchema()
+        schema.forEach(entry => {
+            display.elements.set(entry.id, factory.createElement(entry.title, entry.type))
+        })
+
+        console.log(schema)
     }
 
     #setBackground(){
@@ -155,52 +226,7 @@ class displayController {
 
 }
 
-class view {
-    constructor(id){
-        this.id = id
-    }
-}
 
-class viewFactory {
-    constructor(){
-        this.width = Math.floor(window.innerWidth * 0.95 / 16) * 16
-        this.height = 16
-        this.gap = Math.floor((window.innerWidth - this.width) / 2)
-    }
-
-    createView(id){
-        const view = this.#createObject(id)
-        this.#createDomElements(view)
-        return view
-    }
-
-    #createObject(id){
-        return new view(id)
-    }
-
-    #createDomElements(view){
-        this.#addDiv(view)
-        this.#addSVG(view)
-    }
-
-    #addDiv(view){
-        view.div = d3.select('body')
-            .append('div')
-            .attr('id', view.id)
-            .style('width', this.width + 'px')
-            .style('height', this.height + 'px')
-            .style('position', 'absolute')
-            .style('left', this.gap + 'px')
-            .style('top', this.gap + 'px')
-    }
-
-    #addSVG(view){
-        view.svg = view.div.append('svg')
-            .attr('width', this.width)
-            .attr('height', this.height)
-    }
-
-}
 
 class viewSizing {}
 class viewPositioning {
@@ -318,6 +344,15 @@ class displayConfiguration {
         }
     }
 
+    elementSchema(){
+        if(this.display.title === 'lifeline'){
+            return [
+                {title: 'weeks of life', type: 'card'},
+                {title: 'backlog', type: 'accordion'}
+            ]
+        }
+    }
+
     viewSchema(displayTitle){
         const mainView = this.#schemaEntry('mainView')
         const footer = this.#schemaEntry('footer')
@@ -326,7 +361,7 @@ class displayConfiguration {
 
     arrangeViews(views){
         const layout = new layoutManager (views)
-        
+
         const adjacentViews = layout.adjacentComponents(views.get('footer'))
         console.log(adjacentViews.above)
 

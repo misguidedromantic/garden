@@ -1,20 +1,18 @@
 
 
 class display {
-    cards = {}
-    views = {}
+    elements = {}
     
-    constructor(title){
+    constructor(title, type){
         this.title = title
-        this.id = title.replaceAll(' ','').toLowerCase()
-        this.cards = new Map
-        this.views = new Map
+        this.type = type
+        this.id = this.createID(title, type)
+        this.elements = new Map
     }
-}
 
-class lifelineDisplay extends display {
-    constructor(title){
-        super(title)
+    createID(title, type){
+        const capitalisedType = type.charAt(0).toUpperCase() + type.slice(1);
+        return title + type
     }
 }
 

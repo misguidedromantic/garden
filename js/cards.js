@@ -3,8 +3,9 @@ class card {
     backgroundColour = 'transparent'
     textFill = 'white'
 
-    constructor(id){
-        this.id = id
+    constructor(title){
+        this.title = title
+        this.id = title.replaceAll(' ','')
         this.width = Math.round(window.innerWidth / gRatio)
         this.height = Math.round(this.width * 9 / 16)
     }

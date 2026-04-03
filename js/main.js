@@ -158,7 +158,6 @@ class displayController {
     #createElements(display){
         const factory = new elementFactory
         const schema = this.#config.elementSchema()
-        console.log(schema)
         schema.forEach(entry => {
             display.elements.set(entry.title, factory.createElement(entry.title, entry.type))
         })
@@ -166,11 +165,14 @@ class displayController {
 
     #configureElements(display){
         for (const element of display.elements.values()) {
+            const controller = new elementController(element)
             const content = this.#content.getElementContent(element)  
-            console.log(content)
-            ///view controller has the functionality I need for this.
+            controller.renderContent(content)
+            controller.resizeToFitHeight()
         }
     }
+
+
 
     #arrangeElements(display){
         const layout = new layoutManager (display.elements)
@@ -265,18 +267,17 @@ class viewPositioning {
     }
 }
 
-class viewController {
-    constructor(view){
-        this.view = view
+class elementController {
+    constructor(element){
+        this.element = element
         this.cellSize = 16
-        this.sizing = new viewSizing
-        this.positioning = new viewPositioning
+        //this.sizing = new elementSizing
+        //this.positioning = new elementPositioning
     }
 
     renderContent(data){
-        console.log(data)
-        this.view.data = data
-        const svg = this.view.svg
+        this.element.data = data
+        const svg = this.element.svg
         const cellSize = this.cellSize
         const cellsPerRow = this.getCellsPerRow(cellSize)
         svg.selectAll('circle')
@@ -305,18 +306,18 @@ class viewController {
         const cellSize = this.cellSize
         const rowCount = this.getRowCount()
         const totalHeight = rowCount * cellSize
-        this.view.div.style('height', totalHeight + 'px')
-        this.view.svg.attr('height', totalHeight)
+        this.element.div.style('height', totalHeight + 'px')
+        this.element.svg.attr('height', totalHeight)
     }
 
-    applyPosition(view, adjacentViews){
-        const {left, top} = this.positioning.calculateCoordinates(view, adjacentViews)
-        view.left = left, view.top = top
-        view.div.style('left', left + 'px').style('top', top + 'px')
+    applyPosition(element, adjacentelements){
+        const {left, top} = this.positioning.calculateCoordinates(element, adjacentelements)
+        element.left = left, element.top = top
+        element.div.style('left', left + 'px').style('top', top + 'px')
     }
 
     totalCells(){
-        return this.view.data.length
+        return this.element.data.length
     }
 
 
@@ -328,7 +329,7 @@ class viewController {
 
 
     getCellsPerRow(cellSize = this.cellSize){
-        const width = this.view.svg.attr('width')
+        const width = this.element.svg.attr('width')
         return Math.floor(width / cellSize)
     }
 }

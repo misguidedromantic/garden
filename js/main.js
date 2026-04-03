@@ -152,22 +152,35 @@ class displayController {
     configure(display){
         this.#setBackground(display)
         this.#createElements(display)
-
-        
-
-/*         this.#createViews(display)
-        this.#configureViews(display)
-        this.#config.arrangeViews(display.views) */
+        this.#configureElements(display)
     }
 
     #createElements(display){
         const factory = new elementFactory
         const schema = this.#config.elementSchema()
-        schema.forEach(entry => {
-            display.elements.set(entry.id, factory.createElement(entry.title, entry.type))
-        })
-
         console.log(schema)
+        schema.forEach(entry => {
+            display.elements.set(entry.title, factory.createElement(entry.title, entry.type))
+        })
+    }
+
+    #configureElements(display){
+        for (const element of display.elements.values()) {
+            const content = this.#content.getElementContent(element)  
+            console.log(content)
+            ///view controller has the functionality I need for this.
+        }
+    }
+
+    #arrangeElements(display){
+        const layout = new layoutManager (display.elements)
+        for (const element of display.elements.values()) {
+            const adjacentElements = layout.adjacentComponents(element)
+            const coordinates = layout.calculateCoordinates(element, adjacentElements)
+            element.left = coordinates.left
+            element.top = coordinates.top
+            element.div.style('left', coordinates.left + 'px').style('top', coordinates.top + 'px')
+        }
     }
 
     #setBackground(){
@@ -191,13 +204,6 @@ class displayController {
         }
     }
 
-    #createViews(display){
-        const factory = new viewFactory
-        const schema = this.#config.viewSchema(display.title)
-        schema.forEach(entry => {
-            display.views.set(entry.id, factory.createView(entry.id))
-        })
-    }
 
     #configureViews(display){
         for (const view of display.views.values()) {
@@ -353,6 +359,12 @@ class displayConfiguration {
         }
     }
 
+    arrangeElements(elements){
+        const layout = new layoutManager (elements)
+        const adjacentElements = layout.adjacentComponents(elements.get('backlog'))
+        console.log(adjacentElements)
+    }
+
     viewSchema(displayTitle){
         const mainView = this.#schemaEntry('mainView')
         const footer = this.#schemaEntry('footer')
@@ -495,68 +507,17 @@ class lifelineData {
 
 
 class contentManager {
-    getViewContent(view){
-        if(view.id === 'mainView'){
-            return lifelineData.getWeeksArray()
-        } else if (view.id === 'footer') {
-            return ['backlog']
-        } else {
-            return null
+    
+    getElementContent(element){
+        switch(element.id){
+            case 'weeksoflife':
+                return lifelineData.getWeeksArray()
+            default:
+                return null
         }
     }
     
-    getCardContent(card, display){
-        switch(card.constructor.name){
-            case 'titleCard':
-            case 'viewTitleCard':
-                return this.titleWords(card, display)
-            case 'canvasCard':
-                return this.gardenBedContent(card.id)
-        }
-    }
-
-    viewTitles(displayType){
-        switch(displayType){
-            case 'recordDisplay':
-                return ['history', 'songs']
-        } 
-    }
-
-    canvases(displayType, displayTitle){
-        switch(displayType){
-            case 'parterre':
-                return this.gardenBedTitles(displayTitle)
-        } 
-    }
-
-    gardenBedTitles(parterreTitle){
-        if(parterreTitle === 'jamesparrysongs'){
-            return ['records', 'songs']
-        }
-    }
-
-    async gardenBedContent(cardID){
-        if(cardID === 'songsCanvas'){
-            await songsData.load()
-            return songsData.getAllSongs()
-        }
-        return null
-
-    }
-
-    titleWords(card, display){
-        switch(card.constructor.name){
-            case 'titleCard':
-                return display.title.toUpperCase().split(' ')
-            case 'viewTitleCard':
-
-                
-        }
-    }
-
-    getViewTitleFromCardId(cardId){
-        return cardId.charAt(9).toLowerCase() + cardId.slice(1)
-    }
+        
 }
 
 class cardRendering {

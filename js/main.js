@@ -2,1733 +2,267 @@ const gRatio = 1.618
 
 
 window.onload = async function(){
-    orchestrator.setup()
-    orchestrator.loadDisplay('lifeline', 'ingress')
+    const llDisplay = new lifeLineDisplay
+    setParameters(llDisplay)
+    createElements(llDisplay)
+    configureLifeLineDisplay(llDisplay)
+}
+
+
+function setParameters(display){
+    display.title = 'Lifeline'
+}
+
+function createElements(display){
+    display.elements.set('canvas', createCanvas())
+    display.elements.set('overlay', createOverlay())
+}
+
+
+function createCanvas(){
+    const thisCanvas = new canvas
+    thisCanvas.div = addDiv(d3.select('body'))
+    thisCanvas.svg = thisCanvas.div.append('svg')
+    return thisCanvas
+}
+
+function createOverlay(){
+    const thisOverlay = new overlay
+    thisOverlay.div = addDiv(d3.select('body'))
+    return thisOverlay
+}
+
+function addDiv(parentContainer){
+    return parentContainer.append('div')
+}
+
+function configureLifeLineDisplay(display){
+    const elementsArray = Array.from(display.elements.values())
+    const controller = new elementController
+    
+    elementsArray.forEach(element => {
+        const dimensions = elementSizing.defaultDimensions(element, display)
+        //const coordinates = elementPositioning.defaultCoordinates(element, display)
+        controller.resizeElement(element, dimensions)
+    
+    })
+}
+
+class lifeLineDisplay {
+    static #instance = null
+    static elements = {} 
+
+    constructor(){
+        if(lifeLineDisplay.#instance){
+            return lifeLineDisplay.#instance
+        }
+        lifeLineDisplay.#instance = this
+        this.elements = new Map()
+    }
+
+    static getInstance(){
+        if(!lifeLineDisplay.#instance){
+            lifeLineDisplay.#instance = new lifeLineDisplay()
+        }
+        return lifeLineDisplay.#instance
+    }
+
+    getElementDefaultWidth(element){
+        switch(element.constructor.name){
+            case 'canvas':
+                return display.columnCount()
+            case 'overlay':
+                return display.columnCount()
+            default:
+                return 1
+        }
+    }
+
+    getElementDefaultGirdPosition(element, deviceColumnCount = display.columnCount()){
+        switch(element.constructor.name){
+            case 'canvas':
+                return {row: 1, column: 1}
+            case 'overlay':
+                return {row: 1, column: 1}
+            default:
+                return {row: 1, column: 1}
+        }
+    }
+
+    getElementDefaultZIndex(element){
+        switch(element.constructor.name){
+            case 'canvas':
+                return 1
+            case 'overlay':
+                return 2
+            default:
+                return 3
+        }
+    }
+}
+
+
+class display {
+    static gutterSize = 15
+
+    static columnWidth(columnCount, gutterSize){
+        const totalGutterWidth = gutterSize * (columnCount - 1)
+        const availableWidth = window.innerWidth - totalGutterWidth
+        return availableWidth / columnCount
+    }
+
+    static columnCount(){
+        const deviceType = this.deviceType()
+        switch(deviceType){
+            case 'mobile':
+                return 4
+            case 'tablet':
+                return 8
+            case 'desktop':
+                return 12
+        }
+    }
+
+    static gutterWidth(){
+        const deviceType = this.deviceType()
+        switch(deviceType){
+            case 'mobile':
+                return 5
+            case 'tablet':
+                return 10
+            case 'desktop':
+                return 15
+        }
+    }
+
+    
+    static deviceType(){
+        const width = window.innerWidth
+        if(width < 500){
+            return 'mobile'
+        } else if (width < 1000){
+            return 'tablet'
+        } else {
+            return 'desktop'
+        }
+    }
+
+}
+
+class overlay {
+
+}
+
+class canvas {
+
 }
 
 class elementFactory {
+    static createElement(type){
 
-    constructor(){
-        this.width = Math.floor(window.innerWidth * 0.95 / 16) * 16
-        this.height = 16
-        this.gap = Math.floor((window.innerWidth - this.width) / 2)
     }
 
-    createElement(title, type){
-        const element = this.#createObject(title, type)
-        this.#createDomElements(element)
-        return element
-    }
-
-    #createObject(title, type){
+    static createObject(type){
         switch(type){
-            case 'card':
-                return new card (title)
-            case 'accordion':
-                return new accordian (title)
+            case 'canvas':
+                return new canvas
+            case 'overlay':
+                return new overlay
             default:
                 return null
         }
     }
 
-    #createDomElements(title){
-        this.#addDiv(title)
-        this.#addSVG(title)
-    }
-
-    #addDiv(title){
-        title.div = d3.select('body')
-            .append('div')
-            .attr('id', title.id)
-            .style('width', this.width + 'px')
-            .style('height', this.height + 'px')
-            .style('position', 'absolute')
-            .style('left', this.gap + 'px')
-            .style('top', this.gap + 'px')
-    }
-
-    #addSVG(title){
-        title.svg = title.div.append('svg')
-            .attr('width', this.width)
-            .attr('height', this.height)
-    }
-
-}
-
-class accordian {
-    constructor(title){
-        this.title = title
-        this.id = title.replaceAll(' ','')
-    }
-}
-
-
-
-window.onresize = function (){
-    orchestrator.handleResize()
-}
-
-
-class week {
-
-    constructor(sequenceNumber, status){
-        this.sequenceNumber = sequenceNumber
-        this.status = status
-        this.events = []
-    }
-
-    addEvent(event){
-        this.events.push(event)
-    }
-}
-
-
-
-class orchestrator {
-
-    static #displays = {}
-    static #currentDisplayTitle = ''
-
-    static setup(){
-        this.#displays = new Map
-        this.throttledResize = this.#throttle(this.reconfigureCurrentDisplay.bind(this), 200)
-    }
-
-    static loadDisplay(title, type){
-        this.#createDisplay(title, type)
-        this.#configureDisplay(this.#displays.get(title))
-        this.#currentDisplayTitle = title   
-    }
-
-    static #createDisplay(title, type){
-        this.#displays.set(title, new display(title, type))
-    }
- 
-    static #configureDisplay(display){ 
-        const controller = new displayController(display)     
-        controller.configure(display)
-    }
-
-    static handleResize(){
-        this.throttledResize()
-    }
-
-    static reconfigureCurrentDisplay(){
-        const display = this.#displays.get(this.#currentDisplayTitle)
-
-    }
-
-    static #throttle(func, delay) {
-        let timeoutId;
-        let lastArgs;
-        let lastThis;
-      
-        return function(...args) {
-          lastArgs = args;
-          lastThis = this;
-      
-          if (!timeoutId) {
-            timeoutId = setTimeout(() => {
-              func.apply(lastThis, lastArgs);
-              timeoutId = null;
-            }, delay);
-          }
-        };
-      }
-
-
-}
-
-class displayController {
-
-    #content = {}
-    #config = {}
-    
-    constructor(display){  
-        this.#content = new contentManager
-        this.#config = new displayConfiguration(display)     
-    }
-
-    configure(display){
-        this.#setBackground(display)
-        this.#createElements(display)
-        this.#configureElements(display)
-    }
-
-    #createElements(display){
-        const factory = new elementFactory
-        const schema = this.#config.elementSchema()
-        schema.forEach(entry => {
-            display.elements.set(entry.title, factory.createElement(entry.title, entry.type))
-        })
-    }
-
-    #configureElements(display){
-        for (const element of display.elements.values()) {
-            const controller = new elementController(element)
-            const content = this.#content.getElementContent(element)  
-            controller.renderContent(content)
-            controller.resizeToFitHeight()
+    static createDomElements(element){
+        switch(element.constructor.name){
+            case 'canvas':
+                element.div = addDiv(d3.select('body'))
+                element.svg = element.div.append('svg')
+                break
+            case 'overlay':
+                element.div = addDiv(d3.select('body'))
+                break
+            default:
+                break
         }
     }
 
-
-
-    #arrangeElements(display){
-        const layout = new layoutManager (display.elements)
-        for (const element of display.elements.values()) {
-            const adjacentElements = layout.adjacentComponents(element)
-            const coordinates = layout.calculateCoordinates(element, adjacentElements)
-            element.left = coordinates.left
-            element.top = coordinates.top
-            element.div.style('left', coordinates.left + 'px').style('top', coordinates.top + 'px')
-        }
+    static addDiv(parentContainer = d3.select('body')){
+        return parentContainer.append('div')
     }
 
-    #setBackground(){
-        const background = this.#config.background()
-        const width = window.innerWidth * gRatio
-        const height = width * 16 / 9
-        const top = -725
-        const left = -400
-        if(background !== null){
-            d3.select('body')
-                .append('div')
-                .style('position', 'absolute')
-                .style('top', top + 'px')
-                .style('left', left + 'px')
-                .style('width', width + 'px')
-                //.style('height', height + 'px')
-                .append('img')
-                .attr('src',  background)
-                .style('width', '100%')
-                .style('opacity', 0.38)
-        }
-    }
-
-
-    #configureViews(display){
-        for (const view of display.views.values()) {
-            const controller = new viewController(view)
-            const content = this.#content.getViewContent(view)
-            if(content !== null){
-                controller.renderContent(content)
-                controller.resizeToFitHeight()
-            }
-        }
-    }
-
-
-    #createCards(display){
-        const factory = new cardFactory
-        const schema = this.#config.cardSchema()
-        schema.forEach(entry => {
-            display.cards.set(entry.id, factory.createCard(entry.id, entry.type))
-        })
-    }
-
-    #configureCards(display){
-        this.#config.arrangeCards(display.cards)
-        //const words = this.#content.getWords(card, display)
-    }
-
-}
-
-
-
-class viewSizing {}
-class viewPositioning {
-    constructor(){
-        this.gap = 15
-    }
-
-    calculateCoordinates(view, adjacentViews){
-        return {
-            top: this.top(view, adjacentViews.above),
-            left: this.left(view, adjacentViews.left)
-        }
-    }
-
-    top(view, viewAbove){
-        if(viewAbove !== null){
-            return viewAbove.top + viewAbove.height + this.gap
-        }
-        return this.gap 
-    }
-    
-    left(view, viewToLeft){
-        if(viewToLeft !== null){
-            return viewToLeft.left + viewToLeft.width + this.gap
-        } else if (view.constructor.name === 'viewTitleCard'){
-            return window.innerWidth + this.gap
-        }
-
-        return this.gap
+    static addSvg(parentContainer){
+        return parentContainer.append('svg')
     }
 }
 
 class elementController {
-    constructor(element){
-        this.element = element
-        this.cellSize = 16
-        //this.sizing = new elementSizing
-        //this.positioning = new elementPositioning
+    resizeElement(element, newDimensions, transitionDuration = 0){
+        this.updateObjectParameters(element, newDimensions)
+        this.updateDimensionsOnDom(element, transitionDuration)
     }
 
-    renderContent(data){
-        this.element.data = data
-        const svg = this.element.svg
-        const cellSize = this.cellSize
-        const cellsPerRow = this.getCellsPerRow(cellSize)
-        svg.selectAll('circle')
-            .data(data)
-            .join(
-                enter => enter.append('circle')
-                    .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
-                    .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
-                    .attr('r', cellSize / 2 - 1)
-                    .attr('fill', d => {
-                        switch(d.status) {
-                            case 'lived':
-                                return '#7c9881'
-                            case 'expected':
-                                return '#c6d6cc'
-                            case 'current':
-                                return '#FFC000'
-                            default:
-                                return 'red'
-                        }
-                    })
-        )
-    } 
-
-    resizeToFitHeight(){
-        const cellSize = this.cellSize
-        const rowCount = this.getRowCount()
-        const totalHeight = rowCount * cellSize
-        this.element.div.style('height', totalHeight + 'px')
-        this.element.svg.attr('height', totalHeight)
+    updateObjectParameters(element, newDimensions){
+        element.width = newDimensions.width
+        element.height = newDimensions.height
     }
 
-    applyPosition(element, adjacentelements){
-        const {left, top} = this.positioning.calculateCoordinates(element, adjacentelements)
-        element.left = left, element.top = top
-        element.div.style('left', left + 'px').style('top', top + 'px')
-    }
-
-    totalCells(){
-        return this.element.data.length
-    }
-
-
-    getRowCount(){
-        const totalCells = this.totalCells()
-        const cellsPerRow = this.getCellsPerRow()
-        return Math.ceil(totalCells / cellsPerRow)
-    }
-
-
-    getCellsPerRow(cellSize = this.cellSize){
-        const width = this.element.svg.attr('width')
-        return Math.floor(width / cellSize)
-    }
-}
-
-class displayConfiguration {
-
-    #content = {}
-
-    constructor(display){
-        this.display = display
-        this.#content = new contentManager
-    }
-
-    background(){
-        if(this.display.id === 'jamesparrysongs'){
-            return 'images/jp.JPEG'
-        } else {
-            return null
-        }
-    }
-
-    elementSchema(){
-        if(this.display.title === 'lifeline'){
-            return [
-                {title: 'weeks of life', type: 'card'},
-                {title: 'backlog', type: 'accordion'}
-            ]
-        }
-    }
-
-    arrangeElements(elements){
-        const layout = new layoutManager (elements)
-        const adjacentElements = layout.adjacentComponents(elements.get('backlog'))
-        console.log(adjacentElements)
-    }
-
-    viewSchema(displayTitle){
-        const mainView = this.#schemaEntry('mainView')
-        const footer = this.#schemaEntry('footer')
-        return [mainView, footer]
-    }
-
-    arrangeViews(views){
-        const layout = new layoutManager (views)
-
-        const adjacentViews = layout.adjacentComponents(views.get('footer'))
-        console.log(adjacentViews.above)
-
-    }
-
-    cardSchema(){
-        const schema = [this.#title()]
-        switch(this.display.constructor.name){
-            case 'parterre':
-                return [...schema, ...this.#canvases()]
-            case 'recordDisplay':
-                return [...schema, ...this.#viewTitles()]
+    updateDimensionsOnDom(element, transitionDuration){
+        switch(element.constructor.name){
+            case 'canvas':
+                this.resizeDiv(element, transitionDuration)
+                this.resizeSvg(element, transitionDuration)
+                break
+            case 'overlay':
+                this.resizeDiv(element, transitionDuration)
+                break
             default:
-                return null    
+                break
         }
     }
 
-    arrangeCards(cards){
-        const layout = new layoutManager (cards)
-        const controller = new cardController
-        this.applyDefaultLayout(cards, controller, layout)
-        this.applyContentScaledLayout(cards, controller, layout)
+    resizeDiv(element, transitionDuration){
+        element.div.transition()
+            .duration(transitionDuration)
+            .style('width', element.width + 'px')
+            .style('height', element.height + 'px')
     }
 
-    applyDefaultLayout(cards, controller, layout){
-        for (const card of cards.values()) {
-            controller.applyDefaultDimensions(card)
-            controller.applyPosition(card, layout.adjacentCards(card))
-        }
-    }
-
-    async applyContentScaledLayout(cards, controller, layout){
-        for (const card of cards.values()) {
-            const content = await this.#content.getCardContent(card, this.display)
-            controller.applyContent(card, content)
-            controller.applyPosition(card, layout.adjacentCards(card))
-        }
-    }
-
-    #schemaEntry(viewID, viewType){
-        return {id: viewID, type: viewType}
-    }
-
-    #title(){
-        return this.#schemaEntry('displayTitle', 'title')
-    }
-    #viewTitles(){
-        const viewTitles = this.#content.viewTitles(this.display.constructor.name)
-        return viewTitles.map(viewTitle => this.#schemaEntry(viewTitle, 'viewTitle'))
-    }
-
-    #canvases(){
-        const canvasIds = this.#content.canvases(this.display.constructor.name, this.display.title)
-        return canvasIds.map(canvasId => this.#schemaEntry(canvasId + 'Canvas', 'canvas'))
-    }
-}
-
-class layoutManager {
-    constructor(components){
-        this.components = components
-        console.log(components)
-    }
-
-    adjacentComponents(component){
-        return {
-            left: this.#componentToLeft(component),
-            above: this.#componentAbove(component)
-        }
-    }
-
-    #componentToLeft(component){
-        return null
-    }
-
-    #componentAbove(component){
-        return component.id === 'footer' ? this.components.get('mainView') : null
-    }
-}
-
-class lifelineData {
-    static #dob = '1985-05-06'
-    static #lifeExpectancyYears = 80
-    static getWeeksArray(){
-        const weeksArray = []
-        this.addWeeksSinceBirth(weeksArray)
-        this.addCurrentWeek(weeksArray)
-        this.addWeeksUntilDeath(weeksArray)
-        return weeksArray
-    }
-
-    static addWeeksSinceBirth(array){
-        const dob = lifelineData.#dob
-        const weeksSinceBirth = this.#getWeekOfOccurrence(dob)
-        for(let i = weeksSinceBirth; i < 0; i++){
-            array.push(new week(i, 'lived'))
-        }
-    }
-
-    static addCurrentWeek(array){
-        array.push(new week(0, 'current'))
-    }
-
-    static addWeeksUntilDeath(array){
-        const dod = this.#getEstimatedDateOfDeath()
-        const weeksUntilDeath = this.#getWeekOfOccurrence(dod)
-        for(let i = 1; i <= weeksUntilDeath; i++){
-            array.push(new week(i, 'expected'))
-        }
-    }
-
-    static #getEstimatedDateOfDeath(){
-        const dob = lifelineData.#dob
-        const lifeExpectancyYears = lifelineData.#lifeExpectancyYears
-        return new Date (new Date(dob).getTime() + lifeExpectancyYears * 365 * 24 * 60 * 60 * 1000)
-    }
-
-    static #getWeeksSinceBirth(dob){
-        return this.#getWeekOfOccurrence(dob) * -1
-    }
-
-
-    static #getWeekOfOccurrence(dateString){
-        const now = new Date()
-        const date = new Date(dateString)
-        const diffTime = date - now
-        const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7))
-        return diffWeeks
-    }
-
-}
-
-
-class contentManager {
-    
-    getElementContent(element){
-        switch(element.id){
-            case 'weeksoflife':
-                return lifelineData.getWeeksArray()
-            default:
-                return null
-        }
-    }
-    
-        
-}
-
-class cardRendering {
-    updateDivDimensions(div, dimensions){
-        div.style('width', dimensions.width + 'px')
-        div.style('height', dimensions.height + 'px')
-    }
-
-    updateDivPosition(div, coordinates){
-        div.style('left', coordinates.left + 'px')
-        div.style('top', coordinates.top + 'px')
-    }
-}
-
-function loadRecordDisplay(title){
-
-    const factory = new cardFactory
-
-    function createTitleCard(){
-        return factory.createCard(title.replaceAll(' ','') + 'Title','title') 
-    }
-
-    function createMenuCard(){
-        return factory.createCard(title.replaceAll(' ','') + 'Menu','menu')
-    }
-
-    function configureMenuCard(card){
-        card.top = 5
-        card.left = 5
-        card.items = ['start','history','songs','end']
-        card.width = Math.round(window.innerWidth / gRatio)
-        card.height = 41
-        card.borderTop = '1px solid grey'
-        card.borderBottom = '1px solid grey'
-    }
-
-    function configureTitleCard(card, cardAbove){
-        card.top = cardAbove.top + cardAbove.height + 15
-        card.left = 0
-        card.words = title.toUpperCase().split(' ')
-        card.width = Math.round(window.innerWidth / gRatio)
-        card.height = Math.round(card.width * 9 / 16)
-    }
-
-    function renderDimensions(card){
-        card.div.style('width', card.width + 'px')
-        card.div.style('height', card.height + 'px')
-    }
-
-    function renderPosition(card){
-        card.div.style('left', card.left + 'px')
-        card.div.style('top', card.top + 'px')
-    }
-
-    function renderBorder(card){
-        card.div.style('border-bottom', card.borderBottom)
-        card.div.style('border-top', card.borderTop)
-    }
-
-    function renderMenuItems(card){
-        card.svg.selectAll('g')
-            .data(card.items, d => d)
-            .join(
-                enter => {
-                    enter.append('circle')
-                        .attr('id', d => d)
-                        .attr('fill', 'yellow')
-                        .attr('fill-opacity', 0.62)
-                        .attr('r', card.height / 2 / gRatio)
-                        .attr('cx',  (d, i) => i * card.height / 2 * gRatio + card.height / 2)
-                        .attr('cy', card.height / 2)
-                        .on('mouseover', (event, d) => {
-                            const circle = d3.select('#' + d)
-                            circle.attr('fill-opacity', 1)
-                        })
-                        .on('mouseout', (event, d) => {
-                            const circle = d3.select('#' + d)
-                            circle.attr('fill-opacity', 0.62)
-                        })
-                        
-/*                     g.append('text')
-                        .text(d => d)
-                        .attr('fill', 'yellow')
-                        .attr('font-size', card.height * 0.9)
-                        .attr('dy', card.height / 2)
-                        .attr('dominant-baseline', 'middle') */
-                }
-
-            )
-    }
-
-    function renderTitleCard(card){
-        const sizing = new titleCardSizing
-        sizing.fitTitleText(card)
-    }
-
-    const menuCard = createMenuCard()
-    const titleCard = createTitleCard()
-    
-    configureMenuCard(menuCard)
-    configureTitleCard(titleCard, menuCard)
-
-    renderDimensions(menuCard)
-    renderDimensions(titleCard)
-    renderPosition(menuCard)
-    renderPosition(titleCard)
-
-    renderBorder(menuCard)
-    renderMenuItems(menuCard)
-
-    renderTitleCard(titleCard)
-
-
-
-}
-
-class dataHandler {
-    static map = {}
-
-    static getRecordsMap(){
-        const records = new Map()
-        const titles = recordsData.getTitles()
-        titles.forEach(title => {
-            
-            
-            records.set(title, recordsData.getRecordMap(title))
-        })
-        return records
-    }
-    
-}
-
-class titleCardSizing {
-
-    fitTitleText(card){
-        this.renderText(card)
-        const scale = this.getScaleFactor(card)
-        card.fontSize = card.fontSize * scale
-        card.height = card.fontSize * 2 + 30
-        this.renderSizeChange(card)
-        this.renderText(card)
-    }
-
-    renderSizeChange(card){
-        card.div.style('width', card.width + 'px').style('height', card.height + 'px')
-        card.svg.attr('width', card.width).attr('height', card.height)
-    }
-
-    renderText(card){
-        card.svg.selectAll('text')
-            .data(card.words)
-            .join(
-                enter => enter.append('text')
-                    .text(d => d)
-                    .attr('id', d => d)
-                    .style('fill', 'white')
-                    .style('font-size', card.fontSize)
-                    .attr('y', (d, i) => i * card.fontSize + card.fontSize),
-                update => update.style('font-size', card.fontSize)
-                    .attr('y', (d, i) => i * card.fontSize + card.fontSize),
-                exit => exit
-            )
-    }
-
-    getScaleFactor(card){
-        const textDimensions = this.getTextDimensions(card)
-        return Math.min(
-                card.width / textDimensions.width, 
-                card.height / textDimensions.height
-            ) * 0.9
-    }
-
-    getTextDimensions(card){
-        const textElems = card.svg.selectAll('text')
-        let widestWidth = 0
-        let height = 0
-        
-        textElems.each(d => {
-            const elem = d3.select('#' + d)
-            const bbox = elem.node().getBBox()
-            if(bbox.width > widestWidth){
-                widestWidth = bbox.width
-                height = bbox.height
-            }
-        })
-
-        return {
-            height: height,
-            width: widestWidth
-        }
-
-    }
-}
-
-class songSectionArchetype {
-    constructor(id, type, parentID = null){
-        this.id = id
-        this.type = type
-        this.parentID = parentID
-        this.history = []
-    }
-
-    addKeyDate(event, year, month){
-
-        month = month - 1
-        const eventDate = new Date (year, month)
-        this.history.push({event: event, date: eventDate})
-    }
-
-    getConceptionDate(){
-        const entry = this.history.find(entry => entry.event === 'conception')
-    }
-}
-
-class songwritingEvent {
-    constructor(structuralElement, musicalElement, sourceArtefact){
-
-    }
-}
-
-class songwritingArtefact {
-    constructor(dateString, type, title){
-        this.date = getDate(dateString)
-        this.type = type
-        this.title = title
-        this.events = []
-    }
-
-    addSongwritingEvent(event){
-        this.events.push(event)
-    }
-
-}
-
-function getDate(string){
-    const arr = string.split("-")
-    return new Date (arr[0], arr[1], arr[2])
-}
-
-class songSectionInstance {
-    constructor(songID, sectionType, archetypeType, sequenceNumber){
-        this.id = songID + sectionType
-        this.type = sectionType
-        this.archetypeID = songID + archetypeType
-        this.sequenceNumber = sequenceNumber
-    }
-
-}
-
-
-
-async function prepareData(){
-    await songsData.load()
-    await songSectionsData.load()
-    //songConceptModelData.load()
-    return Promise.resolve()
-}
-
-function loadDisplay(displayName){
-
-}
-
-class displays {
-
-    static #songsHistoryDisplay = {}
-
-    static loadSongHistoryDisplay(song, histories){
-        this.#songsHistoryDisplay = new songHistoryDisplay(song)
-        this.#songsHistoryDisplay.renderArchetypeHistories(histories)
-        //this.#songsHistoryDisplay.renderHistory(song)
-    }
-
-}
-class songHistoryDisplay {
-
-    #windowControl = {}
-    static timeSpan = {}
-    static xScale = {}
-
-    constructor(song){        
-        this.setupWindow()
-        this.setScale(song)
-    }
-
-    setupWindow(id = this.constructor.name + 'Window'){
-        this.#windowControl = new windowControl
-        this.#windowControl.createDiv(id)
-        this.#windowControl.createSVG(id)
-    }
-
-    setScale(song){
-        songHistoryDisplay.xScale = {
-            min: 15,
-            max: 250
-        }
-        this.setTimeSpan(this.getSectionArray(song))
-    }
-
-    renderHistory(song){
-
-        const svg = d3.select('#songHistoryDisplayWindowSvg')
-        const data = this.getSectionArray(song)
-        this.setTimeSpan(data)
-        
-        const func = {
-            getPosX: this.getPosX,
-            getPosY: this.getPosY,
-            scalePoint: this.scalePoint
-        }
-
-
-        svg.selectAll('rect')
-            .data(data, d => d.id)
-            .join(
-                enter => enter.append('rect')
-                    .attr('id', d => d.id)
-                    .attr('height', 12)
-                    .attr('width', 12)
-                    .attr('fill', 'grey')
-                    .attr('x', d => func.getPosX(d, func.scalePoint))
-                    .attr('y', d => func.getPosY(d)),
-                update => update,
-                exit => exit
-            )
-    }
-
-    renderArchetypeHistories(historyData){
-        
-        const svg = d3.select('#songHistoryDisplayWindowSvg')
-        const func = {
-            getPosX: this.getPosX,
-            getPosY: this.getPosY,
-            scalePoint: this.scalePoint
-        }
-        
-        svg.selectAll('rect')
-            .data(historyData, d => d.id)
-            .join(
-                enter => enter.append('rect')
-                    .attr('id', d => d.id)
-                    .attr('height', 12)
-                    .attr('width', 12)
-                    .attr('fill', 'grey')
-                    .attr('x', d => func.scalePoint(d.historyDate.getTime()))
-                    .attr('y', 30),
-                update => update,
-                exit => exit
-            )
-
-
-
-    }
-
-    getPosX(d, scaleFunc){
-        
-        
-        if(d.constructor.name === 'songSectionArchetype'){
-            const conception = d.history.find(obj => obj.event === 'conception')
-            return scaleFunc(conception.date.getTime())
-        }
-        else{
-            return songHistoryDisplay.xScale.max + 15
-        }
-    }
-
-    getPosY(d){
-        let multiplier = 0
-        if(d.constructor.name === 'songSectionArchetype'){
-            switch(d.type){
-                case 'verse':
-                    multiplier = 1
-                    break;
-                
-                case 'chorus':
-                    multiplier = 2
-                    break;
-            }
-        } else {
-            multiplier = d.sequenceNumber
-        }
-        
-        return multiplier * 15
-    }
-
-    getSectionArray(song){
-        return [...song.sectionArchetypes, ...song.sectionInstances]
-    }
-
-    getArchetypeHistories(song){
-        const histories = song.sectionArchetypes.map(obj => obj.history)
-        
-    }
-
-    setTimeSpan(sections){
-        const events = this.getSectionHistorySerials(sections)
-        songHistoryDisplay.timeSpan = {
-            min: Math.min(...events),
-            max: Math.max(...events)
-        }
-    }
-
-    getSectionHistorySerials(sections){
-        const events = new Set()
-        
-        sections.forEach(section => {
-            if(section.constructor.name === 'songSectionArchetype'){
-                section.history.forEach(historyEvent => {
-                    events.add(historyEvent.date.getTime())
-                })
-            }
-        })
-
-        return events
-    }
-
-    scalePoint(value){
-        const inMin = songHistoryDisplay.timeSpan.min
-        const inMax = songHistoryDisplay.timeSpan.max
-        const outMin = songHistoryDisplay.xScale.min
-        const outMax = songHistoryDisplay.xScale.max
-        const scaledValue = (value - inMin) * (outMax -outMin) / (inMax - inMin) + outMin
-        return scaledValue
+    resizeSvg(element, transitionDuration){
+        element.svg.transition()
+            .duration(transitionDuration)
+            .attr('width', element.width)
+            .attr('height', element.height)
     }
 }
 
 
-
-class songsDisplay {
-
-    #menuControl = {}
-    #windowControl = {}
-    #historyControl = {}
-
-    setup(){        
-        this.setupWindow()
-        //this.setupMenu()
-    }
-
-    setupWindow(id = this.constructor.name + 'Window'){
-        this.#windowControl = new windowControl
-        this.#windowControl.createDiv(id)
-        this.#windowControl.createSVG(id)
+class elementSizing {
+    static defaultDimensions(element, thisDisplay){
+        const widthInColumns = thisDisplay.getElementDefaultWidth(element)
+        const gutterWidth = display.gutterWidth()
+        return this.calculateElementDimensions(widthInColumns, gutterWidth)
     }
 
 
-    setupMenu(){
-        this.#menuControl = new menuControl
-        this.#menuControl.create('songs')
-        this.#menuControl.setItems(songsData.getAllSongs())
+    static calculateElementDimensions(widthInColumns, gutterWidth){
+        const columnWidth = display.columnWidth(display.columnCount(), gutterWidth)
+        const elementWidth = (widthInColumns * columnWidth) + ((widthInColumns - 1) * gutterWidth)
+        const elementHeight = elementWidth / gRatio
+        return {width: Math.floor(elementWidth), height: Math.floor(elementHeight)}
     }
-
-    loadMenu(){
-        const dimensions = this.#menuControl.getDimensionsExpanded()
-        this.#windowControl.resize(dimensions)
-        this.#menuControl.update(this.#windowControl.svg)
-    }
-
-    loadSongLayout(songID){
-        const sections = songSectionsData.getSongSections(songID)
-        const structuring = new songStructuring (sections)
-        structuring.createStacks()
-        renderSectionBlocks(this.#windowControl.svg, sections)
-    }
+ 
 }
 
-class windowControl {
-    
-    div = {}
-    svg = {}
-    divWidth = 0
-    divHeight = 0
-    svgWidth = 0
-    svgHeight = 0
-
-    createDiv(id, container = d3.select('body')){
-        this.div = container.append('div').attr('id', id + 'Div')
-    }
-    
-    createSVG(id, container = this.div){
-        this.svg = container.append('svg').attr('id', id + 'Svg')
+class elementPositioning {
+    static defaultCoordinates(element){
+        const elementDefaultGridPosition = lifeLineDisplay.getElementDefaultGirdPosition(element, deviceColumnCount)
+        return this.calculateElementPosition(element, deviceColumnCount, gutterSize)
     }
 
-    resize(dimensions){
-        this.resizeDiv(dimensions.width, dimensions.divHeight)
-        this.resizeSVG(dimensions.width, dimensions.svgHeight)
-    }
-
-
-    resizeDiv(width, height){
-        this.div.style('width', width + "px").style('height', height + "px")
-    }
-
-    resizeSVG(width, height){
-        this.svg.attr('width', width).attr('height', height)
-    }
-
-}
-
-
-class menuControl {
-    
-    items = []
-
-    #menu = {}
-    #itemRendering = {}
-    
-    
-    create(menuName){
-        this.#menu = new menu (menuName)
-        this.#itemRendering = new menuItemRendering
-    }
-
-    setItems(items){
-        this.#menu.items = items
-    }
-
-    selectItem(clickedItemID){
-        const clickedItem = this.#menu.items.find(item => item.id = clickedItemID)
-        clickedItem.selected = true
-        
-    }
-
-    getDimensionsExpanded(){
-        return {
-            divHeight: this.#getMaxWindowHeight(),
-            svgHeight: this.#getAllItemsHeight(),
-            width: this.#menu.maxWidth
-        }
-    }
-
-    #getAllItemsHeight(){
-        return this.#calculateHeightForItems(this.#menu.items.length)
-    }
-
-    #getMaxWindowHeight(){
-        const allItemsHeight = this.#getAllItemsHeight()
-        return allItemsHeight < this.#menu.maxHeight ? allItemsHeight : this.#menu.maxHeight
-    }
-
-    #calculateHeightForItems(itemCount){
-        return (itemCount + 1) * menuItem.fontSize * 2 + menuItem.padding * 3
-    }
-
-    update(svg){
-        this.#itemRendering.render(svg, this.#menu.items)
+    static calculateElementPosition(element, columnWidth, gutterSize){
+        const elementLeft = ((element.defaultGridPosition.column - 1) * columnWidth) + ((element.defaultGridPosition.column - 1) * gutterSize)
+        const elementTop = ((element.defaultGridPosition.row - 1) * columnWidth) + ((element.defaultGridPosition.row - 1) * gutterSize)
+        return {left: elementLeft, top: elementTop}
     }
 }
-
-
-class songLayoutDisplay {
-
-    static #menu = {}
-    static #windowSettings = {}
-    static #layoutViewer = {}
-    static #menuItemRendering = {}
-
-    static setup(){
-        this.#setupWindow()
-        
-
-
-    }
-
-    static #setupWindow(){
-        this.div = new div ('songLayout')
-        this.svg = new svg ('songLayout', this.div.getElement())
-        this.#windowSettings = new layoutWindowSettings (this.div, this.svg)
-    }
-
-    static #setupMenu(){
-        this.#menu = new menu ('songs')
-        this.#menuItemRendering = new menuItemRendering
-    }
-
-    static load (){
-        this.#menu.items = songsData.getAllSongs()
-        this.#menuItemRendering.render(this.svg, this.#menu.items)
-        this.#windowSettings.setDimensionsToExpandedMenu(this.#menu.items.length)
-        this.div.resize()
-        this.svg.resize()
-    }
-
-    static loadLayout(songID){
-        const sections = songSectionsData.getSongSections(songID)
-        const structuring = new songStructuring (sections)
-        const stacks = structuring.createStacks()
-        renderSectionBlocks(this.svg.getElement(), sections)
-    }
-}
-
-class layoutWindowRendering {
-
-    createWindow(){
-
-    }
-
-}
-
-class windowSettings {
-
-    constructor(div, svg){
-        this.div = div
-        this.svg = svg
-        this.#setBounds()
-    }
-
-    setDimensionsToExpandedMenu(itemCount){
-        this.setToMenuExpandedHeight(itemCount)
-        this.setToMenuWidth()
-    }
-
-    setToMenuWidth(){
-        this.div.width = this.maxMenuWidth
-        this.svg.width = '100%'
-    }
-
-    setToMenuExpandedHeight(itemCount){
-        this.div.height = this.#getExpandedMenuHeight(itemCount)
-        this.svg.height = this.#getExpandedMenuHeight(itemCount)
-    }
-
-    #setBounds(){
-        this.minHeight = this.#getHeightForItemCount(2)
-        this.maxHeight = window.innerHeight * 0.618
-        this.maxMenuWidth = window.innerWidth / 2
-    }
-
-    #getExpandedMenuHeight(itemCount){
-        const allItemsHeight = this.#getHeightForItemCount(itemCount)
-        return allItemsHeight < this.maxHeight ? allItemsHeight : this.maxHeight
-    }
-
-    #getHeightForItemCount(itemCount){
-        return itemCount * menuItem.fontSize * 2 + menuItem.padding * 3
-    }
-
-}
-
-
-
-class songListControl {
-
-    static #songs = []
-    static #songMenu = {}
-
-    static load (div, svg){
-        this.#songMenu = new menu ('songs', 'songs')
-        this.#songMenu.setup(div, svg)
-        this.#songs = songsData.getAllSongs()
-        this.#songMenu.update(this.#songs)
-    }
-
-    static selectSong (songID) {
-        this.deselectAll()
-        const thisSong = this.#songs.find(song => song.id === songID)
-        thisSong.selected = true
-        this.#songMenu.update(this.#songs)
-        songLayoutsDisplay.loadLayout(songID)
-    }
-
-    static deselectAll(){
-        this.#songs.forEach(song => song.selected === false)
-    }
-
-}
-
-function onItemHover(){
-    const elem = d3.select(this)
-    const rect = elem.selectAll('rect.bar')
-    const text = elem.selectAll('text')
-    
-    rect.attr('fill', 'pink')
-        .attr('opacity', 1)
-
-    text.style('fill', 'pink')
-}
-
-function onItemOut(){
-    const elem = d3.select(this)
-    const rect = elem.selectAll('rect.bar')
-    const text = elem.selectAll('text')
-
-    rect.attr('fill', 'white')
-        .attr('opacity', 0.4)
-
-    text.style('fill', 'white')
-}
-
-function onItemClick(){
-    const clickedSongID = d3.select(this).attr('id')
-
-    //songListControl.selectSong(clickedSongID)
-
-}
-
-class listItem {
-    static fontSize = 16
-    static padding = 4
-}
-
-
-class menuItemRendering {
-
-    #svg = {}
-
-    render(svg, items){
-        const positioning = new listItemPositioning (items)
-        const enterFn = this.#enter
-        const updateFn = this.#update
-
-        svg.selectAll('g.listItem')
-            .data(items, d => d.id)
-            .join(
-                enter => enterFn(enter, positioning),
-                update => updateFn(update, positioning),
-                exit => exit
-            )
-    }
-
-    #enter(selection, positioning){
-        const g = selection.append('g')
-            .attr('class', 'listItem')
-            .attr('id', d => d.id)
-            .attr('transform', (d, i) => positioning.getTranslate(d, i))
-            .on('mouseover', onItemHover)
-            .on('mouseout', onItemOut)
-            .on('click', onItemClick)
-
-        g.append('text')
-            .text(d => d.title)
-            .style('fill', 'white')
-            .style('font-size', listItem.fontSize) 
-            .attr('dx', listItem.padding * 2)
-            .attr('dy', listItem.fontSize + listItem.padding / 2)
-
-        g.append('rect')
-            .attr('class', 'container')
-            .attr('width', 300)
-            .attr('height', listItem.fontSize * 2 - listItem.padding)
-            .attr('fill', 'white')
-            .attr('opacity', 0)
-
-        g.append('rect')
-            .attr('class', 'bar')
-            .attr('width', 4) // 218 about right, but need to make this dynamic
-            .attr('height', listItem.fontSize * 2 - listItem.padding)
-            .attr('fill', 'white')
-            .attr('opacity', 0.4)
-
-    }
-
-    #update(selection, positioning){
-
-        const gT = d3.transition('g').duration(500)
-        const textT = d3.transition('text').duration(500)
-
-        const g = selection.transition(gT)
-            .attr('transform', (d, i) => positioning.getTranslate(d, i))
-            
-        g.select('text').style('fill', d => {return d.selected ? 'white' : 'transparent'})
-
-
-    }
-}
-
-class listItemPositioning {
-
-    constructor(items){
-        this.items = items
-    }
-
-    getTranslate(d, i){
-        const x = this.getPosX()
-        const y = this.getPosY(d, i)
-        return d3Helper.getTranslateString(x, y)
-    }
-
-    getPosX(){
-        return 10
-    }
-    
-    getPosY(d, i){
-        if(this.getSelectedItemIndex() === -1){
-            return (i + 1) * listItem.fontSize * 2
-        } else {
-            return d.selected ? listItem.fontSize * 2 : -50
-        }
-
-
-        const distanceFromSelected = i - this.getSelectedItemIndex()
-        return distanceFromSelected * listItem.fontSize * 2
-    }
-
-    getSelectedItemIndex(){
-        return this.items.findIndex(item => item.selected === true)
-    }
-
-}
-
-class menu {
-    items = []
-    maxHeight = 0
-    maxWidth = 0
-
-    constructor(id){
-        this.id = id
-        this.setMaxDimensions()
-    }
-
-    setMaxDimensions(){
-        this.maxHeight = window.innerHeight * 0.618
-        this.maxWidth = window.innerWidth / 2
-    }
-}
-
-class menuItem {
-    static fontSize = 16
-    static padding = 4
-
-    constructor(label, action){
-        this.label = label
-        this.action = action
-    }
-
-
-}
-
-
-
-class navigation {
-    static #displays = []
-
-    static loadSongLayouts(){
-
-    }
-}
-
-class d3Helper {
-    static getTranslateString(x, y){
-        return "translate(" + x + "," + y + ")"
-    }
-} 
-
-class svg{
-
-    width = 0
-    height = 0
-    
-
-    constructor(id, container = d3.select('body')){
-        this.id = 'svg' + id
-        this.container = container
-        this.createElement()
-    }
-    createElement(width = 10, height = 10){
-        this.container.append('svg')
-            .attr('id', this.id)
-            //.attr('width', width)
-            //.attr('height', height)
-    }
-
-    getElement(){
-        return d3.select('#' + this.id)
-    }
-
-    resize(width, height){
-        const elem = this.getElement()
-        elem.attr('width', width)
-            .attr('height', height)
-    }
-
-
-}
-
-class div {
-
-    width = 0
-    height = 0
-    top = 0
-    left = 0
-    
-    constructor(id, container = d3.select('body')){
-        this.id = 'div' + id
-        this.container = container
-        this.createElement(id)
-    }
-
-    createElement(){
-        this.container.append('div').attr('id', this.id)
-    }
-
-    getElement(){
-        return d3.select('#' + this.id)
-    }
-
-    resize(width, height, transition){
-        const elem = this.getElement()
-        elem.transition(transition)
-            .style('width', width + 'px')
-            .style('height', height + 'px')
-    }
-
-}
-
-
-
-class songSectionSetup {
-    constructor(data){
-        this.formData = data.formalSections
-        this.sectionData = data.structuralSections
-    }
-
-    createStructuralSections(){
-        const sections = []
-        this.sectionData.forEach(section => {
-            const thisSection = this.createStructuralSection(section)
-            sections.push(thisSection)
-        })
-        return sections
-    }
-
-    createStructuralSection(section){
-        const thisSection = new songSection(section.title, section.type)
-        thisSection.setReferences(section.song_id, section.formal_section_id)
-        thisSection.setPositionInSong(section.sequence_in_song)
-        return thisSection
-    }
-
-
-    createFormalSections(){
-        const formalSections = []
-        this.formData.forEach(section => {
-            const thisSection = this.createFormalSection(section)
-            formalSections.push(thisSection)
-        })
-        return formalSections
-    }
-
-    createFormalSection(section){
-        const thisSection = new formalSection(section.title)
-        thisSection.songID = section.song_id
-        thisSection.type = section.type
-        return thisSection
-    }
-
-}
-
-
-class multiSongLayoutSetup {
-
-    #sections = []
-
-    constructor(sections){
-        this.#sections = sections
-    }
-
-    getDataToRender(){
-        return this.getSuffledSections()
-    }
-
-    getSuffledSections(sections = this.#sections){
-        for (let i = sections.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [sections[i], sections[j]] = [sections[j], sections[i]];
-        }
-        return sections;
-    }
-
-    
-
-}
-
-class songSectionGrid {
-    #sections =[]
-    #height = 0
-    #width = 0
-
-
-    constructor(sections){
-        this.#sections = sections
-        this.#setDimensions()
-    }
-
-    getPosX(i){ 
-        const remainder = arithmetic.getRemainder(i, this.#width)
-        return remainder * 15
-    }
-
-    getPosY(i){
-        const quotient = arithmetic.getQuotient(i, this.#width)
-        return quotient * 15
-    }
-
-    #setDimensions(){
-        const sideLengths = this.#getGridDimensions(this.#sections.length)
-        this.#width = sideLengths.long
-        this.#height = sideLengths.short
-        
-    }
-
-    #getGridDimensions(sectionCount){
-        return {
-            short: Math.round(Math.sqrt(sectionCount / 1.618)),
-            long: Math.round(Math.sqrt(sectionCount * 1.618))
-        }
-
-    }
-}
-
-class songLayoutRendering {
-    renderLayout(svg, data){
-
-        const classGrid = new songSectionGrid (data)
-
-        svg.selectAll('rect')
-            .data(data)
-            .join('rect')
-            .attr('id', d => d.id)
-            .attr('class', d => d.songID)
-            .attr('height', 12)
-            .attr('width', 12)
-            .attr('fill', 'grey')
-            .attr('x', (d, i) => classGrid.getPosX(i))
-            .attr('y', (d, i) => classGrid.getPosY(i))
-            .on('mouseover', sectionRectHover)
-            .on('mouseout', sectionRectOff)
-    }
-
-    renderSongTitle(svg, song){
-        svg.selectAll('text#songTitle')
-            .data(song)
-            .join(
-                enter => enter.append('text')
-                    .attr('id', 'songTitle')
-                    .attr('fill', 'purple')
-                    .attr('x', 100)
-                    .attr('y', 100)
-                    .text(d => d.title),
-                update => update.text(d => d.title),
-                exit => exit.attr('fill', 'black')
-            )
-    }
-}
-
-class songStructuring {
-    constructor(sections){
-        this.sections = sections
-        this.stacks = []
-    }
-
-    createStacks(){
-        let stack = {}
-        for(let i = 0; i < this.sections.length; i++){
-            if(this.newStackRequired(this.sections, i)){
-                stack = new songSectionStack(this.stacks.length)
-                this.stacks.push(stack)
-            }
-            stack.addSection(this.sections[i])
-        }
-
-        return this.stacks
-    }
-
-
-
-    newStackRequired(sections, i){
-        return this.isStackable(sections[i], sections[i - 1]) ? false : true
-    }
-
-
-    getSubSequence(sections, i){
-        if(i === sections.length - 1){
-            return [sections[i]]
-        } else {
-            return [sections[i],sections[i + 1]]
-        }
-    }
-
-
-
-    isStackable(thisSection, previousSection){
-        const pairDescription = this.getSectionPairDescription(thisSection, previousSection)
-
-       switch(pairDescription){
-            case 'intro-verse':
-                return this.isFormMatched(thisSection, previousSection) === false
-            case 'chorus-bridge':
-                return this.isFormMatched(thisSection, previousSection) === false && this.getFormalSectionType(thisSection) !== ''
-            case 'verse-chorus':
-                return true
-            default:
-                return false
-        } 
-    }
-
-
-    getSectionPairDescription(thisSection, previousSection){
-        try{return previousSection.type + "-" + thisSection.type}
-        catch{return thisSection.type}
-        
-    }
-
-    
-    isFormMatched(thisSection, thatSection){
-        return this.getFormalSectionType(thisSection) === this.getFormalSectionType(thatSection)
-    }
-
-    getFormalSectionType(section){
-        return songSectionsData.getFormalSectionType(section.formalSectionID)
-    }
-    
-}
-
-class songSectionStack {
-
-    #sections = []
-
-    constructor(stackIndex){
-        this.stackIndex = stackIndex
-    }
-
-    addSection(section){
-        section.levelInStack = this.#getSectionLevel(section)
-        section.stackOrdinal = this.stackIndex
-        this.#sections.push(section)
-    }
-
-    getSectionCount(){
-        return this.#sections.length
-    }
-
-    #getSectionLevel(section){
-        const formalSection = songSectionsData.getFormalSection(section.formalSectionID)
-        const songIndex = songsData.getSongIndex(this.songID)
-        return formalSection.getLevel()
-    }
-
-    
-
-
-
-
-}
-
-
-
-
-
-
-
-class formalSection {
-    constructor(title){
-        this.id = title
-    }
-
-    getLevel(){
-        const charCode = this.getCharacterCode() 
-        return charCode > 0 && charCode < 27 ? charCode : 0
-    }
-
-    getCharacterCode(){
-        return this.type.toLowerCase().charCodeAt(0) - 96;
-    }
-
-
-}
-
-
-function renderSectionBlocks (svg, data){
-    svg.selectAll('rect')
-        .data(data)
-        .join('rect')
-        .attr('id', d => d.id)
-        .attr('height', 12)
-        .attr('width', 12)
-        .attr('fill', 'grey')
-        .attr('x', d => d.stackOrdinal * 15 + 15)
-        .attr('y', d => d.levelInStack * -15 + 150)
-}
-
-
-class arithmetic {
-    static getQuotient(dividend, divisor){
-        return Math.floor(dividend / divisor)
-    }
-    
-    static getRemainder(dividend, divisor){
-        const quotient = this.getQuotient(dividend, divisor)
-        return dividend - (divisor * quotient)
-    }
-
-}
-
-function sectionRectHover(){
-    const rendering = new songLayoutRendering()
-    const classText = d3.select(this).attr('class')
-    d3.selectAll('rect.' + classText).attr('fill', 'red')
-    d3.selectAll('rect:not(.' + classText).attr('fill', 'grey')
-    const svg = d3.select('#songLayout')
-    const song = songsData.getSong(classText)
-    rendering.renderSongTitle(svg,[song])
-
-}
-
-function sectionRectOff(){
-    const classText = d3.select(this).attr('class')
-    d3.selectAll('rect.' + classText).attr('fill', 'grey')
-}
-
-
-
-
-

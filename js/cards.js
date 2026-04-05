@@ -1,47 +1,7 @@
 //data strucutres
-class card {
-    backgroundColour = 'transparent'
-    textFill = 'white'
-
-    constructor(title){
-        this.title = title
-        this.id = title.replaceAll(' ','')
-        this.width = Math.round(window.innerWidth / gRatio)
-        this.height = Math.round(this.width * 9 / 16)
-    }
-}
-
-class titleCard extends card {
-    constructor(id){
-        super(id)
-        this.words = []
-        this.fontSize = 200
-    }
-}
-
-class viewTitleCard extends titleCard {
-    constructor(id){
-        super(id)
-        this.textFill = 'yellow'
-    }
-}
-
-class canvasCard extends card {
-    constructor(id){
-        super(id)
-    }
-}
 
 
-class menuCard extends card {
-    constructor(id){
-        super(id)
-        this.items = []
-        this.textFill = 'yellow'
-        this.fontSize = 100
-        this.height = this.fontSize
-    }
-}
+
 
 //logic, settings
 class cardSizing {

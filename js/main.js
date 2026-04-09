@@ -1,11 +1,12 @@
 const GOLDEN_RATIO = 1.618
 
 class LifelineDisplay {
+    cellSize = 16
+    
     constructor() {
         this.grid = new Grid()
         this.elementFactory = new ElementFactory(this.grid)
         this.layout = new LayoutManager(this.grid)
-        this.dataHandler = new dataHandler()
         this.elements = new Map()
         this.initialize()
     }
@@ -15,10 +16,9 @@ class LifelineDisplay {
     }
 
     get cellsPerRow() {
-        const cellSize = 16
         const canvasWidth = this.elements.get('canvas').svg.attr('width')
-        console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${cellSize}px`)
-        return Math.floor(canvasWidth / cellSize)
+        console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${this.cellSize}px`)
+        return Math.floor(canvasWidth / this.cellSize)
     }
 
     get totalCells() {
@@ -28,7 +28,7 @@ class LifelineDisplay {
     async initialize() {
         this.createElements()
         await this.arrangeElements()
-        await this.loadData()
+        this.populateContent()
     }
 
     createElements() {
@@ -42,86 +42,38 @@ class LifelineDisplay {
         await this.layout.positionElements(elementsArray)
     }
 
-    populateContent() {
-        const elementsArray = Array.from(this.elements.values())
-        const data = this.dataHandler.weeksOfLife(new Date(1990, 0, 1), new Date())
-
+    async populateContent() {
+        const content = new contentManager()
+        await content.loadContent(this)
+        this.layout.fitElementsToContent(this)
     }
 
-
-
-    async loadData() {
-        const elementsArray = Array.from(this.elements.values())
-        for (let i = 0; i < elementsArray.length; i++) {
-            const element = elementsArray[i]
-            console.log(`Loading data for ${element.constructor.name}`)
-
-            switch (element.constructor.name) {
-                case 'Canvas':
-                    const lifelineRenderer = new lifelineRendering()
-                    const content = this.weeksOfLifeData()  
-                    await lifelineRenderer.renderWeeksOfLife(element, content)
-                    console.log(`Data loaded for ${element.constructor.name}`)
-                    this.fitCanvasToContent(element, content)
-                    return Promise.resolve()
-                    break
-                case 'Overlay':
-                    throw new Error('Overlay content loading not implemented yet')
-                    break
-                default:
-                    break
-            }
-        }   
-    }
-
-    weeksOfLifeData() {
-        const birthDate = new Date(1990, 0, 1) // January 1, 1990
-        const currentDate = new Date()
-        const weeksLived = Math.floor((currentDate - birthDate) / (1000 * 60 * 60 * 24 * 7))
-        const totalWeeks = 80 * 52 // Assuming an average lifespan of 80 years
-        const data = []
-        for (let i = 0; i < totalWeeks; i++) {
-            if (i < weeksLived) {
-                data.push({ status: 'lived' })
-            } else if (i === weeksLived) {
-                data.push({ status: 'current' })
-            } else {
-                data.push({ status: 'expected' })
-            }
-        }
-        return data
-    }
-
-    fitCanvasToContent(element, content){
-        const totalCells = content.length
-        const cellSize = 16
-        const canvasWidth = element.svg.attr('width')
-        const cellsPerRow = Math.floor(canvasWidth / cellSize)
-        const rowCount = Math.ceil(totalCells / cellsPerRow)
-        const totalHeight = rowCount * cellSize
-        const controller = new ElementController(element)
-        console.log(`Resizing canvas to width: ${canvasWidth}px, height: ${totalHeight}px to fit content`)
-        controller.resize(canvasWidth, totalHeight)
-    }
+    
 }
 
 class contentManager {
-    constructor(dataHandler, contentRendering){
-        this.dataHandler = dataHandler
-        this.contentRendering = contentRendering
+    constructor(){
+        this.dataHandler = new dataHandler()
+        this.contentRendering = new contentRendering()
     }
 
-    async loadContent(elements){
-        for (const element of elements) {
-            switch(element.contentType){
-                case 'weeksOfLife':
-                    const data = this.dataHandler.weeksOfLife(new Date(1990, 0, 1), new Date())
-                    await this.contentRendering.renderWeeksOfLife(element, data)
-                    return Promise.resolve()
-            default:
-                return Promise.resolve()
+    async loadContent(display){
+        display.data = this.dataHandler.weeksOfLife(new Date(1990, 0, 1), new Date())
+        const elementsArray = Array.from(display.elements.values())
+        for (let i = 0; i < elementsArray.length; i++) {
+            const element = elementsArray[i]
+            
+            if(element.constructor.name === 'Canvas' && display.constructor.name === 'LifelineDisplay'){
+                await this.contentRendering.renderWeeksOfLife(display, element, display.data)
+                console.log('circles rendered')
+            }
+            
+            console.log('content loaded for element: ' + element.constructor.name)
+            
         }
-    }
+
+        console.log('All content loaded')
+        return Promise.resolve()
     }
 }
 
@@ -264,6 +216,21 @@ class elementSizing {
         return this.calculateDimensions(columnSpan, rowSpan)
     }
 
+    defaultColumnSpan(element){
+        switch (element.constructor.name) {
+            case 'Canvas':
+                return this.grid.columnCount
+            case 'Overlay':
+                return 1
+            default:
+                return 1
+        }
+    }
+
+    calculateWidth(){
+        
+    }
+
     defaultSpans(element) {
         switch (element.constructor.name) {
             case 'Canvas':
@@ -275,6 +242,10 @@ class elementSizing {
         }
     }
 
+    toContentHeight(contentHeight){
+        const width = this.width(this.grid.columnCount)
+        return {width: width, height: contentHeight}
+    }
 
     calculateDimensions(columnSpan, rowSpan){
         return {
@@ -356,6 +327,24 @@ class LayoutManager {
         this.sizing = new elementSizing(grid)
         this.positioning = new elementPositioning(grid)
     }
+
+    async fitElementsToContent(display) {
+        const elementsArray = Array.from(display.elements.values())
+        
+        for (let i = 0; i < elementsArray.length; i++) {
+            const element = elementsArray[i]
+            if(element.constructor.name === 'Canvas' && display.constructor.name === 'LifelineDisplay'){
+                const contentHeight = display.rowCount * display.cellSize + display.cellSize / 2
+                console.log(contentHeight)
+                const {width, height} = this.sizing.toContentHeight(contentHeight)
+                console.log(width, height)
+                const controller = new ElementController(element)
+                console.log(`Resizing canvas to width: ${width}px, height: ${height}px to fit content`)
+                await controller.resize(width, height)
+            }
+        }
+    }
+
 
     async positionElements(elements) {
         for (let i = 0; i < elements.length; i++) {
@@ -455,36 +444,48 @@ class ElementController {
 }
 
 class contentRendering {
-    async renderWeeksOfLife(canvas, data) {
-        const svg = canvas.svg
-        const cellSize = 16
-        const cellsPerRow = Math.floor(canvas.width / cellSize)
-        console.log(`Rendering weeks of life with cell size: ${cellSize}px, cells per row: ${cellsPerRow}`)
+    async renderWeeksOfLife(display, canvas, data) {
+        console.log(`Rendering weeks of life with cell size: ${display.cellSize}px, cells per row: ${display.cellsPerRow}`)
         const transitions = []
-        
-        svg.selectAll('circle')
+        canvas.svg.selectAll('circle')
             .data(data)
             .join(
                 enter => {
-                    const circles = enter.append('circle')
-                        .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
-                        .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
-                        .attr('r', cellSize / 2 - 1)
-                        .attr('fill', d => this.getStatusColor(d.status))
-                    
+                    const circles = this.enter(enter, display.cellSize, display.cellsPerRow)
                     transitions.push(circles.transition().duration(0))
                 },
-                update => update.call(update => transitions.push(
-                    update.transition()
-                        .duration(0))),
-                exit => exit.call(exit => transitions.push(
-                    exit.transition()
-                        .duration(0)
-                        .remove()))
+                update => {
+                    const circles = this.update(update, display)
+                    transitions.push(circles.transition().duration(0))
+                },
+                exit => {
+                    const circles = this.exit(exit)
+                    transitions.push(circles.transition().duration(0))
+                }
             )
 
         return Promise.all(transitions.map(t => t.end()))
 
+    }
+
+    enter(selection, cellSize, cellsPerRow){
+        return selection.append('circle')
+            .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
+            .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
+            .attr('r', cellSize / 2 - 1)
+            .attr('fill', d => this.getStatusColor(d.status))
+    }
+
+    update(selection, display){
+        return selection.selectAll('circle')
+            .attr('cx', (d, i) => (i % display.cellsPerRow) * display.cellSize + display.cellSize / 2)
+            .attr('cy', (d, i) => Math.floor(i / display.cellsPerRow) * display.cellSize + display.cellSize / 2)
+            .attr('r', display.cellSize / 2 - 1)
+            .attr('fill', d => this.getStatusColor(d.status))
+    }
+
+    exit(selection){
+        return selection.selectAll('circle').remove()
     }
 
     getStatusColor(status) {

@@ -154,13 +154,12 @@ class Grid {
     }
 
     get usableWidth() {
-        const widthWithoutGutters = window.innerWidth - this.totalGutterWidth - this.cellSize * 2
+        const widthWithoutGutters = window.innerWidth - this.totalGutterWidth - this.cellSize * 2 - this.cellSize / 2
         console.log(widthWithoutGutters % this.cellSize)
         return widthWithoutGutters - this.margin * 2 - this.padding * 2
     }
 
     get columnWidth() {
-        console.log(this.usableWidth / this.columnCount)
         return this.usableWidth / this.columnCount
     }
 
@@ -188,11 +187,8 @@ class Grid {
         return Math.ceil(this.totalCells / this.cellsPerRow)
     }
 
-    
-
     get cellsPerRow() {
         const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
-        console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${this.cellSize}px`)
         return Math.max(1, Math.floor(canvasWidth / this.cellSize))
     }
 
@@ -470,7 +466,7 @@ class ElementController {
         this.transitionDuration = transitionDuration
         this.renderDivPosition(left, top)
         if(this.element.constructor.name === 'Canvas'){
-            this.renderSVGPosition((left + 16), top)
+            this.renderSVGPosition((left), top)
         }
     }
 

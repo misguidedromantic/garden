@@ -8,6 +8,8 @@ class LifelineDisplay {
         this.elementFactory = new ElementFactory(this.grid)
         this.layout = new LayoutManager(this.grid)
         this.elements = new Map()
+        this.contentManager = new contentManager()
+        this.resizeTimeout = null
         this.initialize()
     }
 
@@ -16,9 +18,9 @@ class LifelineDisplay {
     }
 
     get cellsPerRow() {
-        const canvasWidth = this.elements.get('canvas').svg.attr('width')
+        const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
         console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${this.cellSize}px`)
-        return Math.floor(canvasWidth / this.cellSize)
+        return Math.max(1, Math.floor(canvasWidth / this.cellSize))
     }
 
     get totalCells() {
@@ -28,12 +30,13 @@ class LifelineDisplay {
     async initialize() {
         this.createElements()
         await this.arrangeElements()
-        this.populateContent()
+        await this.populateContent()
+        this.attachResizeHandler()
     }
 
     createElements() {
         this.elements.set('canvas', this.elementFactory.createElement('canvas'))
-        this.elements.set('overlay', this.elementFactory.createElement('overlay'))
+        //this.elements.set('overlay', this.elementFactory.createElement('overlay'))
     }
 
     async arrangeElements() {
@@ -43,12 +46,34 @@ class LifelineDisplay {
     }
 
     async populateContent() {
-        const content = new contentManager()
-        await content.loadContent(this)
-        this.layout.fitElementsToContent(this)
+        await this.contentManager.loadContent(this)
+        await this.layout.fitElementsToContent(this)
     }
 
-    
+    attachResizeHandler() {
+        window.addEventListener('resize', () => {
+            clearTimeout(this.resizeTimeout)
+            this.resizeTimeout = setTimeout(() => {
+                if (this.data && this.data.length) {
+                    this.resizeDisplay().catch(error => console.error('Resize error', error))
+                }
+            }, 120)
+        })
+    }
+
+    async resizeDisplay() {
+        const elementsArray = Array.from(this.elements.values())
+        await this.layout.sizeElements(elementsArray)
+        await this.layout.positionElements(elementsArray)
+        await this.layout.fitElementsToContent(this)
+
+        const canvas = this.elements.get('canvas')
+        if (canvas) {
+            await new contentRendering().renderWeeksOfLife(this, canvas, this.data)
+            console.log('Canvas resized and circles repositioned on browser resize')
+        }
+    }
+
 }
 
 class contentManager {
@@ -99,9 +124,10 @@ class dataHandler {
 class Grid {
 
     constructor() {
+        this.cellSize = 16
         this.breakpoints = { mobile: 500, tablet: 1000 }
         this.columnMap = { mobile: 4, tablet: 8, desktop: 12 }
-        this.gutterMap = { mobile: 5, tablet: 10, desktop: 15 }
+        this.gutterMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
     }
 
     get deviceType() {
@@ -115,6 +141,10 @@ class Grid {
         return this.columnMap[this.deviceType]
     }
 
+    get gutterCount() {
+        return this.columnCount - 1
+    }
+
     get gutterWidth() {
         return this.gutterMap[this.deviceType]
     }
@@ -124,19 +154,50 @@ class Grid {
     }
 
     get usableWidth() {
-        return window.innerWidth - this.totalGutterWidth
+        const widthWithoutGutters = window.innerWidth - this.totalGutterWidth - this.cellSize * 2
+        console.log(widthWithoutGutters % this.cellSize)
+        return widthWithoutGutters - this.margin * 2 - this.padding * 2
     }
 
     get columnWidth() {
-        return Math.floor(this.usableWidth / this.columnCount)
+        console.log(this.usableWidth / this.columnCount)
+        return this.usableWidth / this.columnCount
     }
 
     get marginWidth() {
         return (this.usableWidth % this.columnCount) / 2
     }
 
+    get margin(){
+        return (this.gutterWidth * 3) + this.overHang / 2
+    }
+
+    get padding() {
+        return this.gutterWidth / 2
+    }
+
+    get overHang(){
+        return window.innerWidth % this.cellSize
+    }
+
     get rowHeight() {
         return Math.floor(this.columnWidth / GOLDEN_RATIO)
+    }
+
+    get rowCount() {
+        return Math.ceil(this.totalCells / this.cellsPerRow)
+    }
+
+    
+
+    get cellsPerRow() {
+        const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
+        console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${this.cellSize}px`)
+        return Math.max(1, Math.floor(canvasWidth / this.cellSize))
+    }
+
+    get totalCells() {
+        return this.data.length
     }
 }
 
@@ -156,8 +217,8 @@ class Canvas {
 }
 
 class ElementFactory {
-    constructor(displayConfig) {
-        this.displayConfig = displayConfig
+    constructor(grid) {
+        this.grid = grid
     }
 
     createElement(type) {
@@ -195,6 +256,9 @@ class ElementFactory {
         return parentContainer.append('div')
             .attr('class', element.constructor.name.toLowerCase())
             .style('position', 'absolute')
+            .style('border', '1px solid white')
+            .style('padding', this.grid.padding + 'px')
+            .style('margin', this.grid.margin + 'px')
     }
 
     addSvg(element) {
@@ -211,60 +275,36 @@ class elementSizing {
         this.grid = grid
     }
 
-    default(element) {
-        const {columnSpan, rowSpan} = this.defaultSpans(element)
-        return this.calculateDimensions(columnSpan, rowSpan)
-    }
-
-    defaultColumnSpan(element){
-        switch (element.constructor.name) {
-            case 'Canvas':
-                return this.grid.columnCount
-            case 'Overlay':
-                return 1
-            default:
-                return 1
-        }
-    }
-
-    calculateWidth(){
-        
-    }
-
-    defaultSpans(element) {
-        switch (element.constructor.name) {
-            case 'Canvas':
-                return { columnSpan: this.grid.columnCount, rowSpan: Math.ceil(this.grid.columnCount / GOLDEN_RATIO) }
-            case 'Overlay':
-                return { columnSpan: 1, rowSpan: 1 }
-            default:
-                return { columnSpan: 1, rowSpan: 1 }
-        }
-    }
-
-    toContentHeight(contentHeight){
-        const width = this.width(this.grid.columnCount)
-        return {width: width, height: contentHeight}
-    }
-
-    calculateDimensions(columnSpan, rowSpan){
+    default() {
         return {
-            width: this.width(columnSpan),
-            height: this.height(rowSpan)
+            width: this.defaultWidth(),
+            height: this.defaultWidth()
         }
     }
 
-    width(columnSpan){
-        const withoutGutters = columnSpan * this.grid.columnWidth
-        const totalGutterWidth = (columnSpan - 1) * this.grid.gutterWidth
+    toContent(contentHeight, columnCount = this.grid.columnCount){
+        return {
+            width: this.spanWidth(columnCount), 
+            height: contentHeight
+        }
+    }
+    
+    defaultWidth(){
+        return this.spanWidth(this.grid.columnCount)
+    }
+
+    defaultHeight(){
+        return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
+    }
+
+    spanWidth(columnCount){
+        const withoutGutters = columnCount * this.grid.columnWidth
+        console.log(withoutGutters / 16)
+        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
         return withoutGutters + totalGutterWidth
     }
 
-    height(rowSpan){
-        const withoutGutters = rowSpan * this.grid.rowHeight
-        const totalGutterWidth = (rowSpan - 1) * this.grid.gutterWidth
-        return withoutGutters + totalGutterWidth
-    }
+
 }
 
 class elementPositioning {
@@ -296,17 +336,15 @@ class elementPositioning {
     }
 
     left(column) {
-        const marginWidth = this.grid.marginWidth
         const totalColumnWidth = (column - 1) * this.grid.columnWidth
         const totalGutterWidth = (column - 1) * this.grid.gutterWidth
-        return marginWidth + totalColumnWidth + totalGutterWidth
+        return this.grid.margin + totalColumnWidth + totalGutterWidth
     }
 
     top(row) {
-        const marginWidth = this.grid.marginWidth
         const totalRowHeight = (row - 1) * this.grid.rowHeight
         const totalGutterHeight = (row - 1) * this.grid.gutterWidth
-        return marginWidth + totalRowHeight + totalGutterHeight
+        return this.grid.margin + totalRowHeight + totalGutterHeight
     }
 
     calculateZIndex(element) {
@@ -334,10 +372,8 @@ class LayoutManager {
         for (let i = 0; i < elementsArray.length; i++) {
             const element = elementsArray[i]
             if(element.constructor.name === 'Canvas' && display.constructor.name === 'LifelineDisplay'){
-                const contentHeight = display.rowCount * display.cellSize + display.cellSize / 2
-                console.log(contentHeight)
-                const {width, height} = this.sizing.toContentHeight(contentHeight)
-                console.log(width, height)
+                const contentHeight = display.rowCount * display.cellSize
+                const {width, height} = this.sizing.toContent(contentHeight)
                 const controller = new ElementController(element)
                 console.log(`Resizing canvas to width: ${width}px, height: ${height}px to fit content`)
                 await controller.resize(width, height)
@@ -374,10 +410,10 @@ class LayoutManager {
         }
     }
 
-    scaledRowSpan(element, columnSpan) {
+    scaledRowSpan(element, columnCount) {
         switch (element.constructor.name) {
             case 'Canvas':
-                return Math.ceil(columnSpan / GOLDEN_RATIO)
+                return Math.ceil(columnCount / GOLDEN_RATIO)
             case 'Overlay':
                 return 1
             default:
@@ -433,6 +469,9 @@ class ElementController {
     move(left, top, transitionDuration = this.transitionDuration) {
         this.transitionDuration = transitionDuration
         this.renderDivPosition(left, top)
+        if(this.element.constructor.name === 'Canvas'){
+            this.renderSVGPosition((left + 16), top)
+        }
     }
 
     renderDivPosition(left, top) {
@@ -440,6 +479,13 @@ class ElementController {
             .duration(this.transitionDuration)
             .style('left', left + 'px')
             .style('top', top + 'px')
+    }
+
+    renderSVGPosition(left, top){
+        this.element.div.transition()
+            .duration(this.transitionDuration)
+            .attr('left', left)
+            .attr('top', top)
     }
 }
 
@@ -477,7 +523,7 @@ class contentRendering {
     }
 
     update(selection, display){
-        return selection.selectAll('circle')
+        return selection
             .attr('cx', (d, i) => (i % display.cellsPerRow) * display.cellSize + display.cellSize / 2)
             .attr('cy', (d, i) => Math.floor(i / display.cellsPerRow) * display.cellSize + display.cellSize / 2)
             .attr('r', display.cellSize / 2 - 1)
@@ -485,7 +531,7 @@ class contentRendering {
     }
 
     exit(selection){
-        return selection.selectAll('circle').remove()
+        return selection.remove()
     }
 
     getStatusColor(status) {

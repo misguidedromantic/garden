@@ -1,9 +1,67 @@
 const GOLDEN_RATIO = 1.618
 
+class orchestrator {
+
+    static #instance = null
+    static {if(this.#instance == null){this.#instance = new this}}
+
+    static loadDisplay(id){
+        const dm = this.#getDisplayManager(this.#instance)
+        console.log(dm)
+    }
+
+    static #getDisplayManager(instance){
+        if(instance.displayManager === null){instance.setup()}
+        return instance.displayManager
+    }
+
+    constructor(){
+        this.displayManager = null
+    }
+
+    setup(){
+        this.displayManager = new displayManager
+    }
+
+    
+}
+
+
+
+class displayManager {
+    #displays = {}
+
+    constructor(){
+        if(!this.#displays instanceof Map){
+            this.#displays = new Map()
+        }
+    }
+
+    load(displayId){
+        try{return this.#displays.get(displayId)}
+        catch{this.#create(displayId)}
+    }
+
+    #create(displayId){
+        this.#displays.set(displayId, this.#createObject())
+    }
+
+    #createObject(){
+        return new LifelineDisplay()
+    }
+
+    #configure(display){
+        d3.select('body').style('background-color', '#F5F5F5')
+    }
+
+}
+
+
 
 
 class LifelineDisplay {
-    cellSize = 16
+
+    backgroundColour = '#F5F5F5'
     
     constructor() {
         this.grid = new Grid()
@@ -13,6 +71,10 @@ class LifelineDisplay {
         this.contentManager = new contentManager()
         this.resizeTimeout = null
         this.initialize()
+    }
+
+    get backgroundColour(){
+        return 'white'
     }
 
     get rowCount() {
@@ -30,11 +92,14 @@ class LifelineDisplay {
     }
 
     async initialize() {
+
         this.createElements()
         await this.arrangeElements()
         await this.populateContent()
         this.attachResizeHandler()
     }
+
+
 
     createElements() {
         this.elements.set('canvas', this.elementFactory.createElement('canvas'))
@@ -122,7 +187,6 @@ class dataHandler {
     }
 }
 
-
 class Grid {
 
     constructor() {
@@ -199,8 +263,6 @@ class Grid {
     }
 }
 
-
-
 class Overlay {
     constructor() {
         this.div = null
@@ -264,8 +326,6 @@ class ElementFactory {
             .attr('class', element.constructor.name.toLowerCase())
     }
 }
-
-
 
 class elementSizing {
 
@@ -607,8 +667,6 @@ class line {
          (code > 64 && code < 91) || // upper alpha (A-Z)
          (code > 96 && code < 123);  // lower alpha (a-z)
     }
-
-
 }
 
 class title extends line{ 
@@ -623,10 +681,11 @@ class bulletPoint extends line {
     }
 }
 
-
 /**
  * Application initialization
  */
 window.addEventListener('DOMContentLoaded', () => {
-    noteHandler.loadNote('backlog')
+    orchestrator.loadDisplay('lifeline')
+    //noteHandler.loadNote('backlog')
+    //new LifelineDisplay
 })

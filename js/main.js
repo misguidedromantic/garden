@@ -1,5 +1,7 @@
 const GOLDEN_RATIO = 1.618
 
+
+
 class LifelineDisplay {
     cellSize = 16
     
@@ -544,11 +546,87 @@ class contentRendering {
     }
 
 
-}   
+}
+
+class noteHandler {
+
+    static async loadNote(title){ 
+        const note = this.#createObject(title)
+        const response = await this.#loadData(note.path)
+        const text = await response.text()
+        this.#addLines(note, text)
+    }
+
+    static #createObject(title){
+        return new note (title)
+    }
+
+    static #loadData(path){
+        return fetch(path)
+    }
+
+    static #addLines(note, text){
+        const lines = text.split('\n')
+        for (let i = 0; i < lines.length; i++){
+            try{note.lines.push(new line(lines[i]))}
+            catch{return}
+        }
+    }
+}
+
+class note {
+    constructor(title){
+        this.title = title
+        this.lines = []
+    }
+
+    get path(){
+        return './docs/' + this.title + '.txt'
+    }
+
+}
+
+class line {
+    constructor(text){
+        switch(text.substring(0,2)){
+            case '# ':
+                return new title (text.substring(2))
+            case '* ':
+                return new bulletPoint (text.substring(2))
+            default:
+                if(!this.isAlphaNumeric(text.substring(0))){
+                    throw new Error ('invalid line type')
+                }
+        }
+        this.text = text
+    }
+
+    isAlphaNumeric(firstChar){
+        const code = firstChar.charCodeAt(0) 
+        return (code > 47 && code < 58) || // numeric (0-9)
+         (code > 64 && code < 91) || // upper alpha (A-Z)
+         (code > 96 && code < 123);  // lower alpha (a-z)
+    }
+
+
+}
+
+class title extends line{ 
+    constructor(text){
+        super(text)
+    }
+}
+
+class bulletPoint extends line {
+    constructor(text){
+        super(text)
+    }
+}
+
 
 /**
  * Application initialization
  */
 window.addEventListener('DOMContentLoaded', () => {
-    new LifelineDisplay()
+    noteHandler.loadNote('backlog')
 })

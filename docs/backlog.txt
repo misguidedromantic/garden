@@ -1,0 +1,7 @@
+# backlog
+* Import markdown notes
+* Facelift for backlog
+* Start with distinct, standalone sections but move towards the design idea where data is reorganised and represented in multiple different interactive displays (ingressions)
+- - -
+#2-areas/digital garden#
+

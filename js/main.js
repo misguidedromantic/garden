@@ -18,13 +18,15 @@ class orchestrator {
     }
 }
 
-
-
 class displayManager {
+    #grid = {}
     #displays = {}
     #currentDisplay = null
 
-    constructor(){this.#displays = new Map()}
+    constructor(){
+        this.#displays = new Map()
+        this.#grid = new Grid
+    }
 
     get currentDisplayType(){
         try{return this.#currentDisplay.constructor.name}
@@ -32,15 +34,25 @@ class displayManager {
     }
 
     load(id){
-        const typeToLoad = id + 'Display'
-        const typeLoaded = this.currentDisplayType
-
-        if(typeToLoad !== typeLoaded){
-            this.#currentDisplay = this.getDisplay(id)
-        } 
+        this.#configureObjects(id)
+        this.#applyStying(this.#currentDisplay)
+        
     }
 
-    getDisplay(id){
+    #configureObjects(id){
+        const displayObject = this.getDisplayObject(id)
+        if(!this.#isLoaded(displayObject)){
+            this.#currentDisplay = this.getDisplayObject(id)
+        }
+
+    }
+
+    #isLoaded(display){
+        return display.constructor.name === this.currentDisplayType
+
+    }
+
+    getDisplayObject(id){
         if(!this.#displays.has(id)){
             this.#displays.set(id, this.#createDisplayObject(id))    
         }
@@ -56,8 +68,9 @@ class displayManager {
         }
     }
 
-    #configure(display){
-        d3.select('body').style('background-color', display.backgroundColour)
+    #applyStying(display){
+        d3.select('body')
+            .style('background-color', display.backgroundColour)
     }
 
 }
@@ -68,13 +81,13 @@ class displayManager {
 class lifeLineDisplay {
     
     constructor() {
-        this.grid = new Grid()
+/*         this.grid = new Grid()
         this.elementFactory = new ElementFactory(this.grid)
         this.layout = new LayoutManager(this.grid)
         this.elements = new Map()
         this.contentManager = new contentManager()
         this.resizeTimeout = null
-        this.initialize()
+        this.initialize() */
     }
 
     get backgroundColour(){
@@ -102,8 +115,6 @@ class lifeLineDisplay {
         await this.populateContent()
         this.attachResizeHandler()
     }
-
-
 
     createElements() {
         this.elements.set('canvas', this.elementFactory.createElement('canvas'))

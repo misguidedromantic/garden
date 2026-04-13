@@ -6,52 +6,58 @@ class orchestrator {
     static {if(this.#instance == null){this.#instance = new this}}
 
     static loadDisplay(id){
-        const dm = this.#getDisplayManager(this.#instance)
-        console.log(dm)
+        this.#instance.displayManager.load(id)
     }
 
-    static #getDisplayManager(instance){
-        if(instance.displayManager === null){instance.setup()}
-        return instance.displayManager
-    }
+    #displayManager
 
-    constructor(){
-        this.displayManager = null
-    }
+    constructor(){this.#displayManager = null}
 
-    setup(){
-        this.displayManager = new displayManager
+    get displayManager(){
+        return this.#displayManager ??= new displayManager()
     }
-
-    
 }
 
 
 
 class displayManager {
     #displays = {}
+    #currentDisplay = null
 
-    constructor(){
-        if(!this.#displays instanceof Map){
-            this.#displays = new Map()
+    constructor(){this.#displays = new Map()}
+
+    get currentDisplayType(){
+        try{return this.#currentDisplay.constructor.name}
+        catch{return undefined}
+    }
+
+    load(id){
+        const typeToLoad = id + 'Display'
+        const typeLoaded = this.currentDisplayType
+
+        if(typeToLoad !== typeLoaded){
+            this.#currentDisplay = this.getDisplay(id)
+        } 
+    }
+
+    getDisplay(id){
+        if(!this.#displays.has(id)){
+            this.#displays.set(id, this.#createDisplayObject(id))    
+        }
+        return this.#displays.get(id)
+    }
+
+    #createDisplayObject(id){
+        switch(id){
+            case 'lifeLine':
+                return new lifeLineDisplay()
+            default:
+                return null
         }
     }
 
-    load(displayId){
-        try{return this.#displays.get(displayId)}
-        catch{this.#create(displayId)}
-    }
-
-    #create(displayId){
-        this.#displays.set(displayId, this.#createObject())
-    }
-
-    #createObject(){
-        return new LifelineDisplay()
-    }
-
     #configure(display){
-        d3.select('body').style('background-color', '#F5F5F5')
+        d3.select('body').style('background-color', display.backgroundColour)
     }
 
 }
@@ -59,9 +65,7 @@ class displayManager {
 
 
 
-class LifelineDisplay {
-
-    backgroundColour = '#F5F5F5'
+class lifeLineDisplay {
     
     constructor() {
         this.grid = new Grid()
@@ -74,7 +78,7 @@ class LifelineDisplay {
     }
 
     get backgroundColour(){
-        return 'white'
+        return '#F5F5F5'
     }
 
     get rowCount() {
@@ -155,7 +159,7 @@ class contentManager {
         for (let i = 0; i < elementsArray.length; i++) {
             const element = elementsArray[i]
             
-            if(element.constructor.name === 'Canvas' && display.constructor.name === 'LifelineDisplay'){
+            if(element.constructor.name === 'Canvas' && display.constructor.name === 'lifeLineDisplay'){
                 await this.contentRendering.renderWeeksOfLife(display, element, display.data)
                 console.log('circles rendered')
             }
@@ -429,7 +433,7 @@ class LayoutManager {
         
         for (let i = 0; i < elementsArray.length; i++) {
             const element = elementsArray[i]
-            if(element.constructor.name === 'Canvas' && display.constructor.name === 'LifelineDisplay'){
+            if(element.constructor.name === 'Canvas' && display.constructor.name === 'lifeLineDisplay'){
                 const contentHeight = display.rowCount * display.cellSize
                 const {width, height} = this.sizing.toContent(contentHeight)
                 const controller = new ElementController(element)
@@ -685,7 +689,7 @@ class bulletPoint extends line {
  * Application initialization
  */
 window.addEventListener('DOMContentLoaded', () => {
-    orchestrator.loadDisplay('lifeline')
+    orchestrator.loadDisplay('lifeLine')
     //noteHandler.loadNote('backlog')
-    //new LifelineDisplay
+    //new lifeLineDisplay
 })

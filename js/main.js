@@ -20,12 +20,14 @@ class orchestrator {
 
 class displayManager {
     #grid = {}
+    #styling = {}
     #displays = {}
     #currentDisplay = null
 
     constructor(){
-        this.#displays = new Map()
+        this.#displays = new Map
         this.#grid = new Grid
+        this.#styling = new Styling
     }
 
     get currentDisplayType(){
@@ -36,7 +38,7 @@ class displayManager {
     load(id){
         this.#configureObjects(id)
         this.#applyStying(this.#currentDisplay)
-        
+        this.#createElements(this.#currentDisplay)
     }
 
     #configureObjects(id){
@@ -44,7 +46,6 @@ class displayManager {
         if(!this.#isLoaded(displayObject)){
             this.#currentDisplay = this.getDisplayObject(id)
         }
-
     }
 
     #isLoaded(display){
@@ -73,14 +74,72 @@ class displayManager {
             .style('background-color', display.backgroundColour)
     }
 
+    #createElements(display){
+        const elemFactory = new ElementFactory(this.#grid, this.#styling)
+        display.elementsMap.keys().forEach(key => {
+            const element = elemFactory.createElement(key)
+            display.elements.set(key, element)
+        })
+    }
+
+    arrangeElements() {
+        const sizing = new elementSizing(this.#grid)
+
+    }
 }
 
+class layoutDynamics {
+    
+}
 
+class elementSizing {
+
+    constructor(grid){
+        this.grid = grid
+    }
+
+    fitToWindow(element){
+        
+    }
+
+    default() {
+        return {
+            width: this.defaultWidth(),
+            height: this.defaultWidth()
+        }
+    }
+
+    toContent(contentHeight, columnCount = this.grid.columnCount){
+        return {
+            width: this.spanWidth(columnCount), 
+            height: contentHeight
+        }
+    }
+    
+    defaultWidth(){
+        return this.spanWidth(this.grid.columnCount)
+    }
+
+    defaultHeight(){
+        return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
+    }
+
+    spanWidth(columnCount){
+        const withoutGutters = columnCount * this.grid.columnWidth
+        console.log(withoutGutters / 16)
+        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
+        return withoutGutters + totalGutterWidth
+    }
+
+
+}
 
 
 class lifeLineDisplay {
     
     constructor() {
+        this.elements = this.elementsMap
+
 /*         this.grid = new Grid()
         this.elementFactory = new ElementFactory(this.grid)
         this.layout = new LayoutManager(this.grid)
@@ -90,9 +149,17 @@ class lifeLineDisplay {
         this.initialize() */
     }
 
+    get elementsMap(){
+        return new Map()
+            .set('canvas', null)
+            .set('overlay', null)
+     }
+
     get backgroundColour(){
         return '#F5F5F5'
     }
+
+
 
     get rowCount() {
         return Math.ceil(this.totalCells / this.cellsPerRow)
@@ -278,6 +345,25 @@ class Grid {
     }
 }
 
+class Styling {
+    get shadowColour () {
+        return '0deg 0% 60%'
+    }
+
+    get boxShadowLayers(){
+        return [
+            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
+        ]
+    }
+
+    get boxShadow () {
+        return this.boxShadowLayers.join(', ')
+    }
+}
+
 class Overlay {
     constructor() {
         this.div = null
@@ -291,9 +377,12 @@ class Canvas {
     }
 }
 
+
+
 class ElementFactory {
-    constructor(grid) {
+    constructor(grid, styling) {
         this.grid = grid
+        this.styling = styling
     }
 
     createElement(type) {
@@ -328,12 +417,15 @@ class ElementFactory {
     }
 
     addDiv(element, parentContainer = d3.select('body')) {
+        console.log(this.styling.boxShadow)
         return parentContainer.append('div')
             .attr('class', element.constructor.name.toLowerCase())
             .style('position', 'absolute')
-            .style('border', '1px solid white')
+            .style('border', '1px solid grey')
             .style('padding', this.grid.padding + 'px')
             .style('margin', this.grid.margin + 'px')
+            .style('border-radius', '6px')
+            .style('box-shadow', this.styling.boxShadow)
     }
 
     addSvg(element) {
@@ -342,43 +434,7 @@ class ElementFactory {
     }
 }
 
-class elementSizing {
 
-    constructor(grid){
-        this.grid = grid
-    }
-
-    default() {
-        return {
-            width: this.defaultWidth(),
-            height: this.defaultWidth()
-        }
-    }
-
-    toContent(contentHeight, columnCount = this.grid.columnCount){
-        return {
-            width: this.spanWidth(columnCount), 
-            height: contentHeight
-        }
-    }
-    
-    defaultWidth(){
-        return this.spanWidth(this.grid.columnCount)
-    }
-
-    defaultHeight(){
-        return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
-    }
-
-    spanWidth(columnCount){
-        const withoutGutters = columnCount * this.grid.columnWidth
-        console.log(withoutGutters / 16)
-        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
-        return withoutGutters + totalGutterWidth
-    }
-
-
-}
 
 class elementPositioning {
 

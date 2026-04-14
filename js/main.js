@@ -22,12 +22,13 @@ class displayManager {
     #grid = {}
     #styling = {}
     #displays = {}
+    #layout = {}
     #currentDisplay = null
 
     constructor(){
         this.#displays = new Map
         this.#grid = new Grid
-        this.#styling = new Styling
+        this.#layout = new LayoutManager(this.#grid)
     }
 
     get currentDisplayType(){
@@ -35,10 +36,20 @@ class displayManager {
         catch{return undefined}
     }
 
+    get elementsArray(){
+        return Array.from(this.#currentDisplay.elements.values())
+    }
+
+    get elementKeysArray(){
+        return Array.from(this.#currentDisplay.elements.keys())
+    }
+
+
     load(id){
         this.#configureObjects(id)
-        this.#applyStying(this.#currentDisplay)
         this.#createElements(this.#currentDisplay)
+        console.log(this.#currentDisplay.elements)
+        this.#configureElements()
     }
 
     #configureObjects(id){
@@ -69,27 +80,35 @@ class displayManager {
         }
     }
 
-    #applyStying(display){
-        d3.select('body')
-            .style('background-color', display.backgroundColour)
+    #setStlyes(){
+        const styling = new DisplayStyling(this.#currentDisplay)
+        styling.setBackground()
+        styling.setElementStyles()
     }
 
-    #createElements(display){
-        const elemFactory = new ElementFactory(this.#grid, this.#styling)
-        display.elementsMap.keys().forEach(key => {
-            const element = elemFactory.createElement(key)
-            display.elements.set(key, element)
-        })
+    #createElements(){
+        const styling = new DisplayStyling(this.#currentDisplay)
+        const elemFactory = new ElementFactory(this.#layout, styling)
+        for(let i = 0; i < this.elementKeysArray.length; i++){
+            const key = this.elementKeysArray[i]
+            this.#currentDisplay.elements.set(key, elemFactory.createElement(key))
+        }
     }
 
-    arrangeElements() {
-        const sizing = new elementSizing(this.#grid)
+    #configureElements(){
+        const controller = new ElementController()
+        for(let i = 0; i < this.elementsArray.length; i++){
+            const element = this.elementsArray[i]
+            controller.move(element, 0)
+            controller.resize(element, 0)
+            controller.style(element, 0)
+        }
+    }
+
+    #arrangeElements() {
+        //this.#layout.sizeElements(this.elementsArray)
 
     }
-}
-
-class layoutDynamics {
-    
 }
 
 class elementSizing {
@@ -98,15 +117,15 @@ class elementSizing {
         this.grid = grid
     }
 
-    fitToWindow(element){
-        
-    }
-
     default() {
         return {
             width: this.defaultWidth(),
             height: this.defaultWidth()
         }
+    }
+
+    padding(element){
+        return this.grid.padding
     }
 
     toContent(contentHeight, columnCount = this.grid.columnCount){
@@ -126,7 +145,6 @@ class elementSizing {
 
     spanWidth(columnCount){
         const withoutGutters = columnCount * this.grid.columnWidth
-        console.log(withoutGutters / 16)
         const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
         return withoutGutters + totalGutterWidth
     }
@@ -152,11 +170,11 @@ class lifeLineDisplay {
     get elementsMap(){
         return new Map()
             .set('canvas', null)
-            .set('overlay', null)
+            //.set('overlay', null)
      }
 
     get backgroundColour(){
-        return '#F5F5F5'
+        return '#F7F9FA'
     }
 
 
@@ -167,7 +185,6 @@ class lifeLineDisplay {
 
     get cellsPerRow() {
         const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
-        console.log(`Calculating cells per row with canvas width: ${canvasWidth}px and cell size: ${this.cellSize}px`)
         return Math.max(1, Math.floor(canvasWidth / this.cellSize))
     }
 
@@ -219,7 +236,7 @@ class lifeLineDisplay {
         const canvas = this.elements.get('canvas')
         if (canvas) {
             await new contentRendering().renderWeeksOfLife(this, canvas, this.data)
-            console.log('Canvas resized and circles repositioned on browser resize')
+       
         }
     }
 
@@ -235,18 +252,11 @@ class contentManager {
         display.data = this.dataHandler.weeksOfLife(new Date(1990, 0, 1), new Date())
         const elementsArray = Array.from(display.elements.values())
         for (let i = 0; i < elementsArray.length; i++) {
-            const element = elementsArray[i]
-            
+            const element = elementsArray[i]          
             if(element.constructor.name === 'Canvas' && display.constructor.name === 'lifeLineDisplay'){
                 await this.contentRendering.renderWeeksOfLife(display, element, display.data)
-                console.log('circles rendered')
-            }
-            
-            console.log('content loaded for element: ' + element.constructor.name)
-            
+            }   
         }
-
-        console.log('All content loaded')
         return Promise.resolve()
     }
 }
@@ -303,7 +313,6 @@ class Grid {
 
     get usableWidth() {
         const widthWithoutGutters = window.innerWidth - this.totalGutterWidth - this.cellSize * 2 - this.cellSize / 2
-        console.log(widthWithoutGutters % this.cellSize)
         return widthWithoutGutters - this.margin * 2 - this.padding * 2
     }
 
@@ -345,9 +354,35 @@ class Grid {
     }
 }
 
-class Styling {
-    get shadowColour () {
-        return '0deg 0% 60%'
+class DisplayStyling {
+    #display
+    constructor(display){
+        this.#display = display
+    }
+
+    setBackground(){
+        d3.select('body')
+            .style('background-color', this.#display.backgroundColour)
+    }
+
+    setElementStyles(element){
+        const elementStyling = new ElementStyling
+        element.borderRadius = elementStyling.borderRadius
+        element.backgroundColour = elementStyling.backgroundColour
+        element.boxShadow = elementStyling.boxShadow
+    }
+
+
+}
+
+class ElementStyling {
+
+    get backgroundColour () {
+        return '#F5F5F5'
+    }
+
+    get borderRadius () {
+        return 6
     }
 
     get boxShadowLayers(){
@@ -361,6 +396,10 @@ class Styling {
 
     get boxShadow () {
         return this.boxShadowLayers.join(', ')
+    }
+
+    get shadowColour () {
+        return '0deg 0% 60%'
     }
 }
 
@@ -380,15 +419,23 @@ class Canvas {
 
 
 class ElementFactory {
-    constructor(grid, styling) {
-        this.grid = grid
+    constructor(layout, styling) {
+        this.layout = layout
         this.styling = styling
     }
 
     createElement(type) {
         const element = this.createObject(type)
+        this.applyElementSettings(element)
         this.initializeDomElements(element)
         return element
+    }
+
+    applyElementSettings(element){
+        this.layout.setElementDimensions(element)
+        this.layout.setElementPosition(element)
+        this.styling.setBackground()
+        this.styling.setElementStyles(element)
     }
 
     createObject(type) {
@@ -409,7 +456,7 @@ class ElementFactory {
                 element.svg = this.addSvg(element)
                 break
             case 'Overlay':
-                element.div = this.addDiv(element)
+                //element.div = this.addDiv(element)
                 break
             default:
                 break
@@ -417,15 +464,8 @@ class ElementFactory {
     }
 
     addDiv(element, parentContainer = d3.select('body')) {
-        console.log(this.styling.boxShadow)
         return parentContainer.append('div')
             .attr('class', element.constructor.name.toLowerCase())
-            .style('position', 'absolute')
-            .style('border', '1px solid grey')
-            .style('padding', this.grid.padding + 'px')
-            .style('margin', this.grid.margin + 'px')
-            .style('border-radius', '6px')
-            .style('box-shadow', this.styling.boxShadow)
     }
 
     addSvg(element) {
@@ -455,6 +495,10 @@ class elementPositioning {
             default:
                 return { row: 1, column: 1 }
         }
+    }
+
+    margin(element){
+        return this.grid.margin
     }
 
     calculatePosition(gridCoords) {
@@ -504,7 +548,6 @@ class LayoutManager {
                 const contentHeight = display.rowCount * display.cellSize
                 const {width, height} = this.sizing.toContent(contentHeight)
                 const controller = new ElementController(element)
-                console.log(`Resizing canvas to width: ${width}px, height: ${height}px to fit content`)
                 await controller.resize(width, height)
             }
         }
@@ -516,21 +559,38 @@ class LayoutManager {
             const element = elements[i]
             const {left, top} = this.positioning.default(element)
             const controller = new ElementController(element)
-            await controller.move(left, top)
+            controller.move(left, top)
         }
     }
 
-    async sizeElements(elements) {
+    sizeElements(elements) {
          for (let i = 0; i < elements.length; i++) {
             const element = elements[i]
-            const {width, height} = this.sizing.default(element)
-            console.log(`Sizing ${element.constructor.name} to width: ${width}px, height: ${height}px`)
-            const controller = new ElementController(element)
-            await controller.resize(width, height)
+            this.setDimensions(element)
+            this.applyDimensions(element)        
         }
     }
 
-    async stackElements(elements) {
+    setElementDimensions(element){
+        const {width, height} = this.sizing.default(element)
+        element.padding = this.sizing.padding(element)
+        element.width = width
+        element.height = height
+    }
+
+    setElementPosition(element){
+        const {left, top} = this.positioning.default(element)
+        element.margin = this.positioning.margin(element)
+        element.left = left
+        element.top = top
+    }
+
+    applyDimensions(element){
+        const controller = new ElementController(element)
+        controller.resize(element)
+    }
+
+    stackElements(elements) {
         for (let i = 0; i < elements.length; i++) {
             const element = elements[i]
             const zIndex = this.positioning.calculateZIndex(element)
@@ -553,10 +613,11 @@ class LayoutManager {
 
 
 class ElementController {
-    constructor(element) {
-        this.element = element
+    constructor() {
         this.transitionDuration = 500
     }
+
+    
 
     stack(zIndex) {
         this.applyZIndex(zIndex)
@@ -566,61 +627,71 @@ class ElementController {
         this.element.div.style('z-index', zIndex)
     }
 
-    resize(width, height, transitionDuration = this.transitionDuration) {
+    resize(element, transitionDuration = this.transitionDuration) {
         this.transitionDuration = transitionDuration
-        switch (this.element.constructor.name) {
+        switch (element.constructor.name) {
             case 'Canvas':
-                return this.renderSvgDimensions(width, height)
+                this.renderSvgDimensions(element)
             case 'Overlay':
-                return this.renderDivDimensions(width, height)
+                this.renderDivDimensions(element)
             default:
                 return Promise.resolve()
 
         }
     }
 
-    renderDivDimensions(width, height) {
-        return this.element.div.transition()
-            .duration(this.transitionDuration)
-            .style('width', width + 'px')
-            .style('height', height + 'px')
-            .end()
+    renderDivDimensions(element) {
+        element.div.style('width', element.width + 'px')
+            .style('height', element.height + 'px')
+            .style('padding', element.padding + 'px')
     }
 
-    renderSvgDimensions(width, height) {
-        return this.element.svg.transition()
-            .duration(this.transitionDuration)
-            .attr('width', width)
-            .attr('height', height)
-            .end()      
+    renderSvgDimensions(element) {
+        element.svg.attr('width', element.width)
+            .attr('height', element.height)  
     }
 
-    move(left, top, transitionDuration = this.transitionDuration) {
+    move(element, transitionDuration = this.transitionDuration) {
         this.transitionDuration = transitionDuration
-        this.renderDivPosition(left, top)
-        if(this.element.constructor.name === 'Canvas'){
-            this.renderSVGPosition((left), top)
+        this.renderDivPosition(element)
+        if(element.constructor.name === 'Canvas'){
+            this.renderSVGPosition(element)
         }
     }
 
-    renderDivPosition(left, top) {
-        this.element.div.transition()
-            .duration(this.transitionDuration)
-            .style('left', left + 'px')
-            .style('top', top + 'px')
+    renderDivPosition(element) {
+        element.div.style('position', 'absolute')
+            .style('margin', element.margin + 'px')
+            .style('left', element.left + 'px')
+            .transition('tMove')
+            .duration(750)
+                .ease(d3.easeCircleOut)
+                .style('top', element.top + 'px')
+                
     }
 
-    renderSVGPosition(left, top){
-        this.element.div.transition()
-            .duration(this.transitionDuration)
-            .attr('left', left)
-            .attr('top', top)
+    renderSVGPosition(element){
+        element.div.attr('left', element.left)
+            .attr('top', element.top)
+    }
+
+    style(element, transitionDuration = this.transitionDuration){
+        this.transitionDuration = transitionDuration
+        element.div
+            //.style('box-shadow', 'none')
+            .style('opacity', 0)
+            .style('background-color', element.backgroundColour)
+            .style('border-radius', element.borderRadius + 'px')
+            .style('box-shadow', element.boxShadow)
+            .transition('tStyle')
+            .ease(d3.easeCircleOut)
+            .duration(500)
+                .style('opacity', 1)
     }
 }
 
 class contentRendering {
     async renderWeeksOfLife(display, canvas, data) {
-        console.log(`Rendering weeks of life with cell size: ${display.cellSize}px, cells per row: ${display.cellsPerRow}`)
         const transitions = []
         canvas.svg.selectAll('circle')
             .data(data)

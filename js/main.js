@@ -614,7 +614,7 @@ class ContentManager {
 
     getContent(display){
         if(display.constructor.name === 'LifeLineDisplay'){
-            return this.dataHandler.weeksOfLife(new Date(1990, 0, 1), new Date())
+            return this.dataHandler.lifeLine(new Date(1985, 5, 6), 'weeks')
         }
     }
 
@@ -622,22 +622,94 @@ class ContentManager {
 
 }
 
-class DataHandler {
-    weeksOfLife(birthDate, currentDate) {
-        const weeksLived = Math.floor((currentDate - birthDate) / (1000 * 60 * 60 * 24 * 7))
-        const totalWeeks = 80 * 52 // Assuming an average lifespan of 80 years
-        const data = []
-        for (let i = 0; i < totalWeeks; i++) {
-            if (i < weeksLived) {
-                data.push({ status: 'lived' })
-            } else if (i === weeksLived) {
-                data.push({ status: 'current' })
-            } else {
-                data.push({ status: 'expected' })
-            }
+class Increment {
+    constructor(type, status){
+        switch(type){
+            case 'weeks':
+                return new Week(status)
+            case 'months':
+                return new Month(status)
+            case 'years':
+                return new Year(status)
         }
-        return data
     }
+}
+
+class Week {
+    constructor(status){
+        this.status = status
+    }
+}
+
+class Month {
+    constructor(status){
+        this.status = status
+    }
+}
+
+class Year {
+    constructor(status){
+        this.status = status
+    }
+}
+
+
+
+class DataHandler {
+
+    get daysDenominator(){
+        return 1000 * 60 * 60 * 24
+    }
+
+    get currentDate(){
+        return new Date()
+    }
+
+    lifeLine(birthDate, increment){
+        return [
+            ...this.createArray('lived', birthDate, increment),
+            ...this.createArray('current', birthDate, increment),
+            ...this.createArray('expected', birthDate, increment)
+        ]
+    }
+
+    createArray(status, birthDate, increment){
+        const length = status === 'current' ? 1 : this[status](birthDate, increment)
+        const obj = (increment, status) => {return new Increment(increment, status)}
+        return Array.from({length: length}, () => (obj(increment, status)))
+
+    }
+
+    deathDate(birthDate){
+        let deathDate = new Date()
+        return deathDate.setFullYear(birthDate.getFullYear() + 80)
+    }
+
+    lived(birthDate, increment){
+        return this[increment](this.currentDate - birthDate)
+    }
+
+
+    expected(birthDate, increment){
+        return this[increment](this.deathDate(birthDate) - this.currentDate) - 1
+    }
+
+    days(timeDifference){
+        return Math.floor(timeDifference / this.daysDenominator)
+    }
+
+    weeks(timeDifference){
+        return Math.floor(this.days(timeDifference) / 7)
+    }
+
+    months(timeDifference){
+        return Math.floor(this.weeks(timeDifference) / 52 * 12)
+    }
+
+    years(timeDifference){
+        return Math.floor(this.days(timeDifference) / 365)
+    }
+
 }
 
 
@@ -780,11 +852,6 @@ class bulletPoint extends line {
     }
 }
 
-/**
- * Application initialization
- */
-window.addEventListener('DOMContentLoaded', () => {
+window.onload = () => {
     orchestrator.loadDisplay('lifeLine')
-    //noteHandler.loadNote('backlog')
-    //new lifeLineDisplay
-})
+}

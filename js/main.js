@@ -135,31 +135,6 @@ class LifeLineDisplay {
         return '#F7F9FA'
     }
 
-
-    attachResizeHandler() {
-        window.addEventListener('resize', () => {
-            clearTimeout(this.resizeTimeout)
-            this.resizeTimeout = setTimeout(() => {
-                if (this.data && this.data.length) {
-                    this.resizeDisplay().catch(error => console.error('Resize error', error))
-                }
-            }, 120)
-        })
-    }
-
-    async resizeDisplay() {
-        const elementsArray = Array.from(this.elements.values())
-        await this.layout.sizeElements(elementsArray)
-        await this.layout.positionElements(elementsArray)
-        await this.layout.fitElementsToContent(this)
-
-        const canvas = this.elements.get('canvas')
-        if (canvas) {
-            await new ContentDynamics().renderWeeksOfLife(this, canvas, this.data)
-       
-        }
-    }
-
 }
 
 class ElementFactory {
@@ -266,7 +241,7 @@ class ElementSettings {
 
     setToContent(element, data){
         this.setConstants(element, this.layout.elementConstants(element.width))
-        this.setDimensions(element, this.layout.getContentDimensions(element, data.length))
+        this.setDimensions(element, this.layout.getContentDimensions(element.width, data.length))
     }
 
     setConstants(element, constants){
@@ -344,12 +319,12 @@ class LayoutManager {
     elementConstants(elementWidth){
         return {
             cellSize: this.grid.cellSize,
-            cellsPerRow: Math.floor(elementWidth / this.grid.cellSize)
+            cellsPerRow: this.sizing.cellsPerRow(elementWidth)
         }
     }
 
-    getContentDimensions(element, cellsRequired){
-        const {width, height} = this.sizing.toContent(element, cellsRequired)
+    getContentDimensions(elementWidth, cellsRequired){
+        const {width, height} = this.sizing.toContent(elementWidth, cellsRequired)
         return {width: width, height: height, padding: this.grid.padding}
     }
 
@@ -385,7 +360,6 @@ class Grid {
         return 'desktop'
     }
 
-
     get availableWidth(){
         return window.innerWidth - this.margin * 2 - this.padding * 2 - this.cellSize
     }
@@ -395,7 +369,7 @@ class Grid {
     }
 
     get columnWidth() {
-        return (this.usableWidth - this.totalGutterWidth) / this.columnCount
+        return this.totalColumnWidth / this.columnCount
     }
 
     get gutterWidth() {
@@ -406,12 +380,20 @@ class Grid {
         return this.marginMap[this.deviceType]
     }
 
+    get maxCellsPerRow(){
+        return this.usableWidth / this.cellSize
+    }
+
     get minColumnWidth(){
 
     }
 
     get overHang(){
         return this.availableWidth % this.cellSize
+    }
+
+    get totalColumnWidth(){
+        return this.usableWidth - this.totalGutterWidth    
     }
 
     get totalGutterWidth() {
@@ -447,7 +429,6 @@ class ElementSizing {
     }
 
     defaultWidth(){
-        
         return this.spanWidth(this.grid.columnCount)
     }
 
@@ -455,27 +436,36 @@ class ElementSizing {
         return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
     }
 
-    toContent(element, cellsRequired){
+    toContent(elementWdith, cellsRequired){
         return {
-            width: this.contentWidth(element), 
-            height: this.contentHeight(cellsRequired, element.cellsPerRow, element.cellSize)
+            width: elementWdith, 
+            height: this.contentHeight(elementWdith, cellsRequired)
         }
     }
 
-    contentWidth(element){
-        return element.cellsPerRow * element.cellSize
+    cellsPerRow(elementWidth){
+        return elementWidth / this.grid.cellSize
     }
     
-
-    contentHeight(cellCount, cellsPerRow, cellSize){
-        const rowCount = Math.ceil(cellCount / cellsPerRow)
-        return rowCount * cellSize
+    contentHeight(elementWidth, cellsRequired){
+        const rowCount = Math.ceil(cellsRequired / this.cellsPerRow(elementWidth))
+        return rowCount * this.grid.cellSize
     }
 
     spanWidth(columnCount){
-        const withoutGutters = columnCount * this.grid.columnWidth
-        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
-        return withoutGutters + totalGutterWidth + this.grid.padding * 2
+        if(columnCount === this.grid.columnCount){
+            return this.grid.usableWidth
+        } else {
+            return this.spanColumnWidth(columnCount) + this.spanGutterWidth(columnCount)
+        }
+    }
+
+    spanGutterWidth(columnCount){
+        return (columnCount - 1) * this.grid.gutterWidth
+    }
+
+    spanColumnWidth(columnCount){
+        return columnCount * this.grid.columnWidth
     }
 
 
@@ -517,13 +507,13 @@ class ElementPositioning {
     left(column) {
         const totalColumnWidth = (column - 1) * this.grid.columnWidth
         const totalGutterWidth = (column - 1) * this.grid.gutterWidth
-        return this.grid.margin + totalColumnWidth + totalGutterWidth
+        return totalColumnWidth + totalGutterWidth
     }
 
     top(row) {
         const totalRowHeight = (row - 1) * this.grid.rowHeight
         const totalGutterHeight = (row - 1) * this.grid.gutterWidth
-        return this.grid.margin + totalRowHeight + totalGutterHeight
+        return totalRowHeight + totalGutterHeight
     }
 
     calculateZIndex(element) {

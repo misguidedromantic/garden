@@ -135,18 +135,6 @@ class LifeLineDisplay {
         return '#F7F9FA'
     }
 
-    get rowCount() {
-        return Math.ceil(this.totalCells / this.cellsPerRow)
-    }
-
-    get cellsPerRow() {
-        const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
-        return Math.max(1, Math.floor(canvasWidth / this.cellSize))
-    }
-
-    get totalCells() {
-        return this.data.length
-    }
 
     attachResizeHandler() {
         window.addEventListener('resize', () => {
@@ -353,22 +341,6 @@ class LayoutManager {
         this.positioning = new ElementPositioning(this.grid)
     }
 
-
-
-    async fitElementsToContent(display) {
-        const elementsArray = Array.from(display.elements.values())
-        
-        for (let i = 0; i < elementsArray.length; i++) {
-            const element = elementsArray[i]
-            if(element.constructor.name === 'Canvas' && display.constructor.name === 'lifeLineDisplay'){
-                const contentHeight = display.rowCount * display.cellSize
-                const {width, height} = this.sizing.toContent(contentHeight)
-                const controller = new ElementController(element)
-                await controller.resize(width, height)
-            }
-        }
-    }
-
     elementConstants(elementWidth){
         return {
             cellSize: this.grid.cellSize,
@@ -378,16 +350,13 @@ class LayoutManager {
 
     getContentDimensions(element, cellsRequired){
         const {width, height} = this.sizing.toContent(element, cellsRequired)
-        const padding = this.sizing.padding(element)
-        return {width: width, height: height, padding: padding}
+        return {width: width, height: height, padding: this.grid.padding}
     }
 
     getDefaultDimensions(element){
         const {width, height} = this.sizing.default(element)
-        const padding = this.sizing.padding(element)
-        return {width: width, height: height, padding: padding}
+        return {width: width, height: height, padding: this.grid.padding}
     }
-
 
     getDefaultPosition(element){
         const {left, top} = this.positioning.default(element)
@@ -395,25 +364,18 @@ class LayoutManager {
         return {left: left, top: top, margin: margin}
     }
 
-    scaledRowSpan(element, columnCount) {
-        switch (element.constructor.name) {
-            case 'Canvas':
-                return Math.ceil(columnCount / GOLDEN_RATIO)
-            case 'Overlay':
-                return 1
-            default:
-                return 1
-        }
-    }
 }
 
 class Grid {
 
     constructor() {
         this.cellSize = 16
+        this.minCellsPerColumn = 4
         this.breakpoints = { mobile: 500, tablet: 1000 }
         this.columnMap = { mobile: 4, tablet: 8, desktop: 12 }
         this.gutterMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
+        this.marginMap = { mobile: this.cellSize, tablet: this.cellSize * 2, desktop: this.cellSize * 4}
+        this.paddingMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize / 2}
     }
 
     get deviceType() {
@@ -423,16 +385,33 @@ class Grid {
         return 'desktop'
     }
 
+
+    get availableWidth(){
+        return window.innerWidth - this.margin * 2 - this.padding * 2 - this.cellSize
+    }
+
     get columnCount() {
         return this.columnMap[this.deviceType]
     }
 
-    get gutterCount() {
-        return this.columnCount - 1
+    get columnWidth() {
+        return (this.usableWidth - this.totalGutterWidth) / this.columnCount
     }
 
     get gutterWidth() {
         return this.gutterMap[this.deviceType]
+    }
+
+    get margin(){
+        return this.marginMap[this.deviceType]
+    }
+
+    get minColumnWidth(){
+
+    }
+
+    get overHang(){
+        return this.availableWidth % this.cellSize
     }
 
     get totalGutterWidth() {
@@ -440,44 +419,18 @@ class Grid {
     }
 
     get usableWidth() {
-        const widthWithoutGutters = window.innerWidth - this.totalGutterWidth - this.cellSize * 2 - this.cellSize / 2
-        return widthWithoutGutters - this.margin * 2 - this.padding * 2
-    }
-
-    get columnWidth() {
-        return this.usableWidth / this.columnCount
-    }
-
-    get marginWidth() {
-        return (this.usableWidth % this.columnCount) / 2
-    }
-
-    get margin(){
-        return (this.gutterWidth * 3) + this.overHang / 2
+        return this.availableWidth - this.overHang
     }
 
     get padding() {
-        return this.gutterWidth / 2
+        return this.paddingMap[this.deviceType]
     }
 
-    get overHang(){
-        return window.innerWidth % this.cellSize
-    }
-
+    //FIX
     get rowHeight() {
         return Math.floor(this.columnWidth / GOLDEN_RATIO)
     }
 
-    get rowCount() {
-        return Math.ceil(this.totalCells / this.cellsPerRow)
-    }
-
-    get cellsPerRow() {
-        const canvasWidth = parseInt(this.elements.get('canvas').svg.attr('width'), 10) || 0
-        return Math.max(1, Math.floor(canvasWidth / this.cellSize))
-    }
-
-    
 }
 
 class ElementSizing {
@@ -493,18 +446,8 @@ class ElementSizing {
         }
     }
 
-    padding(element){
-        return this.grid.padding
-    }
-
-    toContent(element, cellsRequired, columnCount = this.grid.columnCount){
-        return {
-            width: this.spanWidth(columnCount), 
-            height: this.contentHeight(cellsRequired, element.cellsPerRow, element.cellSize)
-        }
-    }
-    
     defaultWidth(){
+        
         return this.spanWidth(this.grid.columnCount)
     }
 
@@ -512,19 +455,28 @@ class ElementSizing {
         return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
     }
 
-    spanWidth(columnCount){
-        const withoutGutters = columnCount * this.grid.columnWidth
-        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
-        return withoutGutters + totalGutterWidth
+    toContent(element, cellsRequired){
+        return {
+            width: this.contentWidth(element), 
+            height: this.contentHeight(cellsRequired, element.cellsPerRow, element.cellSize)
+        }
     }
+
+    contentWidth(element){
+        return element.cellsPerRow * element.cellSize
+    }
+    
 
     contentHeight(cellCount, cellsPerRow, cellSize){
         const rowCount = Math.ceil(cellCount / cellsPerRow)
         return rowCount * cellSize
     }
 
-
-
+    spanWidth(columnCount){
+        const withoutGutters = columnCount * this.grid.columnWidth
+        const totalGutterWidth = (columnCount - 1) * this.grid.gutterWidth
+        return withoutGutters + totalGutterWidth + this.grid.padding * 2
+    }
 
 
 
@@ -608,7 +560,7 @@ class ElementDynamics {
     move(element, transitionDuration = 0) {
         this.renderDivPosition(element)
         if(element.constructor.name === 'Canvas'){
-            this.renderSVGPosition(element)
+            //this.renderSVGPosition(element)
         }
     }
 
@@ -619,7 +571,7 @@ class ElementDynamics {
     renderDivPosition(element, transitionDuration) {
         element.div.style('position', 'absolute')
             .style('margin', element.margin + 'px')
-            .style('left', element.left + 'px')
+            .style('left', 0 + 'px')
             .transition('tMove')
             .duration(transitionDuration)
                 .ease(d3.easeCircleOut)
@@ -709,11 +661,7 @@ class ContentDynamics {
                     const circles = this.enter(enter, canvas.cellSize, canvas.cellsPerRow)
                     const tEnter = circles.transition('tCircles')
                         .duration(transitionDuration)
-                        .delay((d, i) => {
-                            const decade = Math.floor((i + 1) / 520)
-                            const weekOfDecade = i % 520
-                            return decade * 1000 + weekOfDecade * 0.62
-                        })
+                        .delay((d, i) => i * 0.38)
                             .attr('opacity', 1)
                     
                     transitions.push(tEnter)

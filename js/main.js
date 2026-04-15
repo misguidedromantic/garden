@@ -20,13 +20,11 @@ class orchestrator {
 
 class DisplayManager {
     #displays = {}
-    #content = {}
     #elementController = {}
     #currentDisplay = null
 
     constructor(){
         this.#displays = new Map
-        this.#content = new ContentManager
         this.#elementController = new ElementController
     }
 
@@ -96,8 +94,17 @@ class DisplayManager {
     async #loadContent(){
         for(let i = 0; i < this.elementsArray.length; i++){
             const element = this.elementsArray[i]
-            const data = this.#content.getContent(this.#currentDisplay)
-            await this.#elementController.applyContent(element, data)
+            const content = this.getElementContent(element.constructor.name)
+            await this.#elementController.applyContent(element, content)
+        }
+    }
+
+    getElementContent(elementType){
+        switch(elementType){
+            case 'Canvas':
+                return this.#currentDisplay.canvasData
+            case 'Navigation':
+                return this.#currentDisplay.navigationOptions
         }
     }
 }
@@ -116,24 +123,43 @@ class Display {
 class LifeLineDisplay {
 
     #instance = null
+    #dataHandler = null
     
     constructor() {
         if(this.#instance !==null){
             return this.#instance
         }
         this.#instance = this
+        this.#dataHandler = new DataHandler()
         this.elements = this.elementsMap
     }
 
     get elementsMap(){
         return new Map()
             .set('canvas', null)
-            //.set('overlay', null)
+            .set('navigation', null)
      }
 
     get backgroundColour(){
         return '#F7F9FA'
     }
+
+    get selectedIncrement(){
+        return 'weeks'
+    }
+
+    get birthDate(){
+        return new Date(1985, 5, 6)
+    }
+
+    get navigationOptions(){
+        return this.#dataHandler.lifeLineIncrementOptions
+    }
+
+    get canvasData(){
+        return this.#dataHandler.lifeLineData(this.birthDate, this.selectedIncrement)
+    }
+
 
 }
 
@@ -145,17 +171,8 @@ class ElementFactory {
     }
 
     initializeDomElements(element) {
-        switch (element.constructor.name) {
-            case 'Canvas':
-                element.div = this.addDiv(element)
-                element.svg = this.addSvg(element)
-                break
-            case 'Overlay':
-                element.div = this.addDiv(element)
-                break
-            default:
-                break
-        }
+        element.div = this.addDiv(element)
+        element.svg = this.addSvg(element)
     }
 
     addDiv(element, parentContainer = d3.select('body')) {
@@ -174,17 +191,18 @@ class Element {
         switch (type) {
             case 'canvas':
                 return new Canvas()
-            case 'overlay':
-                return new Overlay()
+            case 'navigation':
+                return new Navigation()
             default:
                 return this
         }
     }
 }
 
-class Overlay {
+class Navigation {
     constructor() {
         this.div = null
+        this.options = new Map
     }
 }
 
@@ -209,9 +227,9 @@ class ElementController {
         this.dynamics.style(element, 0)
     }
 
-    applyContent(element, data){
-        this.settings.setToContent(element, data)
-        this.dynamics.renderContent(element, data, 0)
+    applyContent(element, content){
+        this.settings.setToContent(element, content)
+        this.dynamics.renderContent(element, content, 0)
         this.dynamics.resize(element, 500)
     }
 
@@ -239,9 +257,12 @@ class ElementSettings {
         this.setStyles(element, this.styling.defaults)
     }
 
-    setToContent(element, data){
-        this.setConstants(element, this.layout.elementConstants(element.width))
-        this.setDimensions(element, this.layout.getContentDimensions(element.width, data.length))
+    setToContent(element, data){ 
+        if(element.constructor.name === 'Canvas'){
+            this.setConstants(element, this.layout.elementConstants(element))
+        }
+        
+        this.setDimensions(element, this.layout.getContentDimensions(element, data))
     }
 
     setConstants(element, constants){
@@ -316,15 +337,15 @@ class LayoutManager {
         this.positioning = new ElementPositioning(this.grid)
     }
 
-    elementConstants(elementWidth){
+    elementConstants(element){
         return {
             cellSize: this.grid.cellSize,
-            cellsPerRow: this.sizing.cellsPerRow(elementWidth)
+            cellsPerRow: this.sizing.cellsPerRow(element.width)
         }
     }
 
-    getContentDimensions(elementWidth, cellsRequired){
-        const {width, height} = this.sizing.toContent(elementWidth, cellsRequired)
+    getContentDimensions(element, data){
+        const {width, height} = this.sizing.toContent(element, data)
         return {width: width, height: height, padding: this.grid.padding}
     }
 
@@ -408,11 +429,6 @@ class Grid {
         return this.paddingMap[this.deviceType]
     }
 
-    //FIX
-    get rowHeight() {
-        return Math.floor(this.columnWidth / GOLDEN_RATIO)
-    }
-
 }
 
 class ElementSizing {
@@ -424,7 +440,7 @@ class ElementSizing {
     default() {
         return {
             width: this.defaultWidth(),
-            height: this.defaultWidth()
+            height: this.defaultHeight()
         }
     }
 
@@ -433,13 +449,20 @@ class ElementSizing {
     }
 
     defaultHeight(){
-        return Math.ceil(this.defaultWidth() / GOLDEN_RATIO)
+        return 4 * this.grid.cellSize
     }
 
-    toContent(elementWdith, cellsRequired){
-        return {
-            width: elementWdith, 
-            height: this.contentHeight(elementWdith, cellsRequired)
+    toContent(element, data){
+        if(element.constructor.name === 'Canvas'){
+            return {
+                width: element.width, 
+                height: this.contentHeight(element.width, data.length)
+            }
+        } else if (element.constructor.name === 'Navigation'){
+            return {
+                width: element.width, 
+                height: 4 * this.grid.cellSize
+            }
         }
     }
 
@@ -486,7 +509,8 @@ class ElementPositioning {
     defaultCoordinates(element) {
         switch (element.constructor.name) {
             case 'Canvas':
-            case 'Overlay':
+                return { row: 5, column: 1}
+            case 'Navigation':
                 return { row: 1, column: 1 }
             default:
                 return { row: 1, column: 1 }
@@ -511,7 +535,7 @@ class ElementPositioning {
     }
 
     top(row) {
-        const totalRowHeight = (row - 1) * this.grid.rowHeight
+        const totalRowHeight = (row - 1) * this.grid.cellSize
         const totalGutterHeight = (row - 1) * this.grid.gutterWidth
         return totalRowHeight + totalGutterHeight
     }
@@ -520,7 +544,7 @@ class ElementPositioning {
         switch (element.constructor.name) {
             case 'Canvas':
                 return 1
-            case 'Overlay':
+            case 'Navigation':
                 return 2
             default:
                 return 0
@@ -535,23 +559,25 @@ class ElementDynamics {
     }
 
     renderContent(element, data, transitionDuration = 0){
-        this.contentDynamics.renderWeeksOfLife(element, data, transitionDuration)
+        if(element.constructor.name === 'Canvas'){
+            this.contentDynamics.renderLifeLineCircles(element, data, transitionDuration)
+        } else if (element.constructor.name === 'Navigation'){
+            this.contentDynamics.renderNavigationOptions(element, data)
+        }
+        
     }
 
     resize(element, transitionDuration = 0) {
         switch (element.constructor.name) {
             case 'Canvas':
                 this.renderSvgDimensions(element, transitionDuration)
-            case 'Overlay':
+            case 'Navigation':
                 this.renderDivDimensions(element, transitionDuration)
         }
     }
 
     move(element, transitionDuration = 0) {
         this.renderDivPosition(element)
-        if(element.constructor.name === 'Canvas'){
-            //this.renderSVGPosition(element)
-        }
     }
 
     style(element, transitionDuration = 0){
@@ -606,22 +632,6 @@ class ElementDynamics {
 
 }
 
-class ContentManager {
-    constructor(){
-        this.dataHandler = new DataHandler()
-        this.dynamics = new ContentDynamics()
-    }
-
-    getContent(display){
-        if(display.constructor.name === 'LifeLineDisplay'){
-            return this.dataHandler.lifeLine(new Date(1985, 5, 6), 'weeks')
-        }
-    }
-
-
-
-}
-
 class Increment {
     constructor(type, status){
         switch(type){
@@ -653,8 +663,6 @@ class Year {
     }
 }
 
-
-
 class DataHandler {
 
     get daysDenominator(){
@@ -665,7 +673,11 @@ class DataHandler {
         return new Date()
     }
 
-    lifeLine(birthDate, increment){
+    get lifeLineIncrementOptions(){
+        return ['weeks', 'months', 'years']
+    }
+
+    lifeLineData(birthDate, increment){
         return [
             ...this.createArray('lived', birthDate, increment),
             ...this.createArray('current', birthDate, increment),
@@ -712,9 +724,33 @@ class DataHandler {
 
 }
 
-
 class ContentDynamics {
-    async renderWeeksOfLife(canvas, data, transitionDuration) {
+    renderNavigationOptions(navigation, data){
+
+        const getTranslate = (d, i) => {
+            const x = i * 88
+            const y = 16
+            return 'translate(' + x + ',' + y + ')'
+        }
+
+        console.log(data)
+        navigation.svg.selectAll('g')
+            .data(data, d => d)
+            .join(
+                enter => {
+                    const g = enter.append('g').attr('transform', (d, i) => getTranslate(d, i))
+                    const text = g.append('text').text(d => d)
+                    return g
+                },
+                update => update,
+                exit => exit
+            )
+    }
+
+
+
+
+    async renderLifeLineCircles(canvas, data, transitionDuration) {
         const transitions = []
         canvas.svg.selectAll('circle')
             .data(data)

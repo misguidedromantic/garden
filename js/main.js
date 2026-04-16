@@ -1,19 +1,71 @@
 const GOLDEN_RATIO = 1.618
 
 
-class ContentDynamics {
+//bridge pattern
+class timeline {
+    constructor(lifeLineData, element){
+        this.lifeLineData = lifeLineData
+        this.element = element
+    }
 
+    get backgroundColour(){
+        return '#F7F9FA'
+    }
 
-    renderNavigationOptions(navigation, data){
+    render(){}
+    
+    fitContent(transitionDuration = 0) {
+        const {width, height, padding} = this.element.sizing.toContent(this.element, this.lifeLineData)
+        this.element.div.transition('tSizeDiv')
+            .duration(transitionDuration)
+                .style('width', width + 'px')
+                .style('height', height + 'px')
+                .style('padding', padding + 'px')
+
+        this.renderSvgDimensions(width, height, transitionDuration)
+    }
+
+    renderSvgDimensions(width, height, transitionDuration = 0) {
+        this.element.svg.transition('tSizeSvg')
+            .duration(transitionDuration)
+                .attr('width', width)
+                .attr('height', height)  
+    }
+
+    position(transitionDuration = 0){
+        const {left: left, top: top, margin: margin} = this.element.positioning.default(this.element)
+        this.element.div.style('position', 'absolute')
+            .style('margin', margin + 'px')
+            .style('left', left + 'px')
+            .transition('tMove')
+            .duration(transitionDuration)
+                .ease(d3.easeCircleOut)
+                .style('top', top + 'px')
+
+    }
+}
+
+class selector extends timeline {
+    render(){
+        this.fitContent(500)
+        this.position(500)
+        this.renderOptions(500)
+    }
+
+    renderOptions(transitionDuration){
+        
+
+        const svg = this.element.svg
+        const data = this.lifeLineData
+        const optionWidth = this.element.optionWidth
 
         const getTranslate = (d, i) => {
-            const x = i * 88
+            const x = i * optionWidth
             const y = 16
             return 'translate(' + x + ',' + y + ')'
         }
 
-        console.log(data)
-        navigation.svg.selectAll('g')
+        svg.selectAll('g')
             .data(data, d => d)
             .join(
                 enter => {
@@ -25,17 +77,30 @@ class ContentDynamics {
                 exit => exit
             )
     }
+}
 
+class viz extends timeline {
 
+    get cellSize(){return 16}
 
+    render(){
+        this.fitContent(500)
+        this.position(500)
+        this.renderCircles(500)
+    }
 
-    async renderLifeLineCircles(canvas, data, transitionDuration) {
+    async renderCircles(transitionDuration) {
         const transitions = []
-        canvas.svg.selectAll('circle')
+        const svg = this.element.svg
+        const data = this.lifeLineData
+        const cellSize = this.element.cellSize
+        const cellsPerRow = this.element.cellsPerRow
+
+        svg.selectAll('circle')
             .data(data)
             .join(
                 enter => {
-                    const circles = this.enter(enter, canvas.cellSize, canvas.cellsPerRow)
+                    const circles = this.enter(enter, cellSize, cellsPerRow)
                     const tEnter = circles.transition('tCircles')
                         .duration(transitionDuration)
                         .delay((d, i) => i * 0.38)
@@ -44,7 +109,7 @@ class ContentDynamics {
                     transitions.push(tEnter)
                 },
                 update => {
-                    const circles = this.update(update, canvas.cellSize, canvas.cellsPerRow)
+                    const circles = this.update(update, cellSize, cellsPerRow)
                     transitions.push(circles.transition().duration(0))
                 },
                 exit => {
@@ -89,57 +154,6 @@ class ContentDynamics {
             default:
                 return 'red'
         }
-    }
-
-
-}
-
-//bridge pattern
-class timeline {
-    constructor(lifeLineData, element){
-        this.lifeLineData = lifeLineData
-        this.element = element
-    }
-
-    get backgroundColour(){
-        return '#F7F9FA'
-    }
-
-    render(){}
-    
-    fitContent(transitionDuration = 0) {
-        const {width, height, padding} = this.element.sizing.toContent(this.element, this.lifeLineData)
-        this.element.div.transition('tSizeDiv')
-            .duration(transitionDuration)
-                .style('width', width + 'px')
-                .style('height', height + 'px')
-                .style('padding', padding + 'px')
-    }
-
-    position(transitionDuration = 0){
-        const {left: left, top: top, margin: margin} = this.element.positioning.default(this.element)
-        this.element.div.style('position', 'absolute')
-            .style('margin', margin + 'px')
-            .style('left', left + 'px')
-            .transition('tMove')
-            .duration(transitionDuration)
-                .ease(d3.easeCircleOut)
-                .style('top', top + 'px')
-
-    }
-}
-
-class selector extends timeline {
-    render(){
-        console.log('creating ' + this.element + ' with ' + this.lifeLineData + ' as options')
-    }
-}
-
-class viz extends timeline {
-    render(){
-        console.log('creating ' + this.element + ' with ' + this.lifeLineData + ' to be rendered as circles')
-        this.fitContent(500)
-        this.position(500)
     }
 
 }
@@ -234,51 +248,27 @@ class timeUnits extends lifelineData {
         
 }
 
-class ElementFactory {
-    createElement(type) {
-        const element = new Element(type)
-        this.initializeDomElements(element)
-        return element
-    }
-
-    initializeDomElements(element) {
-        element.div = this.addDiv(element)
-        element.svg = this.addSvg(element)
-    }
-
-    addDiv(element, parentContainer = d3.select('body')) {
-        return parentContainer.append('div')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
-
-    addSvg(element) {
-        return element.div.append('svg')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
-}
-
 class Element {
     constructor(styles, sizing, positioning){
-        console.log(styles.defaults)
         this.styles = styles
         this.sizing = sizing
         this.positioning = positioning
+        this.div = this.addDiv()
+        this.svg = this.addSvg()
     }
 
-    create(){}
+    create(){
+        this.renderDivStyling(0)
+    }
 
     addDiv(parentContainer = d3.select('body')) {
         return parentContainer.append('div')
             .attr('class', this.constructor.name.toLowerCase())
     }
 
-    renderDivDimensions(transitionDuration) {
-        const {width, height} = this.sizing.toContent(this)
-        this.div.transition('tSizeDiv')
-            .duration(transitionDuration)
-                .style('width', this.dimensions.width + 'px')
-                .style('height', this.dimensions.height + 'px')
-                .style('padding', this.dimensions.padding + 'px')
+    addSvg() {
+        return this.div.append('svg')
+            .attr('class', this.constructor.name.toLowerCase())
     }
 
     renderDivStyling(transitionDuration){
@@ -297,32 +287,13 @@ class Element {
 }
 
 class Canvas extends Element {
-    create(){
-        console.log('creating ' + this.constructor.name + ' with ' + this.styles)
-        this.div = this.addDiv()
-        this.renderDivStyling(0)
-    }
+    get cellSize (){return 16}
+    get cellsPerRow (){return this.sizing.cellsPerRow}
 }
 
 
-class Navigation {
-    constructor() {
-        this.div = null
-        this.options = new Map
-    }
-
-    get optionKeys(){
-        return Array.from(this.options.keys())
-    }
-
-    select(id){
-        for(const key of this.optionKeys){
-            const selection = this.options.get(key)
-            selection.selected = (key === id)
-        }
-    }
-
-
+class Navigation extends Element {
+    get optionWidth (){return 70}
 }
 
 class ElementStyling {
@@ -369,19 +340,12 @@ function buildExample (){
     const timeLineViz = new viz(new timeSpan(), canvasElem)
     timeLineViz.render()
 
-/*     const factory = new ElementFactory()
-    const canvasElem = factory.createElement('canvas')
-    const navElem = factory.createElement('navigation')
+    const navElem = new Navigation(new ElementStyling(), new ElementSizing(new Grid()), new ElementPositioning(new Grid()))
+    navElem.create()
 
+    const timelineSelector = new selector(new timeUnits(), navElem)
+    timelineSelector.render()
 
-
-    const timeLineViz = new viz(new timeSpan(), canvasElem.constructor.name)
-    timeLineViz.render()
-
-    const timelineSelector = new selector(new timeUnits(), navElem.constructor.name)
-    timelineSelector.render() */
-
-    
 }
 
 class Display {
@@ -781,18 +745,18 @@ class ElementSizing {
             }
         } else if (element.constructor.name === 'Navigation'){
             return {
-                width: element.width, 
+                width: data.length * 4 * this.grid.cellSize, 
                 height: 4 * this.grid.cellSize
             }
         }
     }
 
-    cellsPerRow(elementWidth){
-        return elementWidth / this.grid.cellSize
+    get cellsPerRow(){
+        return this.defaultWidth() / this.grid.cellSize
     }
     
     contentHeight(elementWidth, cellsRequired){
-        const rowCount = Math.ceil(cellsRequired / this.cellsPerRow(elementWidth))
+        const rowCount = Math.ceil(cellsRequired / this.cellsPerRow)
         return rowCount * this.grid.cellSize
     }
 

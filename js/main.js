@@ -1,5 +1,402 @@
 const GOLDEN_RATIO = 1.618
 
+
+class ContentDynamics {
+
+
+    renderNavigationOptions(navigation, data){
+
+        const getTranslate = (d, i) => {
+            const x = i * 88
+            const y = 16
+            return 'translate(' + x + ',' + y + ')'
+        }
+
+        console.log(data)
+        navigation.svg.selectAll('g')
+            .data(data, d => d)
+            .join(
+                enter => {
+                    const g = enter.append('g').attr('transform', (d, i) => getTranslate(d, i))
+                    const text = g.append('text').text(d => d)
+                    return g
+                },
+                update => update,
+                exit => exit
+            )
+    }
+
+
+
+
+    async renderLifeLineCircles(canvas, data, transitionDuration) {
+        const transitions = []
+        canvas.svg.selectAll('circle')
+            .data(data)
+            .join(
+                enter => {
+                    const circles = this.enter(enter, canvas.cellSize, canvas.cellsPerRow)
+                    const tEnter = circles.transition('tCircles')
+                        .duration(transitionDuration)
+                        .delay((d, i) => i * 0.38)
+                            .attr('opacity', 1)
+                    
+                    transitions.push(tEnter)
+                },
+                update => {
+                    const circles = this.update(update, canvas.cellSize, canvas.cellsPerRow)
+                    transitions.push(circles.transition().duration(0))
+                },
+                exit => {
+                    const circles = this.exit(exit)
+                    transitions.push(circles.transition().duration(0))
+                }
+            )
+
+        return Promise.all(transitions.map(t => t.end()))
+
+    }
+
+    enter(selection, cellSize, cellsPerRow){
+        return selection.append('circle')
+            .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
+            .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
+            .attr('r', cellSize / 2 - 1)
+            .attr('fill', d => this.getStatusColor(d.status))
+            .attr('opacity', 0)
+    }
+
+    update(selection, cellSize, cellsPerRow){
+        return selection
+            .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
+            .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
+            .attr('r', cellSize / 2 - 1)
+            .attr('fill', d => this.getStatusColor(d.status))
+    }
+
+    exit(selection){
+        return selection.remove()
+    }
+
+    getStatusColor(status) {
+        switch (status) {
+            case 'lived':
+                return '#7c9881'
+            case 'expected':
+                return '#c6d6cc'
+            case 'current':
+                return '#FFC000'
+            default:
+                return 'red'
+        }
+    }
+
+
+}
+
+//bridge pattern
+class timeline {
+    constructor(lifeLineData, element){
+        this.lifeLineData = lifeLineData
+        this.element = element
+    }
+
+    get backgroundColour(){
+        return '#F7F9FA'
+    }
+
+    render(){}
+    
+    fitContent(transitionDuration = 0) {
+        const {width, height, padding} = this.element.sizing.toContent(this.element, this.lifeLineData)
+        this.element.div.transition('tSizeDiv')
+            .duration(transitionDuration)
+                .style('width', width + 'px')
+                .style('height', height + 'px')
+                .style('padding', padding + 'px')
+    }
+
+    position(transitionDuration = 0){
+        const {left: left, top: top, margin: margin} = this.element.positioning.default(this.element)
+        this.element.div.style('position', 'absolute')
+            .style('margin', margin + 'px')
+            .style('left', left + 'px')
+            .transition('tMove')
+            .duration(transitionDuration)
+                .ease(d3.easeCircleOut)
+                .style('top', top + 'px')
+
+    }
+}
+
+class selector extends timeline {
+    render(){
+        console.log('creating ' + this.element + ' with ' + this.lifeLineData + ' as options')
+    }
+}
+
+class viz extends timeline {
+    render(){
+        console.log('creating ' + this.element + ' with ' + this.lifeLineData + ' to be rendered as circles')
+        this.fitContent(500)
+        this.position(500)
+    }
+
+}
+
+class lifelineData {
+    constructor(){
+        return this.data
+    }
+    get data(){}
+
+    get birthDate(){
+        return new Date(1985, 5, 6)
+    }
+
+    get selectedIncrement(){
+        return 'weeks'
+    }
+}
+
+class timeSpan extends lifelineData {
+    get data(){
+        return [
+            ...this.createArray('lived', this.birthDate, this.selectedIncrement),
+            ...this.createArray('current', this.birthDate, this.selectedIncrement),
+            ...this.createArray('expected', this.birthDate, this.selectedIncrement)
+        ]
+    }
+
+    get daysDenominator(){
+        return 1000 * 60 * 60 * 24
+    }
+
+    get currentDate(){
+        return new Date()
+    }
+
+    createArray(status, birthDate, increment){
+        const length = status === 'current' ? 1 : this[status](birthDate, increment)
+        const obj = (increment, status) => {return new Increment(increment, status)}
+        return Array.from({length: length}, () => (obj(increment, status)))
+
+    }
+
+    deathDate(birthDate){
+        let deathDate = new Date()
+        return deathDate.setFullYear(birthDate.getFullYear() + 80)
+    }
+
+    lived(birthDate, increment){
+        return this[increment](this.currentDate - birthDate)
+    }
+
+
+    expected(birthDate, increment){
+        return this[increment](this.deathDate(birthDate) - this.currentDate) - 1
+    }
+
+    days(timeDifference){
+        return Math.floor(timeDifference / this.daysDenominator)
+    }
+
+    weeks(timeDifference){
+        return Math.floor(this.days(timeDifference) / 7)
+    }
+
+    months(timeDifference){
+        return Math.floor(this.weeks(timeDifference) / 52 * 12)
+    }
+
+    years(timeDifference){
+        return Math.floor(this.days(timeDifference) / 365)
+    }
+    
+}
+
+class timeUnits extends lifelineData {
+    get data(){
+        return [
+            'weeks',
+            'months',
+            'years'
+        ]
+    }
+
+    get selectedIncrement(){
+        return 'weeks'
+    }
+
+    get unitOptions(){
+        return ['weeks', 'months', 'years']
+    }
+        
+}
+
+class ElementFactory {
+    createElement(type) {
+        const element = new Element(type)
+        this.initializeDomElements(element)
+        return element
+    }
+
+    initializeDomElements(element) {
+        element.div = this.addDiv(element)
+        element.svg = this.addSvg(element)
+    }
+
+    addDiv(element, parentContainer = d3.select('body')) {
+        return parentContainer.append('div')
+            .attr('class', element.constructor.name.toLowerCase())
+    }
+
+    addSvg(element) {
+        return element.div.append('svg')
+            .attr('class', element.constructor.name.toLowerCase())
+    }
+}
+
+class Element {
+    constructor(styles, sizing, positioning){
+        console.log(styles.defaults)
+        this.styles = styles
+        this.sizing = sizing
+        this.positioning = positioning
+    }
+
+    create(){}
+
+    addDiv(parentContainer = d3.select('body')) {
+        return parentContainer.append('div')
+            .attr('class', this.constructor.name.toLowerCase())
+    }
+
+    renderDivDimensions(transitionDuration) {
+        const {width, height} = this.sizing.toContent(this)
+        this.div.transition('tSizeDiv')
+            .duration(transitionDuration)
+                .style('width', this.dimensions.width + 'px')
+                .style('height', this.dimensions.height + 'px')
+                .style('padding', this.dimensions.padding + 'px')
+    }
+
+    renderDivStyling(transitionDuration){
+        this.div
+            .style('opacity', 1)
+            .style('overflow', 'hidden')
+            .style('background-color', this.styles.backgroundColour)
+            .style('border-radius', this.styles.borderRadius + 'px')
+            .style('box-shadow', this.styles.boxShadow)
+            .transition('tStyle')
+            .ease(d3.easeCircleOut)
+            .duration(transitionDuration)
+                .style('opacity', 1)
+    }
+
+}
+
+class Canvas extends Element {
+    create(){
+        console.log('creating ' + this.constructor.name + ' with ' + this.styles)
+        this.div = this.addDiv()
+        this.renderDivStyling(0)
+    }
+}
+
+
+class Navigation {
+    constructor() {
+        this.div = null
+        this.options = new Map
+    }
+
+    get optionKeys(){
+        return Array.from(this.options.keys())
+    }
+
+    select(id){
+        for(const key of this.optionKeys){
+            const selection = this.options.get(key)
+            selection.selected = (key === id)
+        }
+    }
+
+
+}
+
+class ElementStyling {
+    get defaults (){
+        return {
+            backgroundColour: this.backgroundColour,
+            borderRadius: this.borderRadius,
+            boxShadow: this.boxShadow
+        }
+    }
+
+
+    get backgroundColour () {
+        return '#F5F5F5'
+    }
+
+    get borderRadius () {
+        return 6
+    }
+
+    get boxShadow () {
+        return this.boxShadowLayers.join(', ')
+    }
+
+    get boxShadowLayers(){
+        return [
+            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
+        ]
+    }
+
+    get shadowColour () {
+        return '0deg 0% 60%'
+    }
+}
+
+
+function buildExample (){
+    const canvasElem = new Canvas (new ElementStyling(), new ElementSizing(new Grid()), new ElementPositioning(new Grid()))
+    canvasElem.create()
+
+    const timeLineViz = new viz(new timeSpan(), canvasElem)
+    timeLineViz.render()
+
+/*     const factory = new ElementFactory()
+    const canvasElem = factory.createElement('canvas')
+    const navElem = factory.createElement('navigation')
+
+
+
+    const timeLineViz = new viz(new timeSpan(), canvasElem.constructor.name)
+    timeLineViz.render()
+
+    const timelineSelector = new selector(new timeUnits(), navElem.constructor.name)
+    timelineSelector.render() */
+
+    
+}
+
+class Display {
+    constructor(id){
+        switch(id){
+            case 'lifeLine':
+                return new LifeLineDisplay()
+            default:
+                return this
+        }
+    }
+}
+
+
+
 class orchestrator {
 
     static #instance = null
@@ -109,16 +506,7 @@ class DisplayManager {
     }
 }
 
-class Display {
-    constructor(id){
-        switch(id){
-            case 'lifeLine':
-                return new LifeLineDisplay()
-            default:
-                return this
-        }
-    }
-}
+
 
 class LifeLineDisplay {
 
@@ -132,6 +520,7 @@ class LifeLineDisplay {
         this.#instance = this
         this.#dataHandler = new DataHandler()
         this.elements = this.elementsMap
+        
     }
 
     get elementsMap(){
@@ -163,56 +552,22 @@ class LifeLineDisplay {
 
 }
 
-class ElementFactory {
-    createElement(type) {
-        const element = new Element(type)
-        this.initializeDomElements(element)
-        return element
+
+
+
+
+
+
+class Option {
+    constructor(text){
+        this.text = text
+        this.selected = false
     }
 
-    initializeDomElements(element) {
-        element.div = this.addDiv(element)
-        element.svg = this.addSvg(element)
-    }
-
-    addDiv(element, parentContainer = d3.select('body')) {
-        return parentContainer.append('div')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
-
-    addSvg(element) {
-        return element.div.append('svg')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
+    
 }
 
-class Element {
-    constructor(type){
-        switch (type) {
-            case 'canvas':
-                return new Canvas()
-            case 'navigation':
-                return new Navigation()
-            default:
-                return this
-        }
-    }
-}
 
-class Navigation {
-    constructor() {
-        this.div = null
-        this.options = new Map
-    }
-}
-
-class Canvas {
-    constructor() {
-        this.div = null
-        this.svg = null
-        this.cellSize = 16
-    }
-}
 
 class ElementController {
     constructor() {
@@ -293,42 +648,7 @@ class ElementSettings {
     }
 }
 
-class ElementStyling {
 
-    get defaults (){
-        return {
-            backgroundColour: this.backgroundColour,
-            borderRadius: this.borderRadius,
-            boxShadow: this.boxShadow
-        }
-    }
-
-
-    get backgroundColour () {
-        return '#F5F5F5'
-    }
-
-    get borderRadius () {
-        return 6
-    }
-
-    get boxShadow () {
-        return this.boxShadowLayers.join(', ')
-    }
-
-    get boxShadowLayers(){
-        return [
-            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
-        ]
-    }
-
-    get shadowColour () {
-        return '0deg 0% 60%'
-    }
-}
 
 class LayoutManager {
     constructor() {
@@ -455,8 +775,9 @@ class ElementSizing {
     toContent(element, data){
         if(element.constructor.name === 'Canvas'){
             return {
-                width: element.width, 
-                height: this.contentHeight(element.width, data.length)
+                width: this.defaultWidth(), //element.width, 
+                height: this.contentHeight(this.defaultWidth(), data.length),
+                padding: this.grid.padding
             }
         } else if (element.constructor.name === 'Navigation'){
             return {
@@ -524,7 +845,8 @@ class ElementPositioning {
     calculatePosition(gridCoords) {
         return {
             left: this.left(gridCoords.column),
-            top: this.top(gridCoords.row)
+            top: this.top(gridCoords.row),
+            margin: this.grid.margin
         }
     }
 
@@ -724,96 +1046,7 @@ class DataHandler {
 
 }
 
-class ContentDynamics {
-    renderNavigationOptions(navigation, data){
 
-        const getTranslate = (d, i) => {
-            const x = i * 88
-            const y = 16
-            return 'translate(' + x + ',' + y + ')'
-        }
-
-        console.log(data)
-        navigation.svg.selectAll('g')
-            .data(data, d => d)
-            .join(
-                enter => {
-                    const g = enter.append('g').attr('transform', (d, i) => getTranslate(d, i))
-                    const text = g.append('text').text(d => d)
-                    return g
-                },
-                update => update,
-                exit => exit
-            )
-    }
-
-
-
-
-    async renderLifeLineCircles(canvas, data, transitionDuration) {
-        const transitions = []
-        canvas.svg.selectAll('circle')
-            .data(data)
-            .join(
-                enter => {
-                    const circles = this.enter(enter, canvas.cellSize, canvas.cellsPerRow)
-                    const tEnter = circles.transition('tCircles')
-                        .duration(transitionDuration)
-                        .delay((d, i) => i * 0.38)
-                            .attr('opacity', 1)
-                    
-                    transitions.push(tEnter)
-                },
-                update => {
-                    const circles = this.update(update, canvas.cellSize, canvas.cellsPerRow)
-                    transitions.push(circles.transition().duration(0))
-                },
-                exit => {
-                    const circles = this.exit(exit)
-                    transitions.push(circles.transition().duration(0))
-                }
-            )
-
-        return Promise.all(transitions.map(t => t.end()))
-
-    }
-
-    enter(selection, cellSize, cellsPerRow){
-        return selection.append('circle')
-            .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
-            .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
-            .attr('r', cellSize / 2 - 1)
-            .attr('fill', d => this.getStatusColor(d.status))
-            .attr('opacity', 0)
-    }
-
-    update(selection, cellSize, cellsPerRow){
-        return selection
-            .attr('cx', (d, i) => (i % cellsPerRow) * cellSize + cellSize / 2)
-            .attr('cy', (d, i) => Math.floor(i / cellsPerRow) * cellSize + cellSize / 2)
-            .attr('r', cellSize / 2 - 1)
-            .attr('fill', d => this.getStatusColor(d.status))
-    }
-
-    exit(selection){
-        return selection.remove()
-    }
-
-    getStatusColor(status) {
-        switch (status) {
-            case 'lived':
-                return '#7c9881'
-            case 'expected':
-                return '#c6d6cc'
-            case 'current':
-                return '#FFC000'
-            default:
-                return 'red'
-        }
-    }
-
-
-}
 
 class noteHandler {
 
@@ -888,6 +1121,15 @@ class bulletPoint extends line {
     }
 }
 
+function getTextWidth(text, font = "16px Arial") {
+  const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+  const context = canvas.getContext("2d");
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+
 window.onload = () => {
-    orchestrator.loadDisplay('lifeLine')
+    //orchestrator.loadDisplay('lifeLine')
+    buildExample()
 }

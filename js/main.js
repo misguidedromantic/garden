@@ -1,5 +1,29 @@
 //model - notes
-class NotesModel {
+class Notes {
+
+    #notes
+
+    constructor(){
+        this.#notes = new Map()
+    }
+
+    async loadNotes(){
+        const noteLoader = new NoteLoader(new HtmlConvertor())
+        for(let i = 0; i < this.titles.length; i++){
+            const title = this.titles[i]
+            this.#notes.set(title, await noteLoader.load(new Note(title)))
+        }
+
+        console.log(this.#notes)
+    }
+
+    get titles(){
+        return [
+            'Statement of intent',
+            'song genealogy'
+        ]
+    }
+
     get allNotes(){
         return[
             new Note('Statement of intent')
@@ -10,34 +34,99 @@ class NotesModel {
 class Note {
     constructor(title){
         this.title = title
-        this.path = './docs/' + title + '.html'
-        this.loadContents()
-    }
-
-    async loadContents (){
-        const response = await fetch(this.path)
-        const htmlString = await response.text()
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(htmlString, 'text/html')
-
-        //getMetaData
-        let metaData = {}
-        d3.select(doc).selectAll('meta').each(function(){
-            const meta = d3.select(this)
-            const name = meta.attr('name')
-            if (name === "created" || name === "modified") {
-                metaData[name] = meta.attr('content');
-            }
-        })
-        console.log(metaData)
-
-        //getContentsFromBody
-    }
-
-    get contents(){
-        
+        this.lines = []
     }
 }
+
+class HtmlConvertor {
+
+    async getDoc(path){
+        const parser = new DOMParser()
+        const htmlString = await this.getHtmlString(path)
+        return Promise.resolve(parser.parseFromString(htmlString, 'text/html'))
+    }
+
+    async getHtmlString(path){
+        const response = await fetch(path)
+        return response.text()
+    }
+
+}
+
+class NoteLoader {
+    constructor(htmlConverter){
+        this.htmlConverter = htmlConverter
+    }
+
+    async load(note){
+        const path = './docs/' + note.title + '.html'
+        const doc = await this.htmlConverter.getDoc(path)
+        this.setProperties(note, doc, this.addLine)
+        return note
+    }
+
+    
+
+    setProperties(note, doc, fnAddLine){
+        const selection = d3.select(doc).selectAll('li, meta, p')
+        d3.select(doc).selectAll('li, meta, p').each(function(){
+            const elem = d3.select(this)
+            const tag = elem.node().tagName.toLowerCase()
+            switch(tag){
+                case 'li':
+                    fnAddLine(elem)
+                    note.lines.push(new Bullet(elem.text()))
+                    break;
+                case 'p':
+                    fnAddLine(elem)
+                    const text = elem.text()
+                    if(text.substring(0, 1) !== '#'){
+                        note.lines.push(new Line(text))
+                    }
+                    break;
+                case 'meta':
+                    if(elem.attr('name') === 'created'){
+                        note.creationDate = new Date(elem.attr('content'))
+                    }
+                    break; 
+            }
+        })
+    }
+
+    addLine(elem){
+        const childElems = elem.selectChildren()
+        console.log(childElems.size())
+        if(childElems.size() > 0){
+            const words = elem.text().split(' ')
+            console.log(words)
+            childElems.each(function(){
+                const childElem = d3.select(this)
+                const childTag = childElem.node().tagName.toLowerCase()
+                switch(childTag){
+                    case 'a':
+                        console.log(childElem.attr('href')) //if href starts with bear exclude
+                        console.log(childElem.text()) //identify substring of parent text
+                        break;
+                    case 'span':
+                        console.log(childElem.attr('class')) //exclude elements with class 'hashtag
+                        break;
+                }
+
+                console.log(this.tagName.toLowerCase())
+            })
+        }
+
+    }
+}
+
+class Line {
+    constructor(text){
+        this.text = text
+    }
+}
+
+class Bullet extends Line {}
+
 
 class Songs {
     #songs = null
@@ -111,6 +200,10 @@ class Display {
                 .attr('height', element.height)
         });
     }
+
+}
+
+class NotesList {
 
 }
 
@@ -362,8 +455,12 @@ function createDisplay(){
     return new Display()
 }
 
+function loadNotestList(){
+    const notes = new Notes()
+    notes.loadNotes()
+}
+
 
 window.onload = () => {
-    loadDisplay()
-
+    loadNotestList()
 }

@@ -127,7 +127,7 @@ class Line {
 
 class Bullet extends Line {}
 
-
+//model - songs
 class Songs {
     #songs = null
 
@@ -150,23 +150,26 @@ class Song {
     }
 }
 
-//view
-    //(preserve) digital garden what and why
+//view - element data structures
 class Display {
-    #elements
 
     constructor(){
-        this.#elements = new Map()
+        this.elements = this.createElementsMap()
+    }
+
+    createElementsMap (){
+        return new Map()
             .set('VisualisationCanvas', new VisualisationCanvas())
             .set('NavigationTab', new NavigationTab())
     }
 
-    get elements(){
-        return this.#elements.values()
+
+    get elementsArray(){
+        return this.elements.values()
     }
 
     getElement(key){
-        return this.#elements.get(key)
+        return this.elements.get(key)
     }
 
     setElementLayout(){
@@ -180,7 +183,7 @@ class Display {
     }
 
     positionElements(){
-        this.elements.forEach(element => {
+        this.elementsArray.forEach(element => {
             element.div
                 .style('left', element.left + 'px')
                 .style('top', element.top + 'px')
@@ -188,9 +191,7 @@ class Display {
     }
 
     sizeElements(){
-        this.elements.forEach(element => {
-            console.log(element.width)
-            console.log(element.height)
+        this.elementsArray.forEach(element => {
             element.div
                 .style('width', element.width + 'px')
                 .style('height', element.height + 'px')
@@ -201,10 +202,26 @@ class Display {
         });
     }
 
+    styleElements(){
+        this.elementsArray.forEach(element => {
+            element.div
+            .style('opacity', 1)
+            .style('overflow', 'hidden')
+            .style('background-color', element.backgroundColour)
+            .style('border-radius', element.borderRadius + 'px')
+            .style('box-shadow', element.boxShadow)
+        });     
+
+    }
+
+
 }
 
-class NotesList {
-
+class NotesList extends Display {
+    createElementsMap(){
+        return new Map()
+            .set('Accordion', new Accordion())
+    }
 }
 
 class Grid {
@@ -287,9 +304,14 @@ class Element {
     #gridCoordinates = {}
     #dimensions = {}
 
-    constructor(){
+    constructor(data){
+        this.data = data
         this.grid = new Grid()
-        this.maxSpan = {rows: Infinity, columns: this.grid.columnCount}
+        this.styling = new ElementStyling()
+        this.setCoordinates()
+        this.setDimensions()
+        this.initializeDomElements()
+        this.renderContent()
     }
 
     get spacing(){
@@ -312,14 +334,12 @@ class Element {
         return this.#dimensions.height
     }
 
-    get elementList(){
-        return [
-            new DomElement('div', this),
-            new DomElement('svg', this)
-        ]
+    get backgroundColour(){
+        return this.styling.backgroundColour
     }
 
-    setCoordinates(row, column){
+
+    setCoordinates(row = 1, column = 1){
         this.#gridCoordinates = {row: row, column: column}
     }
 
@@ -333,6 +353,39 @@ class Element {
 
     calculateHeight(){
         return window.innerHeight - 8 * this.grid.cellSize
+    }
+
+    initializeDomElements() {
+        this.div = this.addDiv()
+        this.svg = this.addSvg()
+    }
+
+    addDiv(parentContainer = d3.select('body')) {
+        return parentContainer.append('div')
+            .attr('class', this.constructor.name.toLowerCase())
+            .style('position', 'absolute')
+            .style('margin', this.grid.margin + 'px')
+            .style('left', this.left + 'px')
+            .style('top', this.top + 'px')
+            .style('padding', this.grid.padding + 'px')
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+            .style('overflow', 'hidden')
+            .style('background-color', this.backgroundColour)
+            .style('border-radius', this.styling.borderRadius + 'px')
+            .style('box-shadow', this.styling.boxShadow)
+    }
+
+    addSvg(parentContainer = this.div) {
+        return parentContainer.append('svg')
+            .attr('class', this.constructor.name.toLowerCase())
+            .attr('width', this.width)
+            .attr('height', this.height)
+    }
+
+    resize(){
+        this.div.style('width', this.width + 'px')
+            .style('height', this.height + 'px')
     }
 
 
@@ -370,6 +423,154 @@ class NavigationTab extends Element {
     }
     
 }
+
+class Accordion extends Element {
+    get backgroundColour(){
+        return '#E2E2E2'
+    }
+
+    calculateHeight(){
+        return this.data.length * this.grid.cellSize * 2.5
+    }
+
+    renderContent(){
+        const self = this
+        self.svg.selectAll('g')
+            .data(this.data, d => d.id)
+            .join(
+                enter => {
+                    const g = enter.append('g')
+                        .attr('id', d => d.id)
+                        .attr('transform', (d, i) => {
+                            const {x, y} = { x: 0, y: i * self.grid.cellSize * 2.5}
+                            return 'translate(' + x + ',' + y + ')'
+                        })
+                        .on('mouseover', function(){
+                            d3.select(this)
+                                .select('rect.item')
+                                .attr('fill', '#6E7271')
+
+                            d3.select(this)
+                                .select('text.main')
+                                .attr('fill', '#F5F5F5')
+
+                            d3.select(this)
+                                .select('text.caption')
+                                .attr('fill', '#D8D4D5')
+                        })
+                        .on('mouseout', function(){
+                            d3.select(this)
+                                .select('rect.item')
+                                .attr('fill', 'transparent')
+
+                            d3.select(this)
+                                .select('text.main')
+                                .attr('fill', '#384D48')
+
+                            d3.select(this)
+                                .select('text.caption')
+                                .attr('fill', '#6E7271')
+                        })
+
+                    g.append('rect')
+                        .attr('class', 'item')
+                        .attr('width', self.width)
+                        .attr('height', self.grid.cellSize * 2.5 - 2)
+                        .attr('y', 1.5)
+                        .attr('fill', 'transparent')
+                        
+
+                    g.append('rect')
+                        .attr('class', 'divider')
+                        .attr('width', (d, i) => {return i > 0 && i !== self.data.length ? self.width : 0})
+                        .attr('height', 1)
+                        .attr('fill', '#D8D4D5')
+
+                    g.append('text')
+                        .attr('class', 'main')
+                        .text(d => d.title)
+                        .attr('x', self.grid.cellSize * 6)
+                        .attr('dy', self.grid.cellSize * 1.5 + 1.5)
+                        .attr('fill', '#384D48')
+                        .style('font-size', '14px')
+
+                    g.append('text')
+                        .attr('class', 'caption')
+                        .text((d, i) => {
+                            const digits = (i + 1) > 9 ? '0' + (i + 1) : '00' + (i + 1)
+                            return 'SONG ' + digits
+                        })
+                        .attr('dx', 4)
+                        .attr('dy', self.grid.cellSize * 1.5 + 1.5)
+                        .attr('fill', '#6E7271')
+                        .style('font-size', '12px')
+                }
+            )
+    }
+
+}
+
+class ElementStyling {
+
+    get defaults (){
+        return {
+            backgroundColour: this.backgroundColour,
+            borderRadius: this.borderRadius,
+            boxShadow: this.boxShadow
+        }
+    }
+
+
+    get backgroundColour () {
+        return '#F5F5F5'
+    }
+
+    get borderRadius () {
+        return 6
+    }
+
+    get boxShadow () {
+        return this.boxShadowLayers.join(', ')
+    }
+
+    get boxShadowLayers(){
+        return [
+            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
+        ]
+    }
+
+    get shadowColour () {
+        return '0deg 0% 60%'
+    }
+}
+
+//view - element controllers
+class ElementFactory {
+    createElement(type) {
+        const element = new Element(type)
+        this.initializeDomElements(element)
+        return element
+    }
+
+    initializeDomElements(element) {
+        element.div = this.addDiv(element)
+        element.svg = this.addSvg(element)
+    }
+
+    addDiv(element, parentContainer = d3.select('body')) {
+        return parentContainer.append('div')
+            .attr('class', element.constructor.name.toLowerCase())
+    }
+
+    addSvg(element) {
+        return element.div.append('svg')
+            .attr('class', element.constructor.name.toLowerCase())
+    }
+}
+
 
 function renderDisplayElements(display){
     d3.select('body')
@@ -460,7 +661,14 @@ function loadNotestList(){
     notes.loadNotes()
 }
 
+async function loadSongsList(){
+    const songsData = () => {return new Songs().loadData()}
+    const songList = new Accordion(await songsData())
+
+
+}
+
 
 window.onload = () => {
-    loadNotestList()
+    loadSongsList()
 }

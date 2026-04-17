@@ -4,8 +4,10 @@ body {
 }
 
 div {
-    padding: 0px; 
+    padding: 8px; 
     overflow: auto;
+    margin: 16px;
+    
 }
 
 div::-webkit-scrollbar {

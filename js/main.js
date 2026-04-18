@@ -148,6 +148,18 @@ class Song {
         this.title = d.title
         this.releaseId = d.release_id
     }
+
+    get lyrics(){
+        return [
+            new Line("I'm a doll and nothing more"),
+            new Line("deny all my rights"),
+            new Line("adore me and I'll want to be in your bed tonight"),
+            new Line("it takes so much to remain this high"),
+            new Line("I keep on taking, still I need you to try"),
+            new Line("cause when you're open I can feed off attention"),
+            new Line("your eyes trained on mine (on mine)")
+        ]   
+    }
 }
 
 //view - element data structures
@@ -233,7 +245,7 @@ class Grid {
         this.columnMap = { mobile: 4, tablet: 8, desktop: 12 }
         this.gutterMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
         this.marginMap = { mobile: this.cellSize, tablet: this.cellSize * 2, desktop: this.cellSize * 4}
-        this.paddingMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize / 2}
+        this.paddingMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
     }
 
     get deviceType() {
@@ -363,7 +375,7 @@ class Element {
     addDiv(parentContainer = d3.select('body')) {
         return parentContainer.append('div')
             .attr('class', this.constructor.name.toLowerCase())
-            .style('position', 'absolute')
+            .style('position', 'relative')
             .style('margin', this.grid.margin + 'px')
             .style('left', this.left + 'px')
             .style('top', this.top + 'px')
@@ -371,9 +383,9 @@ class Element {
             .style('width', this.width + 'px')
             .style('height', this.height + 'px')
             .style('overflow', 'hidden')
-            .style('background-color', this.backgroundColour)
             .style('border-radius', this.styling.borderRadius + 'px')
             .style('box-shadow', this.styling.boxShadow)
+            .style('background-color', this.backgroundColour)
     }
 
     addSvg(parentContainer = this.div) {
@@ -381,11 +393,20 @@ class Element {
             .attr('class', this.constructor.name.toLowerCase())
             .attr('width', this.width)
             .attr('height', this.height)
+            
     }
 
-    resize(){
-        this.div.style('width', this.width + 'px')
-            .style('height', this.height + 'px')
+    resize(transitionDuration = 0){
+        this.setDimensions()
+        this.div.transition('tResizeDiv')
+            .duration(transitionDuration)
+                .style('width', this.width + 'px')
+                .style('height', this.height + 'px')
+
+        this.svg.transition('tResizeSvg')
+            .duration(transitionDuration)
+                .attr('width', this.width)
+                .attr('height', this.height)
     }
 
 
@@ -429,11 +450,45 @@ class Accordion extends Element {
         return '#E2E2E2'
     }
 
-    calculateHeight(){
-        return this.data.length * this.grid.cellSize * 2.5
+    get expandedItemOffset(){
+        return this.data.some(item => item.selected) * 200
     }
 
-    renderContent(){
+    get selectedItem(){
+        return this.data.find(item => item.selected)
+    }
+
+    calculateHeight(){
+        return this.data.length * this.grid.cellSize * 2.5 + this.expandedItemOffset
+    }
+
+    select(item){
+        item.selected = true
+    }
+    
+    deselect(item){
+        item.selected = false
+    }
+
+    update(clickedItem, transitionDuration){
+        this.toggleSelection(clickedItem)
+        this.renderContent(transitionDuration)
+        this.resize(transitionDuration)
+    }
+
+    toggleSelection(clickedItem){
+        switch(this.selectedItem){
+            case clickedItem:
+                this.deselect(clickedItem)
+                break;
+            default:
+                this.deselect(this.selectedItem)
+            case undefined:
+                this.select(clickedItem)
+        } 
+    }
+
+    renderContent(transitionDuration = 0){
         const self = this
         self.svg.selectAll('g')
             .data(this.data, d => d.id)
@@ -471,6 +526,9 @@ class Accordion extends Element {
                                 .select('text.caption')
                                 .attr('fill', '#6E7271')
                         })
+                        .on('click', function(event, d){   
+                            self.update(d, 350)
+                        })
 
                     g.append('rect')
                         .attr('class', 'item')
@@ -493,6 +551,7 @@ class Accordion extends Element {
                         .attr('dy', self.grid.cellSize * 1.5 + 1.5)
                         .attr('fill', '#384D48')
                         .style('font-size', '14px')
+                        .style('user-select', 'none')
 
                     g.append('text')
                         .attr('class', 'caption')
@@ -504,7 +563,17 @@ class Accordion extends Element {
                         .attr('dy', self.grid.cellSize * 1.5 + 1.5)
                         .attr('fill', '#6E7271')
                         .style('font-size', '12px')
+                        .style('user-select', 'none')
+                },
+                update => {
+                    update.transition().duration(transitionDuration).attr('transform', (d, i) => {
+                            const iSelected = self.data.findIndex(item => item.selected)
+                            const yOffset = iSelected > -1 && i > iSelected ? 200 : 0
+                            const {x, y} = { x: 0, y: i * self.grid.cellSize * 2.5 + yOffset}
+                            return 'translate(' + x + ',' + y + ')'
+                        })
                 }
+
             )
     }
 

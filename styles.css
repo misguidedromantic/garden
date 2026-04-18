@@ -1,15 +1,23 @@
 body {
     font-family: Helvetica, Tahoma, sans-serif;
-    background-color: #F7F9FA
+    background-color: #F7F9FA;
+    padding-bottom: 16px;
+    overflow-y: auto;
 }
 
 div {
-    padding: 8px; 
     overflow: auto;
     margin: 16px;
-    
+
 }
 
 div::-webkit-scrollbar {
     display: none;
+}
+
+
+text {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none; /* Standard */
 }

@@ -711,23 +711,6 @@ function testNotesModel(){
     console.log(notesModel.allNotes[0])
 }
 
-async function loadDisplay(){
-    const display = createDisplay()
-    renderDisplayElements(display)
-    display.setElementLayout()
-    display.positionElements()
-    const content = await getSongs()
-    renderContent(display, content)
-    display.setElementSizes()
-    display.sizeElements()
-    renderContent(display, content)
-}
-
-
-function getSongs(){
-    const songsModel = new Songs()
-    return songsModel.loadData()
-}
 
 function createDisplay(){
     return new Display()
@@ -740,11 +723,10 @@ function loadNotestList(){
 
 async function loadSongsList(){
     const songsData = () => {return new Songs().loadData()}
-    const headerText = {displayType: ' PRESERVE', title: 'JAMES PARRY SONGS '}
+    const headerText = {displayType: ' PRESERVE', title: 'JAMESPARRYSONGS '}
     new DisplayHeader(headerText, new SongPreserve())
     new Accordion(await songsData(), new SongPreserve())
 }
-
 
 window.onload = () => {
     loadSongsList()

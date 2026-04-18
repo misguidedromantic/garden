@@ -164,68 +164,16 @@ class Song {
 
 //view - element data structures
 class Display {
+}
 
-    constructor(){
-        this.elements = this.createElementsMap()
+class SongPreserve extends Display {
+    get Layout (){
+        return [
+            {element: 'PersistentHeader', elementToLeft: null, elementAbove: null},
+            {element: 'DisplayHeader', elementToLeft: null, elementAbove: 'PersistentHeader'},
+            {element: 'Accordion', elementToLeft: null, elementAbove: 'DisplayHeader'}
+        ]
     }
-
-    createElementsMap (){
-        return new Map()
-            .set('VisualisationCanvas', new VisualisationCanvas())
-            .set('NavigationTab', new NavigationTab())
-    }
-
-
-    get elementsArray(){
-        return this.elements.values()
-    }
-
-    getElement(key){
-        return this.elements.get(key)
-    }
-
-    setElementLayout(){
-        this.getElement('NavigationTab').setCoordinates(1, 1)
-        this.getElement('VisualisationCanvas').setCoordinates(3, 1)
-    }
-
-    setElementSizes(){
-        this.getElement('NavigationTab').setDimensions()
-        this.getElement('VisualisationCanvas').setDimensions()
-    }
-
-    positionElements(){
-        this.elementsArray.forEach(element => {
-            element.div
-                .style('left', element.left + 'px')
-                .style('top', element.top + 'px')
-        });
-    }
-
-    sizeElements(){
-        this.elementsArray.forEach(element => {
-            element.div
-                .style('width', element.width + 'px')
-                .style('height', element.height + 'px')
-
-            element.svg
-                .attr('width', element.width)
-                .attr('height', element.height)
-        });
-    }
-
-    styleElements(){
-        this.elementsArray.forEach(element => {
-            element.div
-            .style('opacity', 1)
-            .style('overflow', 'hidden')
-            .style('background-color', element.backgroundColour)
-            .style('border-radius', element.borderRadius + 'px')
-            .style('box-shadow', element.boxShadow)
-        });     
-
-    }
-
 
 }
 
@@ -316,14 +264,17 @@ class Element {
     #gridCoordinates = {}
     #dimensions = {}
 
-    constructor(data){
+
+    constructor(data, layout){
         this.data = data
+        this.layout = layout
         this.grid = new Grid()
         this.styling = new ElementStyling()
         this.setCoordinates()
         this.setDimensions()
         this.initializeDomElements()
         this.renderContent()
+        this.resize()
     }
 
     get spacing(){
@@ -398,11 +349,20 @@ class Element {
 
     resize(transitionDuration = 0){
         this.setDimensions()
+        this.resizeDiv()
+        if(this.svg !== undefined){
+            this.resizeSVG()
+        }
+    }
+
+    resizeDiv(transitionDuration){
         this.div.transition('tResizeDiv')
             .duration(transitionDuration)
                 .style('width', this.width + 'px')
                 .style('height', this.height + 'px')
+    }
 
+    resizeSVG(transitionDuration){
         this.svg.transition('tResizeSvg')
             .duration(transitionDuration)
                 .attr('width', this.width)
@@ -579,6 +539,41 @@ class Accordion extends Element {
 
 }
 
+class DisplayHeader extends Element {
+    renderContent(){
+        const p = this.div.append('p').style('margin', '0px').style('height', this.height + 'px')
+        p.append('span').text(this.data.title).style('color', '#253d5b')
+        p.append('span').text(this.data.displayType).style('color', '#c6878f')
+    }
+
+    calculateHeight(){
+        return this.grid.cellSize * 1.5
+    }
+
+    calculateWidth(){
+        
+        return this.getRenderedWidth() ?? this.grid.cellSize * 20
+    }
+
+    getRenderedWidth(){
+
+        try{
+            let totalWidth = 0
+            this.div.select('p').selectAll('span').each(function(d){
+                const spanWidth = Math.ceil(d3.select(this).node().getBoundingClientRect().width)
+                totalWidth = totalWidth + spanWidth
+            })
+            return totalWidth
+        }
+        catch{return null}
+        
+    }
+
+    initializeDomElements() {
+        this.div = this.addDiv()
+    }
+}
+
 class ElementStyling {
 
     get defaults (){
@@ -732,9 +727,9 @@ function loadNotestList(){
 
 async function loadSongsList(){
     const songsData = () => {return new Songs().loadData()}
-    const songList = new Accordion(await songsData())
-
-
+    const headerText = {displayType: ' PRESERVE', title: 'JAMES PARRY SONGS '}
+    new DisplayHeader(headerText, new SongPreserve())
+    new Accordion(await songsData(), new SongPreserve())
 }
 
 

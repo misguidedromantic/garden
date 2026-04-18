@@ -301,6 +301,10 @@ class Element {
         return this.styling.backgroundColour
     }
 
+    get margin (){
+        return this.grid.margin
+    }
+
 
     setCoordinates(row = 1, column = 1){
         this.#gridCoordinates = {row: row, column: column}
@@ -327,7 +331,7 @@ class Element {
         return parentContainer.append('div')
             .attr('class', this.constructor.name.toLowerCase())
             .style('position', 'relative')
-            .style('margin', this.grid.margin + 'px')
+            .style('margin', this.margin + 'px')
             .style('left', this.left + 'px')
             .style('top', this.top + 'px')
             .style('padding', this.grid.padding + 'px')
@@ -406,6 +410,11 @@ class NavigationTab extends Element {
 }
 
 class Accordion extends Element {
+    //margin: top right bottom left
+    get margin(){
+        return '0px ' + this.grid.margin + 'px ' + this.grid.margin + 'px ' + this.grid.margin
+    }
+
     get backgroundColour(){
         return '#E2E2E2'
     }
@@ -540,6 +549,10 @@ class Accordion extends Element {
 }
 
 class DisplayHeader extends Element {
+    get margin(){
+        return this.grid.margin + 'px ' + this.grid.margin + 'px ' + '0px ' + this.grid.margin
+    }
+
     renderContent(){
         const p = this.div.append('p').style('margin', '0px').style('height', this.height + 'px')
         p.append('span').text(this.data.title).style('color', '#253d5b')

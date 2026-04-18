@@ -305,6 +305,10 @@ class Element {
         return this.grid.margin
     }
 
+    get padding (){
+        return this.grid.padding
+    }
+
 
     setCoordinates(row = 1, column = 1){
         this.#gridCoordinates = {row: row, column: column}
@@ -334,7 +338,7 @@ class Element {
             .style('margin', this.margin + 'px')
             .style('left', this.left + 'px')
             .style('top', this.top + 'px')
-            .style('padding', this.grid.padding + 'px')
+            .style('padding', this.padding + 'px')
             .style('width', this.width + 'px')
             .style('height', this.height + 'px')
             .style('overflow', 'hidden')
@@ -362,6 +366,7 @@ class Element {
     resizeDiv(transitionDuration){
         this.div.transition('tResizeDiv')
             .duration(transitionDuration)
+            .ease(d3.easeBounceOut)
                 .style('width', this.width + 'px')
                 .style('height', this.height + 'px')
     }
@@ -414,6 +419,8 @@ class Accordion extends Element {
     get margin(){
         return '0px ' + this.grid.margin + 'px ' + this.grid.margin + 'px ' + this.grid.margin
     }
+
+    
 
     get backgroundColour(){
         return '#E2E2E2'
@@ -496,7 +503,7 @@ class Accordion extends Element {
                                 .attr('fill', '#6E7271')
                         })
                         .on('click', function(event, d){   
-                            self.update(d, 350)
+                            self.update(d, 1000)
                         })
 
                     g.append('rect')
@@ -553,14 +560,39 @@ class DisplayHeader extends Element {
         return this.grid.margin + 'px ' + this.grid.margin + 'px ' + '0px ' + this.grid.margin
     }
 
+    get padding(){
+        const {top, right, bottom, left} = {
+            top: this.grid.padding / 2 + 'px ',
+            right: this.grid.padding + 'px ',
+            bottom: this.grid.padding * 1.5 + 'px ',
+            left: this.grid.padding
+        }
+        return top + right + bottom + left
+    }
+
     renderContent(){
-        const p = this.div.append('p').style('margin', '0px').style('height', this.height + 'px')
-        p.append('span').text(this.data.title).style('color', '#253d5b')
-        p.append('span').text(this.data.displayType).style('color', '#c6878f')
+        const p = this.div.append('p')
+            .style('margin', '0px')
+            .style('height', this.height + 'px')
+            .style('line-height', '1.25')
+
+        p.append('span')
+            .text(this.data.title)
+            .style('color', '#4281a4') //#8AA1B1
+            .style('font-size', '20px')
+            .style('font-weight', '200')
+            .style('font-family', 'Helvetica, sans-serif')
+        
+        p.append('span')
+            .text(this.data.displayType)
+            .style('color', '#48a9a6') //#9ac2c9'
+            .style('font-size', '14px')
+            .style('font-weight', '500')
+            .style('font-family', 'Work Sans, sans-serif')
     }
 
     calculateHeight(){
-        return this.grid.cellSize * 1.5
+        return this.grid.cellSize * 2
     }
 
     calculateWidth(){
@@ -572,11 +604,13 @@ class DisplayHeader extends Element {
 
         try{
             let totalWidth = 0
+            let widestWidth = 0
             this.div.select('p').selectAll('span').each(function(d){
                 const spanWidth = Math.ceil(d3.select(this).node().getBoundingClientRect().width)
+                widestWidth = spanWidth > widestWidth ? spanWidth : widestWidth
                 totalWidth = totalWidth + spanWidth
             })
-            return totalWidth
+            return widestWidth
         }
         catch{return null}
         
@@ -723,7 +757,7 @@ function loadNotestList(){
 
 async function loadSongsList(){
     const songsData = () => {return new Songs().loadData()}
-    const headerText = {displayType: ' PRESERVE', title: 'JAMESPARRYSONGS '}
+    const headerText = {displayType: 'DIGITAL PRESERVE', title: 'jamesparrysongs '}
     new DisplayHeader(headerText, new SongPreserve())
     new Accordion(await songsData(), new SongPreserve())
 }

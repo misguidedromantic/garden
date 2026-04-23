@@ -1,4 +1,13 @@
 //model - notes
+class Displays {
+    get titles(){
+        return [
+            'NotesList',
+            'SongsList'
+        ]
+    }
+}
+
 class Notes {
 
     #notes = null
@@ -171,6 +180,25 @@ class Song {
 
 //view - element data structures
 class Display {
+    static #elements
+
+    static addElement(element){
+        if(this.#elements === undefined){
+            this.#elements = new Map()
+        }
+        this.#elements.set(element.constructor.name, element)
+    }
+
+    static getElement(key){
+        if(this.#elements.get(key) === undefined){
+            this.#elements.set(key, this.createElement(key))
+        }
+        return this.#elements.get(key)
+    }
+
+    static createElement(constructorName = 'Element'){
+
+    }
 }
 
 class SongPreserve extends Display {
@@ -281,14 +309,6 @@ class Grid {
     get rowHeight(){
         return this.cellSize
     }
-
-}
-
-class DomElement {
-    constructor(type, uiElem){
-        this.type = type
-        this.id = type + uiElem.constructor.name
-    }
 }
 
 class Element {
@@ -296,9 +316,8 @@ class Element {
     #dimensions = {}
 
 
-    constructor(data, layout){
+    constructor(data){
         this.data = data
-        this.layout = layout
         this.grid = new Grid()
         this.styling = new ElementStyling()
         this.setCoordinates()
@@ -484,6 +503,9 @@ class Accordion extends Element {
         this.toggleSelection(clickedItem)
         this.renderContent(transitionDuration)
         this.resize(transitionDuration)
+
+        //logic to make this dynamic
+        loadNote(this.selectedItem)
     }
 
     toggleSelection(clickedItem){
@@ -743,110 +765,32 @@ class ElementStyling {
     }
 }
 
-//view - element controllers
-class ElementFactory {
-    createElement(type) {
-        const element = new Element(type)
-        this.initializeDomElements(element)
-        return element
-    }
-
-    initializeDomElements(element) {
-        element.div = this.addDiv(element)
-        element.svg = this.addSvg(element)
-    }
-
-    addDiv(element, parentContainer = d3.select('body')) {
-        return parentContainer.append('div')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
-
-    addSvg(element) {
-        return element.div.append('svg')
-            .attr('class', element.constructor.name.toLowerCase())
-    }
-}
-
-
-function renderDisplayElements(display){
-    d3.select('body')
-        .selectAll('div')
-        .data(display.elements)
-        .join(
-            enter => {
-                enter.each(function(d){
-                    const id = d.constructor.name
-                    const viewElem = display.getElement(id)
-                    viewElem.div = d3.select(this).append('div').attr('id', id).style('position', 'absolute')
-                    viewElem.svg = viewElem.div.append('svg').attr('id', id)
-                })
-            },
-            update => update,
-            exit => exit
-        )
-}
-
-function renderContent(display, content){
-    renderNavContent(display.getElement('NavigationTab'), content)
-    renderCanvasContent(display.getElement('VisualisationCanvas'), content)
-}
-
-function renderCanvasContent(element, content){
-    element.svg.selectAll('g')
-        .data(content, d => d.id)
-        .join(enter => {
-            const g = enter.append('g').attr('id', d => d.id)
-            
-            g.append('text')
-                .text(d => d.title)
-                .attr('y', (d, i) => i * element.spacing)
-                .attr('dx', element.spacing)
-                .attr('dy', element.spacing)
-        }
-    )
-}
-
-function renderNavContent(element, content){
-    const navOptions = [...new Set (content.map(d => d.releaseId))]
-    element.svg.selectAll('g')
-        .data(navOptions, d => d)
-        .join(enter => {
-            const g = enter.append('g').attr('id', d => d)
-            
-            g.append('text')
-                .text(d => d)
-                .attr('x', (d, i) => i * 120)
-                .attr('dx', element.spacing)
-                .attr('dy', element.spacing)
-        },
-        update => update.select('text').attr('x', (d, i) => i * element.optionWidth),
-        exit => exit
-    )
-}
-
 //controller
-function testNotesModel(){
-    const notesModel = new NotesModel
-    console.log(notesModel.allNotes[0])
-}
+function loadNote(note){
+    const documentContainer = Display.getElement('DocumentContainer')
 
-
-function createDisplay(){
-    return new Display()
 }
 
 async function loadNotestList(){
     const notesData = () => {return new Notes().loadData()}
     const headerText = {title: 'notes'}
-    new DisplayHeader(headerText, null)
-    new Accordion(await notesData(), null)
+    Display.addElement(new DisplayHeader(headerText))
+    Display.addElement(new Accordion(await notesData()))
 }
 
 async function loadSongsList(){
     const songsData = () => {return new Songs().loadData()}
-    const headerText = {displayType: 'DIGITAL PRESERVE', title: 'jamesparrysongs '}
-    new DisplayHeader(headerText, null)
-    new Accordion(await songsData(), null)
+    const headerText = {title: 'jamesparrysongs '}
+    new DisplayHeader(headerText)
+    new Accordion(await songsData())
+}
+
+class Orchestrator {
+    
+
+    static loadDisplay(title){
+        
+    }
 }
 
 window.onload = () => {

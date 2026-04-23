@@ -1,40 +1,46 @@
 //model - notes
 class Notes {
 
-    #notes
+    #notes = null
 
     constructor(){
         this.#notes = new Map()
     }
 
-    async loadNotes(){
+    get titles(){
+        return [
+            'Statement of intent',
+            'song genealogy',
+            'Test note 1',
+            'Test note 2'
+        ]
+    }
+
+    get notes(){
+        return Array.from(this.#notes.values())
+    }
+
+    async loadData(){
         const noteLoader = new NoteLoader(new HtmlConvertor())
         for(let i = 0; i < this.titles.length; i++){
             const title = this.titles[i]
             this.#notes.set(title, await noteLoader.load(new Note(title)))
         }
-
-        console.log(this.#notes)
+        return Promise.resolve(this.notes)
     }
 
-    get titles(){
-        return [
-            'Statement of intent',
-            'song genealogy'
-        ]
+    getNote (title){
+        return this.#notes.get(title)
     }
 
-    get allNotes(){
-        return[
-            new Note('Statement of intent')
-        ]
-    }
 }
 
 class Note {
     constructor(title){
+        this.id = title.replaceAll(' ','')
         this.title = title
         this.lines = []
+        this.selected = false
     }
 }
 
@@ -95,24 +101,24 @@ class NoteLoader {
 
     addLine(elem){
         const childElems = elem.selectChildren()
-        console.log(childElems.size())
+
         if(childElems.size() > 0){
             const words = elem.text().split(' ')
-            console.log(words)
+            
             childElems.each(function(){
                 const childElem = d3.select(this)
                 const childTag = childElem.node().tagName.toLowerCase()
                 switch(childTag){
                     case 'a':
-                        console.log(childElem.attr('href')) //if href starts with bear exclude
-                        console.log(childElem.text()) //identify substring of parent text
+                        //console.log(childElem.attr('href')) //if href starts with bear exclude
+                        //console.log(childElem.text()) //identify substring of parent text
                         break;
                     case 'span':
-                        console.log(childElem.attr('class')) //exclude elements with class 'hashtag
+                        //console.log(childElem.attr('class')) //exclude elements with class 'hashtag
                         break;
                 }
 
-                console.log(this.tagName.toLowerCase())
+                //console.log(this.tagName.toLowerCase())
             })
         }
 
@@ -147,6 +153,7 @@ class Song {
         this.id = d.short_title
         this.title = d.title
         this.releaseId = d.release_id
+        this.selected = false
     }
 
     get lyrics(){
@@ -178,9 +185,33 @@ class SongPreserve extends Display {
 }
 
 class NotesList extends Display {
-    createElementsMap(){
-        return new Map()
-            .set('Accordion', new Accordion())
+    get Layout (){
+        return [
+            {element: 'PersistentHeader', elementToLeft: null, elementAbove: null},
+            {element: 'DisplayHeader', elementToLeft: null, elementAbove: 'PersistentHeader'},
+            {element: 'Accordion', elementToLeft: null, elementAbove: 'DisplayHeader'}
+        ]
+    }
+}
+
+class Colours {
+    static get palette (){
+        return {
+            caption: '#6E7271',
+            captionReverse: '#D8D4D5',
+            main: '#384D48',
+            mainReverse: '#F5F5F5',
+
+
+        }
+    } 
+
+    static get main(){
+        return '#384D48'
+    }
+
+    static get backgroundRaised (){
+        return '#E2E2E2'
     }
 }
 
@@ -357,16 +388,16 @@ class Element {
 
     resize(transitionDuration = 0){
         this.setDimensions()
-        this.resizeDiv()
+        this.resizeDiv(transitionDuration)
         if(this.svg !== undefined){
-            this.resizeSVG()
+            this.resizeSVG(transitionDuration)
         }
     }
 
     resizeDiv(transitionDuration){
         this.div.transition('tResizeDiv')
             .duration(transitionDuration)
-            .ease(d3.easeBounceOut)
+            .ease(d3.easeCubicIn)
                 .style('width', this.width + 'px')
                 .style('height', this.height + 'px')
     }
@@ -374,6 +405,7 @@ class Element {
     resizeSVG(transitionDuration){
         this.svg.transition('tResizeSvg')
             .duration(transitionDuration)
+            .ease(d3.easeCubicIn)
                 .attr('width', this.width)
                 .attr('height', this.height)
     }
@@ -420,8 +452,6 @@ class Accordion extends Element {
         return '0px ' + this.grid.margin + 'px ' + this.grid.margin + 'px ' + this.grid.margin
     }
 
-    
-
     get backgroundColour(){
         return '#E2E2E2'
     }
@@ -432,6 +462,10 @@ class Accordion extends Element {
 
     get selectedItem(){
         return this.data.find(item => item.selected)
+    }
+
+    get selecteItemIndex(){
+        return this.data.findIndex(item => item.selected)
     }
 
     calculateHeight(){
@@ -465,157 +499,208 @@ class Accordion extends Element {
     }
 
     renderContent(transitionDuration = 0){
-        const self = this
-        self.svg.selectAll('g')
-            .data(this.data, d => d.id)
+        const accordion = this
+        accordion.svg.selectAll('g')
+            .data(accordion.data, d => d.id)
             .join(
-                enter => {
-                    const g = enter.append('g')
-                        .attr('id', d => d.id)
-                        .attr('transform', (d, i) => {
-                            const {x, y} = { x: 0, y: i * self.grid.cellSize * 2.5}
-                            return 'translate(' + x + ',' + y + ')'
-                        })
-                        .on('mouseover', function(){
-                            d3.select(this)
-                                .select('rect.item')
-                                .attr('fill', '#6E7271')
-
-                            d3.select(this)
-                                .select('text.main')
-                                .attr('fill', '#F5F5F5')
-
-                            d3.select(this)
-                                .select('text.caption')
-                                .attr('fill', '#D8D4D5')
-                        })
-                        .on('mouseout', function(){
-                            d3.select(this)
-                                .select('rect.item')
-                                .attr('fill', 'transparent')
-
-                            d3.select(this)
-                                .select('text.main')
-                                .attr('fill', '#384D48')
-
-                            d3.select(this)
-                                .select('text.caption')
-                                .attr('fill', '#6E7271')
-                        })
-                        .on('click', function(event, d){   
-                            self.update(d, 1000)
-                        })
-
-                    g.append('rect')
-                        .attr('class', 'item')
-                        .attr('width', self.width)
-                        .attr('height', self.grid.cellSize * 2.5 - 2)
-                        .attr('y', 1.5)
-                        .attr('fill', 'transparent')
-                        
-
-                    g.append('rect')
-                        .attr('class', 'divider')
-                        .attr('width', (d, i) => {return i > 0 && i !== self.data.length ? self.width : 0})
-                        .attr('height', 1)
-                        .attr('fill', '#D8D4D5')
-
-                    g.append('text')
-                        .attr('class', 'main')
-                        .text(d => d.title)
-                        .attr('x', self.grid.cellSize * 6)
-                        .attr('dy', self.grid.cellSize * 1.5 + 1.5)
-                        .attr('fill', '#384D48')
-                        .style('font-size', '14px')
-                        .style('user-select', 'none')
-
-                    g.append('text')
-                        .attr('class', 'caption')
-                        .text((d, i) => {
-                            const digits = (i + 1) > 9 ? '0' + (i + 1) : '00' + (i + 1)
-                            return 'SONG ' + digits
-                        })
-                        .attr('dx', 4)
-                        .attr('dy', self.grid.cellSize * 1.5 + 1.5)
-                        .attr('fill', '#6E7271')
-                        .style('font-size', '12px')
-                        .style('user-select', 'none')
-                },
-                update => {
-                    update.transition().duration(transitionDuration).attr('transform', (d, i) => {
-                            const iSelected = self.data.findIndex(item => item.selected)
-                            const yOffset = iSelected > -1 && i > iSelected ? 200 : 0
-                            const {x, y} = { x: 0, y: i * self.grid.cellSize * 2.5 + yOffset}
-                            return 'translate(' + x + ',' + y + ')'
-                        })
-                }
-
+                enter => accordion.enterItems(enter, accordion),
+                update => accordion.updateItems(update, accordion, 350),
+                exit => exit
             )
     }
 
+    enterItems(selection, accordion){
+
+        let g = null
+
+        const createSvgGroups = () => {
+            g = selection.append('g').attr('id', d => d.id)
+        }
+
+        const positionGroups = () => {
+            g.attr('transform', (d, i) => {
+                const {x, y} = { x: 0, y: i * accordion.grid.cellSize * 2.5}
+                return 'translate(' + x + ',' + y + ')'
+            })
+        }
+
+        const attachEventHandlers = () => {
+            g.on('mouseover', function(){
+                const item = d3.select(this)
+                item.select('rect.item').attr('fill', '#6E7271')
+                item.select('text.main').attr('fill', '#F5F5F5')
+                item.select('text.caption').attr('fill', '#D8D4D5')
+            })
+            .on('mouseout', function(){
+                const item = d3.select(this)
+                item.select('rect.item').attr('fill', 'transparent')
+                item.select('text.main').attr('fill', '#384D48')
+                item.select('text.caption').attr('fill', '#6E7271')
+            })
+            .on('click', function(event, d){
+                accordion.update(d, 350)}
+            )
+        }
+
+        const renderGraphics = () => {
+            
+            const itemBackgroundRectangles = () => {
+                g.append('rect')
+                    .attr('class', 'item')
+                    .attr('width', accordion.width)
+                    .attr('height', accordion.grid.cellSize * 2.5 - 2)
+                    .attr('y', 1.5)
+                    .attr('fill', 'transparent')
+            }
+
+            const itemDividerRectangles = () => {
+                g.append('rect')
+                    .attr('class', 'divider')
+                    .attr('width', (d, i) => {return i > 0 && i !== accordion.data.length ? accordion.width : 0})
+                    .attr('height', 1)
+                    .attr('fill', '#D8D4D5')
+            }
+
+            itemBackgroundRectangles()
+            itemDividerRectangles()
+        }
+
+        const renderText = () => {
+            
+            const itemMainText = () => {
+                g.append('text')
+                    .attr('class', 'main')
+                    .text(d => d.title.toLowerCase())
+                    .attr('x', accordion.grid.cellSize * 6)
+                    .attr('dy', accordion.grid.cellSize * 1.5 + 1.5)
+                    .attr('fill', '#384D48')
+                    .style('font-size', '14px')
+                    .style('user-select', 'none')
+            }
+
+            const itemCaptionText = () => {
+                g.append('text')
+                    .attr('class', 'caption')
+                    .text((d, i) => {
+                        const digits = (i + 1) > 9 ? '0' + (i + 1) : '00' + (i + 1)
+                        const targetObjectClass = d.constructor.name
+                        return targetObjectClass.toUpperCase() + ' ' + digits
+                    })
+                    .attr('dx', 4)
+                    .attr('dy', accordion.grid.cellSize * 1.5 + 1.5)
+                    .attr('fill', '#6E7271')
+                    .style('font-size', '12px')
+                    .style('user-select', 'none')
+            }
+
+            itemMainText()
+            itemCaptionText()
+        }
+
+        createSvgGroups()
+        positionGroups()
+        attachEventHandlers()
+        renderGraphics()
+        renderText()
+    }
+
+    updateItems(selection, accordion, transitionDuration){
+        
+        const expandedItemIndex = accordion.selecteItemIndex
+        const t = d3.transition('tUpdateItems').duration(transitionDuration).ease(d3.easeCubicIn)
+
+        const coordinates = (thisItemIndex) => {
+            const offset = () => {
+                const expandedAbove = () => {
+                    return expandedItemIndex !== -1 && 
+                        thisItemIndex > expandedItemIndex
+                }
+
+                return expandedAbove() ? 200 : 0
+            }
+
+            const defaultY = () => {
+                return thisItemIndex * accordion.grid.cellSize * 2.5
+            }
+
+            return {x: 0, y: defaultY() + offset()}
+        }
+        
+        const translate = (i) => {
+            const {x, y} = coordinates(i)
+            return 'translate(' + x + ',' + y + ')'
+        }
+
+        selection.transition(t).attr('transform', (d, i) => {
+            return translate(i)
+        })
+    }
 }
 
 class DisplayHeader extends Element {
     get margin(){
-        return this.grid.margin + 'px ' + this.grid.margin + 'px ' + '0px ' + this.grid.margin
+        const {top, right, bottom, left} = {
+            top: this.grid.margin + 'px ',
+            right: this.grid.margin + 'px ',
+            bottom: '0px ',
+            left: this.grid.margin
+        }
+        return top + right + bottom + left
     }
 
     get padding(){
         const {top, right, bottom, left} = {
-            top: this.grid.padding / 2 + 'px ',
-            right: this.grid.padding + 'px ',
-            bottom: this.grid.padding * 1.5 + 'px ',
-            left: this.grid.padding
+            top: this.grid.padding + 'px ',
+            right: this.grid.padding * 1.5 + 'px ',
+            bottom: this.grid.padding * 1 + 'px ',
+            left: this.grid.padding  * 1.5
         }
+
         return top + right + bottom + left
+    }
+
+    get renderedWidth(){
+        try{return Math.ceil(this.boundingRect.width)}
+        catch{return null}
+    }
+
+    get renderedHeight(){
+        try{return Math.ceil(this.boundingRect.height)}
+        catch{return null}
+    }
+
+    get boundingRect(){
+        return this.div.select('span').node().getBoundingClientRect()
     }
 
     renderContent(){
         const p = this.div.append('p')
             .style('margin', '0px')
             .style('height', this.height + 'px')
-            .style('line-height', '1.25')
 
         p.append('span')
             .text(this.data.title)
-            .style('color', '#4281a4') //#8AA1B1
-            .style('font-size', '20px')
+            .style('color', Colours.main) //#8AA1B1
+            .style('font-size', '18px')
             .style('font-weight', '200')
             .style('font-family', 'Helvetica, sans-serif')
         
-        p.append('span')
-            .text(this.data.displayType)
-            .style('color', '#48a9a6') //#9ac2c9'
-            .style('font-size', '14px')
-            .style('font-weight', '500')
-            .style('font-family', 'Work Sans, sans-serif')
     }
 
     calculateHeight(){
-        return this.grid.cellSize * 2
+        return this.renderedHeight ?? this.grid.cellSize * 2
     }
 
     calculateWidth(){
-        
-        return this.getRenderedWidth() ?? this.grid.cellSize * 20
+        return this.renderedWidth ?? this.grid.cellSize * 20
     }
 
-    getRenderedWidth(){
-
-        try{
-            let totalWidth = 0
-            let widestWidth = 0
-            this.div.select('p').selectAll('span').each(function(d){
-                const spanWidth = Math.ceil(d3.select(this).node().getBoundingClientRect().width)
-                widestWidth = spanWidth > widestWidth ? spanWidth : widestWidth
-                totalWidth = totalWidth + spanWidth
-            })
-            return widestWidth
-        }
-        catch{return null}
-        
+    initializeDomElements() {
+        this.div = this.addDiv()
     }
+}
 
+class DocumentContainer extends Element {
     initializeDomElements() {
         this.div = this.addDiv()
     }
@@ -750,18 +835,21 @@ function createDisplay(){
     return new Display()
 }
 
-function loadNotestList(){
-    const notes = new Notes()
-    notes.loadNotes()
+async function loadNotestList(){
+    const notesData = () => {return new Notes().loadData()}
+    const headerText = {title: 'notes'}
+    new DisplayHeader(headerText, null)
+    new Accordion(await notesData(), null)
 }
 
 async function loadSongsList(){
     const songsData = () => {return new Songs().loadData()}
     const headerText = {displayType: 'DIGITAL PRESERVE', title: 'jamesparrysongs '}
-    new DisplayHeader(headerText, new SongPreserve())
-    new Accordion(await songsData(), new SongPreserve())
+    new DisplayHeader(headerText, null)
+    new Accordion(await songsData(), null)
 }
 
 window.onload = () => {
-    loadSongsList()
+    //loadSongsList()
+    loadNotestList()
 }

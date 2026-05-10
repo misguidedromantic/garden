@@ -1,12 +1,11 @@
-//model - notes
-class Displays {
-    get titles(){
-        return [
-            'NotesList',
-            'SongsList'
-        ]
-    }
+//model - data
+class DataHandler {
+
 }
+
+
+//model - notes
+
 
 class Notes {
 
@@ -42,14 +41,19 @@ class Notes {
         return this.#notes.get(title)
     }
 
+    select(title){
+        this.getNote(title).selected = true
+    }
+
 }
 
 class Note {
     constructor(title){
         this.id = title.replaceAll(' ','')
         this.title = title
-        this.lines = []
+        this.lines = undefined
         this.selected = false
+        this.creationDate = undefined
     }
 }
 
@@ -76,71 +80,108 @@ class NoteLoader {
     async load(note){
         const path = './docs/' + note.title + '.html'
         const doc = await this.htmlConverter.getDoc(path)
-        this.setProperties(note, doc, this.addLine)
+        this.setProperties(note, doc)
         return note
     }
 
-    
+    setProperties(note, doc){
 
-    setProperties(note, doc, fnAddLine){
-        const selection = d3.select(doc).selectAll('li, meta, p')
-        d3.select(doc).selectAll('li, meta, p').each(function(){
-            const elem = d3.select(this)
-            const tag = elem.node().tagName.toLowerCase()
-            switch(tag){
-                case 'li':
-                    fnAddLine(elem)
-                    note.lines.push(new Bullet(elem.text()))
-                    break;
-                case 'p':
-                    fnAddLine(elem)
-                    const text = elem.text()
-                    if(text.substring(0, 1) !== '#'){
-                        note.lines.push(new Line(text))
-                    }
-                    break;
-                case 'meta':
-                    if(elem.attr('name') === 'created'){
-                        note.creationDate = new Date(elem.attr('content'))
-                    }
-                    break; 
-            }
-        })
-    }
-
-    addLine(elem){
-        const childElems = elem.selectChildren()
-
-        if(childElems.size() > 0){
-            const words = elem.text().split(' ')
+        const getCreationDate = () => {
             
-            childElems.each(function(){
-                const childElem = d3.select(this)
-                const childTag = childElem.node().tagName.toLowerCase()
-                switch(childTag){
-                    case 'a':
-                        //console.log(childElem.attr('href')) //if href starts with bear exclude
-                        //console.log(childElem.text()) //identify substring of parent text
-                        break;
-                    case 'span':
-                        //console.log(childElem.attr('class')) //exclude elements with class 'hashtag
-                        break;
-                }
-
-                //console.log(this.tagName.toLowerCase())
+            const selection = d3.select(doc).selectAll('meta').filter(function(){
+                return d3.select(this).attr('name') === 'created'
             })
+
+            return new Date(selection.attr('content'))
         }
 
+        const getLines = () => {
+            const lines = []
+            
+            const getLine = (elem) => {
+                const tag = elem.node().tagName.toLowerCase()  
+                
+    
+                switch(tag){
+                    case 'h1':
+                    case 'h2':
+                    case 'h3':
+                    case 'h4':
+                    case 'h5':
+                    case 'h6':
+                        return new Heading(elem, tag)
+                    case 'li':
+                        return new Bullet(elem)
+                    case 'p':
+                        return new P(elem)
+                    default:
+                        throw new Error('incompatible elem type')
+                }
+            }
+
+            const selection = d3.select(doc)
+                .select('body')
+                .selectAll('h1, h2, h3, h4, h5, h6, li, p')
+
+            selection.each(function(){
+                try{lines.push(getLine(d3.select(this)))}
+                catch{return}
+            })
+        
+            return lines
+        }
+
+        note.creationDate = getCreationDate()
+        note.lines = getLines()
+    
     }
 }
 
-class Line {
-    constructor(text){
-        this.text = text
+
+class A {
+    constructor(a){
+        try{
+            this.url = a.attr('href')
+            this.text = a.text()
+        }
+        catch{
+            return null
+        }
+        
     }
 }
 
-class Bullet extends Line {}
+class P {
+    constructor(p){
+        if(this.isHashtag(p.text())){
+            throw new Error ('hash')
+        }
+        this.text = p.text()
+        this.link = this.getA(p)
+    }
+
+    isHashtag(text){
+        return text.substring(0, 1) === '#'
+    }
+
+    getA(p){
+        return new A(p.selectAll('a'))
+    }
+}
+
+class Bullet {
+    constructor(li){
+        this.text = li.text()
+    }
+
+}
+
+class Heading {
+    constructor(h, tag){
+        this.text = h.text()
+        this.level = tag.substring(1)
+    }
+}
 
 //model - songs
 class Songs {
@@ -180,47 +221,67 @@ class Song {
 
 //view - element data structures
 class Display {
-    static #elements
+    #active = false
+    data = null
 
-    static addElement(element){
-        if(this.#elements === undefined){
-            this.#elements = new Map()
+    constructor(data){
+        this.data = data
+        //this.title = title
+        //this.elements = new Map()
+        //this.grid = new Grid()
+    }
+
+    get isActive(){
+        return this.#active
+    }
+
+    activate(){
+        this.loadElements()
+        this.#active = true
+    }
+
+}
+
+class ListDisplay extends Display {
+
+    #header
+    #accordion
+
+    get accordion (){
+        if(this.#accordion === undefined){
+            return new Accordion(this.data, this)
         }
-        this.#elements.set(element.constructor.name, element)
     }
 
-    static getElement(key){
-        if(this.#elements.get(key) === undefined){
-            this.#elements.set(key, this.createElement(key))
+    get header (){
+        if(this.#header === undefined){
+            return new DisplayHeader(this.headerText, this)
         }
-        return this.#elements.get(key)
     }
 
-    static createElement(constructorName = 'Element'){
-
+    get layout(){
+        return {
+            DisplayHeader: {column: 1, row: 1},
+            Accordion: {column: 1, row: 2}
+        }
     }
-}
 
-class SongPreserve extends Display {
-    get Layout (){
-        return [
-            {element: 'PersistentHeader', elementToLeft: null, elementAbove: null},
-            {element: 'DisplayHeader', elementToLeft: null, elementAbove: 'PersistentHeader'},
-            {element: 'Accordion', elementToLeft: null, elementAbove: 'DisplayHeader'}
-        ]
+    loadElements(){
+        this.header.load()
+        this.accordion.load()
     }
 
 }
 
-class NotesList extends Display {
-    get Layout (){
-        return [
-            {element: 'PersistentHeader', elementToLeft: null, elementAbove: null},
-            {element: 'DisplayHeader', elementToLeft: null, elementAbove: 'PersistentHeader'},
-            {element: 'Accordion', elementToLeft: null, elementAbove: 'DisplayHeader'}
-        ]
+class NotesList extends ListDisplay {
+    
+    get headerText(){
+        return 'notes'
     }
+
+
 }
+
 
 class Colours {
     static get palette (){
@@ -232,7 +293,11 @@ class Colours {
 
 
         }
-    } 
+    }
+    
+    static get captionText(){
+        return '#6E7271'
+    }
 
     static get main(){
         return '#384D48'
@@ -261,6 +326,7 @@ class Grid {
         if (width < this.breakpoints.tablet) return 'tablet'
         return 'desktop'
     }
+
 
     get availableWidth(){
         return window.innerWidth - this.margin * 2 - this.padding * 2 - this.cellSize
@@ -309,23 +375,33 @@ class Grid {
     get rowHeight(){
         return this.cellSize
     }
+
+    spanWidth(columnCount){
+        return columnCount * this.columnWidth
+    }
+
+    offsetWidth(columnCount){
+        return this.spanWidth(columnCount) + this.gutterWidth
+    }
+
 }
 
 class Element {
     #gridCoordinates = {}
     #dimensions = {}
 
-
-    constructor(data){
+    constructor(data, parent = null){
+        this.parent = parent
         this.data = data
         this.grid = new Grid()
-        this.styling = new ElementStyling()
-        this.setCoordinates()
+/*         this.setCoordinates()
         this.setDimensions()
         this.initializeDomElements()
         this.renderContent()
-        this.resize()
+        this.resize() */
     }
+
+    
 
     get spacing(){
         return this.grid.cellSize
@@ -340,15 +416,15 @@ class Element {
     }
 
     get width(){
-        return this.#dimensions.width
+        return this.grid.usableWidth //this.#dimensions.width
     }
 
     get height(){
-        return this.#dimensions.height
+        return window.innerHeight - 8 * this.grid.cellSize //this.#dimensions.height
     }
 
     get backgroundColour(){
-        return this.styling.backgroundColour
+        return '#F5F5F5'
     }
 
     get margin (){
@@ -359,13 +435,52 @@ class Element {
         return this.grid.padding
     }
 
+    get borderRadius () {
+        return 6
+    }
+
+    get boxShadow () {
+        return this.boxShadowLayers.join(', ')
+    }
+
+    get boxShadowLayers(){
+        return [
+            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
+        ]
+    }
+
+    get shadowColour () {
+        return '0deg 0% 60%'
+    }
+
+    get position(){
+        return 'relative'
+    }
+
+    get parentElement(){
+        return this.parent.div ? this.parent.div : d3.select('body')
+    }
+
+    get zIndex(){
+        return 0
+    }
+
+    load(){
+        this.initializeDomElements()
+        this.renderContent()
+        this.resize()
+    }
+
 
     setCoordinates(row = 1, column = 1){
         this.#gridCoordinates = {row: row, column: column}
     }
 
-    setDimensions(){
-        this.#dimensions = {width: this.calculateWidth(), height: this.calculateHeight()}
+    setDimensions(width = this.calculateWidth(), height = this.calculateHeight()){
+        this.#dimensions = {width: width, height: height}
     }
 
     calculateWidth(){
@@ -381,10 +496,10 @@ class Element {
         this.svg = this.addSvg()
     }
 
-    addDiv(parentContainer = d3.select('body')) {
-        return parentContainer.append('div')
+    addDiv() {
+        return this.parentElement.append('div')
             .attr('class', this.constructor.name.toLowerCase())
-            .style('position', 'relative')
+            .style('position', this.position)
             .style('margin', this.margin + 'px')
             .style('left', this.left + 'px')
             .style('top', this.top + 'px')
@@ -392,29 +507,38 @@ class Element {
             .style('width', this.width + 'px')
             .style('height', this.height + 'px')
             .style('overflow', 'hidden')
-            .style('border-radius', this.styling.borderRadius + 'px')
-            .style('box-shadow', this.styling.boxShadow)
+            .style('border-radius', this.borderRadius + 'px')
+            .style('box-shadow', this.boxShadow)
             .style('background-color', this.backgroundColour)
     }
 
-    addSvg(parentContainer = this.div) {
-        return parentContainer.append('svg')
+    addSvg() {
+        return this.div.append('svg')
             .attr('class', this.constructor.name.toLowerCase())
             .attr('width', this.width)
             .attr('height', this.height)
             
     }
 
-    resize(transitionDuration = 0){
-        this.setDimensions()
-        this.resizeDiv(transitionDuration)
+    move(transitionDuration = 0){
+        this.div.transition('tMoveDiv')
+            .duration(transitionDuration)
+                .style('left', this.left + 'px')
+                .style('top', this.top + 'px')
+    }
+
+    async resize(transitionDuration = 0, width = this.calculateWidth(), height = this.calculateHeight()){
+        this.setDimensions(width, height)
+        await this.resizeDiv(transitionDuration)
         if(this.svg !== undefined){
-            this.resizeSVG(transitionDuration)
+            await this.resizeSVG(transitionDuration)
         }
+        return Promise.resolve()
+
     }
 
     resizeDiv(transitionDuration){
-        this.div.transition('tResizeDiv')
+        return this.div.transition('tResizeDiv')
             .duration(transitionDuration)
             .ease(d3.easeCubicIn)
                 .style('width', this.width + 'px')
@@ -422,19 +546,28 @@ class Element {
     }
 
     resizeSVG(transitionDuration){
-        this.svg.transition('tResizeSvg')
+        return this.svg.transition('tResizeSvg')
             .duration(transitionDuration)
             .ease(d3.easeCubicIn)
                 .attr('width', this.width)
                 .attr('height', this.height)
     }
 
+    recolour(t){
+         return this.div.transition(t)
+            .style('background-color', this.backgroundColour)
+        .end()
+
+    }
+
+    renderContent(){}
+
 
 }
 
 class VisualisationCanvas extends Element {
 
-    calculateHeight(){
+    get height(){
         return this.svg.selectAll('g').data().length * this.grid.cellSize + this.grid.cellSize
     }
 
@@ -442,11 +575,11 @@ class VisualisationCanvas extends Element {
 
 class NavigationTab extends Element {
 
-    calculateWidth(){
+    get width (){
         return this.optionWidth * 4
     }
 
-    calculateHeight(){
+    get height (){
         return this.grid.cellSize * 2
     }
 
@@ -476,7 +609,7 @@ class Accordion extends Element {
     }
 
     get expandedItemOffset(){
-        return this.data.some(item => item.selected) * 200
+        return this.selectedItem ? AccordionItem.heightExpanded - AccordionItem.dividerHeight : 0
     }
 
     get selectedItem(){
@@ -487,8 +620,16 @@ class Accordion extends Element {
         return this.data.findIndex(item => item.selected)
     }
 
-    calculateHeight(){
-        return this.data.length * this.grid.cellSize * 2.5 + this.expandedItemOffset
+    get selectedItemYCoordinate(){
+        return this.getItemYCoordinate(this.selecteItemIndex)
+    }
+
+    get height(){
+        return this.data.length * AccordionItem.heightCollapsed + this.expandedItemOffset
+    }
+
+    getItemYCoordinate(index){
+        return index * AccordionItem.heightCollapsed
     }
 
     select(item){
@@ -499,14 +640,49 @@ class Accordion extends Element {
         item.selected = false
     }
 
-    update(clickedItem, transitionDuration){
+    async update(clickedItem, transitionDuration){
         this.toggleSelection(clickedItem)
-        this.renderContent(transitionDuration)
-        this.resize(transitionDuration)
+        const g = this.svg.select('g#' + clickedItem.id)
 
-        //logic to make this dynamic
-        loadNote(this.selectedItem)
+        let height = 0
+
+        const renderedLines = g.selectAll('g')
+            .data(clickedItem.lines)
+            .join('text')
+            .text(d => d.text)
+            .attr('x', AccordionItem.textMainPositionX)
+            .attr('y', (d, i) => {return i * (AccordionItem.fontHeight + 2) + AccordionItem.heightCollapsed * 1.5})
+            .attr('fill', 'transparent')
+            .style('font-size', (AccordionItem.fontHeight - 2) + 'px')
+
+        renderedLines.each(function(){
+            const BBox = d3.select(this).node().getBBox()
+            height = height + BBox.height
+        })
+
+        this.renderContent(350)
+        this.resize(350, AccordionItem.width, height)
+
+        renderedLines.text('').attr('fill', 'black')
+
+        console.log(renderedLines.data()[3].text.length)
+
+        const prevTextLen = (i) => {
+
+            return i > 0 ? renderedLines.data()[i -1].text.length : 0 
+        }
+
+        renderedLines.each(function(d, i){
+            d3.select(this)
+                .transition()
+                .delay(150 + 150 * i)
+                .duration(150)
+                .tween('text', AccordionItem.typeWriterTween(d.text))
+        })  
+                
+
     }
+
 
     toggleSelection(clickedItem){
         switch(this.selectedItem){
@@ -520,8 +696,17 @@ class Accordion extends Element {
         } 
     }
 
+    setItemConfiguration(){
+        AccordionItem.cellSize = this.grid.cellSize
+        AccordionItem.accordionWidth = this.width
+        AccordionItem.columnWidth = this.grid.columnWidth
+        AccordionItem.gutterWidth = this.grid.gutterWidth
+    }
+
     renderContent(transitionDuration = 0){
         const accordion = this
+        this.setItemConfiguration()
+
         accordion.svg.selectAll('g')
             .data(accordion.data, d => d.id)
             .join(
@@ -541,7 +726,7 @@ class Accordion extends Element {
 
         const positionGroups = () => {
             g.attr('transform', (d, i) => {
-                const {x, y} = { x: 0, y: i * accordion.grid.cellSize * 2.5}
+                const {x, y} = { x: 0, y: i * AccordionItem.heightCollapsed}
                 return 'translate(' + x + ',' + y + ')'
             })
         }
@@ -560,8 +745,8 @@ class Accordion extends Element {
                 item.select('text.caption').attr('fill', '#6E7271')
             })
             .on('click', function(event, d){
-                accordion.update(d, 350)}
-            )
+                accordion.update(d, 350)
+            })
         }
 
         const renderGraphics = () => {
@@ -569,17 +754,17 @@ class Accordion extends Element {
             const itemBackgroundRectangles = () => {
                 g.append('rect')
                     .attr('class', 'item')
-                    .attr('width', accordion.width)
-                    .attr('height', accordion.grid.cellSize * 2.5 - 2)
-                    .attr('y', 1.5)
+                    .attr('width', AccordionItem.rectWidth)
+                    .attr('height', AccordionItem.rectHeightCollapsed)
+                    .attr('y', AccordionItem.rectOffsetY)
                     .attr('fill', 'transparent')
             }
 
             const itemDividerRectangles = () => {
                 g.append('rect')
                     .attr('class', 'divider')
-                    .attr('width', (d, i) => {return i > 0 && i !== accordion.data.length ? accordion.width : 0})
-                    .attr('height', 1)
+                    .attr('width', (d, i) => {return i > 0 ? AccordionItem.dividerWidth : 0})
+                    .attr('height', AccordionItem.dividerHeight)
                     .attr('fill', '#D8D4D5')
             }
 
@@ -593,10 +778,10 @@ class Accordion extends Element {
                 g.append('text')
                     .attr('class', 'main')
                     .text(d => d.title.toLowerCase())
-                    .attr('x', accordion.grid.cellSize * 6)
-                    .attr('dy', accordion.grid.cellSize * 1.5 + 1.5)
+                    .attr('x', AccordionItem.textMainPositionX) //column 2
+                    .attr('dy', AccordionItem.textOffsetY)
                     .attr('fill', '#384D48')
-                    .style('font-size', '14px')
+                    .style('font-size', AccordionItem.fontHeight + 'px')
                     .style('user-select', 'none')
             }
 
@@ -609,9 +794,9 @@ class Accordion extends Element {
                         return targetObjectClass.toUpperCase() + ' ' + digits
                     })
                     .attr('dx', 4)
-                    .attr('dy', accordion.grid.cellSize * 1.5 + 1.5)
+                    .attr('dy', AccordionItem.textOffsetY)
                     .attr('fill', '#6E7271')
-                    .style('font-size', '12px')
+                    .style('font-size', (AccordionItem.fontHeight - 2) + 'px')
                     .style('user-select', 'none')
             }
 
@@ -627,7 +812,7 @@ class Accordion extends Element {
     }
 
     updateItems(selection, accordion, transitionDuration){
-        
+
         const expandedItemIndex = accordion.selecteItemIndex
         const t = d3.transition('tUpdateItems').duration(transitionDuration).ease(d3.easeCubicIn)
 
@@ -642,7 +827,7 @@ class Accordion extends Element {
             }
 
             const defaultY = () => {
-                return thisItemIndex * accordion.grid.cellSize * 2.5
+                return thisItemIndex * AccordionItem.heightCollapsed
             }
 
             return {x: 0, y: defaultY() + offset()}
@@ -653,9 +838,32 @@ class Accordion extends Element {
             return 'translate(' + x + ',' + y + ')'
         }
 
+        const renderPreviewText = () => {
+            const g = selection.filter(d => d.selected)
+
+            g.each(function(d){
+                for(let i = 0; i < d.lines.length; i++){
+                    const line = d.lines[i]
+                    g.append('text')
+                        .text(line.text)
+                        .attr('x', AccordionItem.textMainPositionX)
+                        .attr('y', AccordionItem.heightCollapsed + AccordionItem.fontHeight * i)
+                        .attr('dy', AccordionItem.textOffsetY)
+                        .style('font-size', '12px')
+                        .style('user-select', 'none')
+                }
+            })
+        }
+
+    
         selection.transition(t).attr('transform', (d, i) => {
             return translate(i)
         })
+
+
+        //renderPreviewText()
+
+        
     }
 }
 
@@ -695,26 +903,26 @@ class DisplayHeader extends Element {
         return this.div.select('span').node().getBoundingClientRect()
     }
 
+    get height(){
+        return this.renderedHeight ?? this.grid.cellSize * 2
+    }
+
+    get width(){
+        return this.renderedWidth ?? this.grid.cellSize * 20
+    }
+
     renderContent(){
         const p = this.div.append('p')
             .style('margin', '0px')
             .style('height', this.height + 'px')
 
         p.append('span')
-            .text(this.data.title)
+            .text(this.data)
             .style('color', Colours.main) //#8AA1B1
             .style('font-size', '18px')
             .style('font-weight', '200')
             .style('font-family', 'Helvetica, sans-serif')
         
-    }
-
-    calculateHeight(){
-        return this.renderedHeight ?? this.grid.cellSize * 2
-    }
-
-    calculateWidth(){
-        return this.renderedWidth ?? this.grid.cellSize * 20
     }
 
     initializeDomElements() {
@@ -723,77 +931,290 @@ class DisplayHeader extends Element {
 }
 
 class DocumentContainer extends Element {
-    initializeDomElements() {
-        this.div = this.addDiv()
+
+    expanded = false
+
+    unload(){
+        this.div.remove()
     }
-}
 
-class ElementStyling {
+    load(){
+        this.renderContent()
+        return this.expand()
+    }
 
-    get defaults (){
-        return {
-            backgroundColour: this.backgroundColour,
-            borderRadius: this.borderRadius,
-            boxShadow: this.boxShadow
+    renderContent(){
+
+        const lists = []
+
+        const renderLine = (line, i) => {
+
+            const getCurrentList = () => {
+                if(lists[0] === undefined){
+                    lists.push(this.div.append('ul'))
+                }
+                return lists[0]
+            }
+
+            const addUrl = () => {
+                
+
+            }
+
+            switch(line.constructor.name){
+                case 'Heading':
+                    this.div.append('h' + line.level)
+                        .text(line.text)
+                    break;
+
+                case 'Line':
+                    if(line.link !== null){
+                        const text = line.text.replace(line.link.text, '')
+        
+                        
+                    }
+
+                    this.div.append('p')
+                        .text(text)
+                        .append('a')
+                            .attr('href', line.link.url)
+                            .text(line.link.text)
+
+                    break;
+
+                case 'Bullet':
+                    const list = getCurrentList()
+                    list.append('li')
+                        .text(line.text)
+
+            }
         }
+
+        for(let i = 0; i < this.data.length; i++){
+            const line = this.data[i]
+            renderLine(line, i)
+
+        }
+
+        console.log(lists)
     }
 
 
-    get backgroundColour () {
-        return '#F5F5F5'
+    expand(){
+        this.expanded = true
+        return this.resize(350)
+    }
+
+    get zIndex (){
+        return 1
+    }
+
+    get backgroundColour (){
+        return 'white'
     }
 
     get borderRadius () {
-        return 6
+        return 0
     }
 
     get boxShadow () {
-        return this.boxShadowLayers.join(', ')
+        return 'none'
     }
 
-    get boxShadowLayers(){
-        return [
-            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
-            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
-        ]
+    get left(){
+        return this.grid.offsetWidth(1) + 16
     }
 
-    get shadowColour () {
-        return '0deg 0% 60%'
+    get top(){
+        return this.parent.selectedItemYCoordinate + AccordionItem.heightCollapsed + 19
+    }
+
+    get position(){
+        return 'absolute'
+    }
+
+    get margin (){
+        return 0
+    }
+
+    get padding(){
+        return 16
+    }
+
+    get height(){
+        try{console.log(this.div.attr('scrollHeight'))
+            return this.div.attr('scrollHeight')
+        }
+        catch{return this.expanded ? AccordionItem.heightExpanded - 6 : 0}
+        
+    }
+
+    get width(){
+        return this.grid.usableWidth - this.grid.offsetWidth(1) - 32
+    }
+
+    initializeDomElements() {
+        this.div = this.addDiv()
+    }
+
+}
+
+class AccordionItem {
+    static goldenRatio = 1.618
+    static cellSize = 0
+    static accordionWidth = 0
+    static columnWidth = 0
+    static gutterWidth = 0
+
+    static get dividerHeight(){
+        return 1
+    }
+
+    static get dividerWidth(){
+        return this.accordionWidth
+    }
+
+    static get heightCollapsed(){
+        return this.cellSize * 2.5
+    }
+
+    static get heightExpanded(){
+        return 200 
+    }
+
+    static get fontHeight(){
+        const gRatioConjugate = this.goldenRatio - 1
+        const complimentaryRatio = 1 - gRatioConjugate
+        return Math.floor(this.rectHeightCollapsed * complimentaryRatio)
+    }
+
+    static get rectHeightCollapsed(){
+        return this.heightCollapsed - this.dividerHeight 
+    }
+
+    static get rectHeightExpanded(){
+        return this.heightExpanded - this.dividerHeight 
+    }
+
+    static get rectOffsetY(){
+        return this.dividerHeight
+    }
+
+    static get rectWidth(){
+        return this.accordionWidth
+    }
+
+    static get textCaptionWidth(){
+        return this.columnWidth 
+    }
+
+    static get textMainPositionX(){
+        return this.textCaptionWidth + this.gutterWidth
+    }
+
+    static get textOffsetY(){
+        return this.fontHeight / 2 + this.rectHeightCollapsed / 2 - this.dividerHeight 
+    }
+
+    static typeWriterTween(finalText) {
+        return function() {
+            // Get the length of the string
+            const len = finalText.length;
+            // Define an interpolator from 0 to total length
+            const i = d3.interpolateRound(0, len);
+
+            return function(t) {
+                // Set textContent to a slice of the final text based on t
+                this.textContent = finalText.slice(0, i(t));
+            };
+        };
     }
 }
 
 //controller
-function loadNote(note){
-    const documentContainer = Display.getElement('DocumentContainer')
 
-}
+class Displays {
 
-async function loadNotestList(){
-    const notesData = () => {return new Notes().loadData()}
-    const headerText = {title: 'notes'}
-    Display.addElement(new DisplayHeader(headerText))
-    Display.addElement(new Accordion(await notesData()))
-}
+    static #notesList
 
-async function loadSongsList(){
-    const songsData = () => {return new Songs().loadData()}
-    const headerText = {title: 'jamesparrysongs '}
-    new DisplayHeader(headerText)
-    new Accordion(await songsData())
-}
-
-class Orchestrator {
-    
-
-    static loadDisplay(title){
-        
+    static async notesList(){
+        if(this.#notesList === undefined){
+            this.#notesList = new NotesList(await new Notes().loadData())
+        }
+        return Promise.resolve(this.#notesList)
     }
 }
 
+
+
+class Orchestrator {
+    static async activateDisplay(displayName){
+        const display = await Displays[displayName]()
+        display.activate()
+    }
+
+    static #displays = new Map()
+
+    static get currentDisplay(){
+        return this.displaysArray.find(display => display.isActive)
+    }
+
+    static get displaysArray(){
+        return Array.from(this.#displays.values())
+    }
+
+    static get currentDisplayTitle(){
+        return this.currentDisplay.title
+    }
+
+    static displayObject(displayTitle){
+       switch(displayTitle){
+            case 'notes':
+            case 'jamesparrysongs':
+                return new ListDisplay(displayTitle)
+        }
+    }
+
+    static data(displayName){
+        switch(displayName){
+            case 'notesList':    
+            case 'notes':
+                return new Notes().loadData()
+            case 'jamesparrysongs':
+                return new Songs().loadData()
+        }
+    }
+
+    static async loadDisplay(displayTitle) {
+
+        const display = this.getDisplay(displayTitle)
+        display.elements.set('header', new DisplayHeader(displayTitle, display))
+        display.elements.set('list', new Accordion(await this.data(displayTitle), display))
+        display.activate()
+    }
+
+
+    static getDisplay (title){
+        if(!this.#displays.has(title)){
+            this.#displays.set(title, this.displayObject(title))
+        } 
+        return this.#displays.get(title)
+    }
+
+
+
+
+}
+
+function loadNote(note){
+    const docContainer = Orchestrator.currentDisplay.elements.get('docContainer')
+    docContainer.update()   
+    
+}
+
 window.onload = () => {
+    Orchestrator.activateDisplay('notesList')
+    //Orchestrator.loadDisplay('notes')
     //loadSongsList()
-    loadNotestList()
+    //loadNotestList()
 }

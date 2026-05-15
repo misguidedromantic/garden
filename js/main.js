@@ -1,3 +1,101 @@
+window.onload = async () => {
+
+    const noteContainer = d3.select('body').append('article').style('padding', '16px')
+    const notesData = await new Notes().loadData()
+    const noteData = notesData[2]
+
+    noteContainer.append('header').append('h1').text(noteData.title)
+
+    let currentSection = noteContainer.append('section')
+    let currentList = null
+
+    noteData.lines.forEach(line => {
+        switch(line.constructor.name){
+            case 'LineBreak':
+                currentSection = noteContainer.append('section')
+                currentList = null
+                break;
+            case 'P':
+                currentSection.append('p').text(line.text)
+                currentList = null
+                break;
+            case 'Bullet':
+                if(currentList === null){
+                    currentList = currentSection.append('ul')
+                }
+                currentList.append('li').text(line.text)
+                break;
+            case 'Heading':
+                currentSection = noteContainer.append('section') 
+                currentSection.append('h' + line.level).text(line.text)
+                currentList = null
+        }
+
+    })
+}
+
+ 
+
+//entities
+    //person
+    //role
+        //producer
+        //performer
+            //session musician
+    //song
+    //recording
+    //release
+        //almost at the ivory
+        //eastern shores ep
+        //emerson rush
+        //every weekend
+        //in the lights
+        //misguided romantic
+        //on my back
+        //young emotions
+
+//pages
+    //release personnel
+    //notes (all)
+
+
+//strategic problem space
+//events
+    //release selected
+    //note selected
+
+//core subdomains
+    //ingression
+    //preserve
+    //nursery
+
+
+//tactical solution space
+
+//bounded context
+//entities(has id)
+    //song
+    //person
+    //recording
+    //
+//value objects (no id, building block)
+    //property
+//domain events (async messaging between bounded contexts)
+    //async messaging
+//aggregates (cluster of entities, has a root entity, in a bounded context)
+    //person featured on release
+//domain and application services
+
+
+//controllers
+//services (no state)
+    //application services (auth, emailing)
+    //domain services (design logic)
+        //view release
+
+
+
+
 //model - data
 class DataHandler {
 
@@ -98,7 +196,10 @@ class NoteLoader {
         const getLines = () => {
             const lines = []
             
-            const getLine = (elem, lineNumber) => {
+            const getLine = (elem) => {
+
+                
+
                 const tag = elem.node().tagName.toLowerCase()  
             
                 switch(tag){
@@ -111,11 +212,12 @@ class NoteLoader {
                         if(elem.text() === note.title){
                             throw new Error ('header is note title')
                         }
-                        return new Heading(elem, lineNumber)
+                        lines.push(new LineBreak(lines.length))
+                        return new Heading(lines.length, elem)
                     case 'li':
-                        return new Bullet(elem, lineNumber)
+                        return new Bullet(lines.length, elem)
                     case 'p':
-                        return new P(elem, lineNumber)
+                        return new P(lines.length, elem)
                     default:
                         throw new Error('incompatible elem type')
                 }
@@ -125,7 +227,7 @@ class NoteLoader {
                 .select('body')
                 .selectAll('h1, h2, h3, h4, h5, h6, li, p')
 
-            selection.each(function(d, i){
+            selection.each(function(){
                 try{lines.push(getLine(d3.select(this)))}
                 catch{return}
             })
@@ -153,18 +255,29 @@ class A {
     }
 }
 
+
+
 class Line {
-    constructor(elem, number){
+    constructor(lineNumber, elem = null){
         if(!this.isValid(elem)){
             throw new Error ('invalid line')
         }
 
-        this.text = elem.text()
-        this.number = number
+        this.number = lineNumber
+        this.addText(elem)
+        this.addProps(elem)
+    }
+
+    get id (){
+        return this.constructor.name + this.number
     }
 
     isValid(){
         return true
+    }
+
+    addText(elem){
+        this.text = elem.text()
     }
 
     addProps(elem){}
@@ -189,7 +302,11 @@ class P extends Line {
     }
 }
 
-class Bullet extends Line {}
+class Bullet extends Line {
+/*     addText(elem){
+        this.text = String.fromCharCode(8226) + ' ' + elem.text()
+    } */
+}
 
 class Heading extends Line {
     addProps(elem){
@@ -200,6 +317,13 @@ class Heading extends Line {
         const tag = elem.node().tagName.toLowerCase()
         this.level = tag.substring(1)
     }
+}
+
+class LineBreak extends Line {
+    addText(elem){
+        this.text = ''
+    }
+
 }
 
 //model - songs
@@ -638,6 +762,8 @@ class Accordion extends Element {
         let gHeader = null
         let gContent = null
 
+        const createItemObjects = () => {}
+
         const createSvgGroups = () => {
             g = selection.append('g').attr('id', d => d.id)
             gHeader = g.append('g').attr('class', 'itemHeader')
@@ -812,8 +938,9 @@ class AccordionItemRendering {
         }
 
         const tweenInText = () => {
-            renderedLines.text('').attr('fill', 'black')
-            
+            renderedLines.text('')
+                .attr('fill', '#6E7271')
+                
             renderedLines.each(function(d, i){
                 d3.select(this)
                     .transition('tweenLinesIn')
@@ -822,6 +949,29 @@ class AccordionItemRendering {
                     .tween('text', AccordionItem.typeWriterTween(d.text))
             })  
         }
+
+        const wrapLines = () => {
+
+            const renderedWidth = (line) => {
+                return line.node().getBBox().width
+            }
+
+            
+            renderedLines.each(function(d, i){
+                const availableWidth = AccordionItem.dividerWidth - AccordionItem.textMainPositionX - AccordionItem.fontHeight * 2
+
+                if(renderedWidth(d3.select(this)) > availableWidth){
+                    console.log(renderedLines.data())
+                }
+                
+            })
+        }
+
+        const getHeightOfContent = () => {
+
+        }
+
+        wrapLines()
 
         expand(itemRendering.accordion)
         tweenInText()
@@ -841,14 +991,31 @@ class AccordionItemRendering {
     }
 
     renderLinesTransparent(selection){
+
+        const fontHeight = (d) => {
+            let height = AccordionItem.fontHeight - 1
+            if(d.constructor.name === 'Heading'){
+                height = height + (6 - d.level)
+            }
+            return height 
+        }
+
+        const lineSpacing = AccordionItem.fontHeight * 1.38
+        const yOffset = AccordionItem.heightCollapsed * 1.38
+        
         return selection
             .append('text')
             .attr('class', 'line')
+            .attr('id', d => d.id)
             .text(d => d.text)
-            .attr('x', AccordionItem.textMainPositionX)
-            .attr('y', (d, i) => {return i * (AccordionItem.fontHeight + 2) + AccordionItem.heightCollapsed * 1.5})
+            .attr('x', (d) => {
+                const inset = d.constructor.name === 'Bullet' ? fontHeight(d) * 0.618 : 0
+                return AccordionItem.textMainPositionX + inset
+            })
+            .attr('y', (d, i) => i * lineSpacing + yOffset)
             .attr('fill', 'transparent')
-            .style('font-size', (AccordionItem.fontHeight - 2) + 'px')
+            .attr('font-weight', d => d.constructor.name === 'Heading' ? 700 : 400)
+            .style('font-size', d => fontHeight(d) + 'px')
     }
 
     expandedHeight(renderedLines){     
@@ -933,6 +1100,10 @@ class DisplayHeader extends Element {
 
 
 class AccordionItem {
+
+    constructor(){
+
+    }
     
     static goldenRatio = 1.618
     static cellSize = 0
@@ -1040,6 +1211,11 @@ class ElementDynamics {
 
 
 //controller
+function loadNotesList(){
+
+}
+
+
 class Displays {
     static #notesList
 
@@ -1060,6 +1236,4 @@ class Orchestrator {
 }
 
 
-window.onload = () => {
-    Orchestrator.activateDisplay('notesList')
-}
+

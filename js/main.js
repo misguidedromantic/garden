@@ -1,40 +1,209 @@
 window.onload = async () => {
 
-    const noteContainer = d3.select('body').append('article').style('padding', '16px')
-    const notesData = await new Notes().loadData()
-    const noteData = notesData[2]
+    const wiki = new NotesWiki(new NotesModel())
+    await wiki.initalise()
+    wiki.renderNote('Test note 1')
 
-    noteContainer.append('header').append('h1').text(noteData.title)
+    menuOptions = wiki.menuOptions
+    const nav = new Navigation(menuOptions)
+    nav.load()
 
-    let currentSection = noteContainer.append('section')
-    let currentList = null
-
-    noteData.lines.forEach(line => {
-        switch(line.constructor.name){
-            case 'LineBreak':
-                currentSection = noteContainer.append('section')
-                currentList = null
-                break;
-            case 'P':
-                currentSection.append('p').text(line.text)
-                currentList = null
-                break;
-            case 'Bullet':
-                if(currentList === null){
-                    currentList = currentSection.append('ul')
-                }
-                currentList.append('li').text(line.text)
-                break;
-            case 'Heading':
-                currentSection = noteContainer.append('section') 
-                currentSection.append('h' + line.level).text(line.text)
-                currentList = null
-        }
-
-    })
 }
 
+
+
+
+
+class NotesWiki {
+
+    constructor(model){
+        this.model = model
+    }
+
+    get menuOptions(){
+        return [
+            new NavigationOption('randomNote', 'Random Note'),
+            new NavigationOption('notesList', 'Notes List')
+        ]
+    }
+
+    initalise(){
+        return this.model.loadData()
+    }
+
+    renderNote(title){
+        const note = this.model.getNote(title)
+        this.renderLines(note.lines, new DocStructure(), new LineRenderer())
+    }
+
+    renderLines(lines, docStructure, renderer){
+        lines.forEach(line => {
+            renderer.setStrategy(new RenderStrategy(line.constructor.name))
+            renderer.renderLine(docStructure, line, this)
+        })
+    }
+
+    handleLinkClick(elem){
+        if(elem.attr('href').substring(0, 2) === './'){
+            d3.select('body').html('')
+            this.renderNote(elem.text())
+        }
+    }
+}
+
+class PageStructure {
+    
+}
+
+class DocStructure {
+    #article = null
+    #list = null
+    #section = null
+
+    get article() {
+        if(this.#article === null){
+            this.createArticle()
+        }
+        return this.#article
+    }
+
+    get list() {
+        if(!this.#list){
+            this.createList()
+        }
+
+        return this.#list
+    }
+
+    get section() {
+        if(this.constructor.name !== 'BulletStrategy'){
+            this.endCurrentList()
+        }
+
+        if(!this.#section){
+            this.createSection()
+        }
+
+        return this.#section
+    }
  
+
+    createArticle(){
+        this.#article = d3.select('body').append('article').style('padding', '16px')
+    }
+
+    createSection(){
+        this.#section = this.article.append('section')
+    }
+
+    createList(){
+        this.#list = this.section.append('ul')
+    }
+
+    endCurrentList(){
+        this.#list = null
+    }
+
+}
+
+class LineRenderer {
+
+    #strategy
+
+    setStrategy(strategy){
+        this.#strategy = strategy
+    }
+
+    renderLine(doc, line, wiki){
+        if(!this.#strategy){
+            throw new Error ('render strategy not set')
+        }
+
+        this.#strategy.render(doc, line, wiki)
+    }
+
+} 
+
+class RenderStrategy {
+
+    constructor(lineType){
+        switch(lineType){
+            case 'LineBreak':
+                return new LineBreakStrategy()
+            case 'P':
+                return new PStrategy()
+            case 'Bullet':
+                return new BulletStrategy()
+            case 'Heading':
+                return new HeadingStrategy()
+        }
+    }
+
+    renderWithAnchor(elem, line, wiki){
+        elem.html(this.htmlString(line.text, line.a))
+        this.configureAnchor(elem, wiki)
+    }
+
+    htmlString(elemText, anchor){
+        const splitAnchor = (i) => {
+                return {
+                    preAnchor: elemText.substring(0, i), 
+                    postAnchor: elemText.substring(i).replace(anchor.text, '')
+                }
+            }
+
+        const anchorString = () => {
+            return '<a href=' + anchor.url + '>' + anchor.text + '</a>'
+        }
+
+        const {preAnchor, postAnchor} = splitAnchor(elemText.indexOf(anchor.text))
+        return preAnchor + anchorString() + postAnchor
+    }
+
+    configureAnchor(elem, wiki){
+        elem.select('a')
+            .on('click', function(event){
+                event.preventDefault()
+                wiki.handleLinkClick(d3.select(this))
+            })
+    }
+
+}
+
+class LineBreakStrategy extends RenderStrategy {
+    render(doc, line){
+        doc.createSection()
+    }
+}
+
+class PStrategy extends RenderStrategy {
+    render(doc, line, wiki){
+        const p = doc.section.append('p')
+        try{this.renderWithAnchor(p, line, wiki)}
+        catch{p.text(line.text)}
+    }
+}
+
+class BulletStrategy extends RenderStrategy {
+    render(doc, line, wiki){
+        const li = doc.list.append('li')
+        try{this.renderWithAnchor(li, line, wiki)}
+        catch{li.text(line.text)}
+    }
+}
+
+class HeadingStrategy extends RenderStrategy {
+    render(doc, line){
+        doc.createSection()
+        doc.section.append('h' + line.level).text(line.text)
+    }
+    
+}
+
+
+
+
+
 
 //entities
     //person
@@ -101,11 +270,8 @@ class DataHandler {
 
 }
 
-
 //model - notes
-
-
-class Notes {
+class NotesModel {
 
     #notes = null
 
@@ -132,7 +298,7 @@ class Notes {
             const title = this.titles[i]
             this.#notes.set(title, await noteLoader.load(new Note(title)))
         }
-        return Promise.resolve(this.notes)
+        return Promise.resolve()
     }
 
     getNote (title){
@@ -197,9 +363,6 @@ class NoteLoader {
             const lines = []
             
             const getLine = (elem) => {
-
-                
-
                 const tag = elem.node().tagName.toLowerCase()  
             
                 switch(tag){
@@ -209,10 +372,6 @@ class NoteLoader {
                     case 'h4':
                     case 'h5':
                     case 'h6':
-                        if(elem.text() === note.title){
-                            throw new Error ('header is note title')
-                        }
-                        lines.push(new LineBreak(lines.length))
                         return new Heading(lines.length, elem)
                     case 'li':
                         return new Bullet(lines.length, elem)
@@ -244,18 +403,15 @@ class NoteLoader {
 
 class A {
     constructor(a){
-        try{
-            this.url = a.attr('href')
-            this.text = a.text()
-        }
-        catch{
-            return null
-        }
-        
+        this.url = this.isValidUrl(a.attr('href'))
+        this.text = a.text()
+    }
+
+    isValidUrl(url){
+        console.log(url)
+        return url
     }
 }
-
-
 
 class Line {
     constructor(lineNumber, elem = null){
@@ -280,7 +436,14 @@ class Line {
         this.text = elem.text()
     }
 
-    addProps(elem){}
+    addProps(elem){
+        try{this.a = this.getA(elem)}
+        catch{this.a = null}
+    }
+
+    getA(elem){
+        return new A(elem.selectAll('a'))
+    }
     
 }
 
@@ -293,13 +456,6 @@ class P extends Line {
         return text.substring(0, 1) === '#'
     }
 
-    addProps(elem){
-        this.link = this.getA(elem)
-    }
-
-    getA(elem){
-        return new A(elem.selectAll('a'))
-    }
 }
 
 class Bullet extends Line {
@@ -317,13 +473,6 @@ class Heading extends Line {
         const tag = elem.node().tagName.toLowerCase()
         this.level = tag.substring(1)
     }
-}
-
-class LineBreak extends Line {
-    addText(elem){
-        this.text = ''
-    }
-
 }
 
 //model - songs
@@ -594,7 +743,8 @@ class Element {
     }
 
     get parentElement(){
-        return this.parent.div ? this.parent.div : d3.select('body')
+        try{return this.parent.div}
+        catch{return d3.select('body')}
     }
 
     get zIndex(){
@@ -658,6 +808,8 @@ class Element {
     renderContent(){}
 
 }
+
+
 
 class Accordion extends Element {
     //margin: top right bottom left
@@ -1098,6 +1250,87 @@ class DisplayHeader extends Element {
     }
 }
 
+class Navigation extends Element {
+    
+    get width(){
+        return 400
+    }
+
+    get height(){
+        return this.grid.rowHeight
+    }
+
+    get left(){
+        return 40 //this.columnWidth
+    }
+
+    get top(){
+        return 75 //window.innerHeight / 2 - this.height / 2
+    }
+
+    get position(){
+        return 'fixed'
+    }
+
+    get backgroundColour(){
+        return 'rgba(128, 128, 128, 0.38)'
+    }
+
+    initializeDomElements() {
+        this.nav = this.addNav()
+    }
+
+    addNav() {
+        return this.parentElement.append('nav')
+            .style('position', this.position)
+            .style('margin', this.margin + 'px')
+            .style('left', this.left + 'px')
+            .style('top', this.top + 'px')
+            .style('padding', this.padding + 'px')
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+            .style('overflow', 'hidden')
+            .style('border-radius', this.borderRadius + 'px')
+            .style('box-shadow', this.boxShadow)
+            .style('background-color', this.backgroundColour)
+    }
+
+    renderContent(){
+
+        const optionWidth = this.width / this.data.length
+        const fontHeight = 16
+        const svg = this.nav.append('svg')
+
+        const g = svg.selectAll('g')
+            .data(this.data)
+            .join('g')
+            .attr('transform', (d, i) => {
+                const {x, y} = { x: i * optionWidth, y: this.height / 2}
+                return 'translate(' + x + ',' + y + ')'
+            })
+
+        g.append('text')
+            .text(d => d.text)
+            .attr('dx', 4)
+            .attr('dy', fontHeight / 2)
+            .attr('fill', 'black')
+            .style('font-size', fontHeight + 'px')
+            .style('user-select', 'none')
+
+
+    }
+
+
+}
+
+class NavigationOption {
+    constructor(id, text){
+        this.id = id
+        this.text = text
+    }
+
+}
+
 
 class AccordionItem {
 
@@ -1221,7 +1454,7 @@ class Displays {
 
     static async notesList(){
         if(this.#notesList === undefined){
-            this.#notesList = new NotesList(await new Notes().loadData())
+            this.#notesList = new NotesList(await new NotesModel().loadData())
         }
         return Promise.resolve(this.#notesList)
     }

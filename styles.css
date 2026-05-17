@@ -5,6 +5,11 @@ body {
     overflow-y: auto;
 }
 
+nav {
+    border-radius: 16px;
+    background-color: 'black'
+}
+
 div {
     overflow: auto;
     margin: 16px;

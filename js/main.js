@@ -1,61 +1,193 @@
+//events
 window.onload = async () => {
 
-    const wiki = new NotesWiki(new NotesModel())
-    await wiki.initalise()
-    wiki.renderNote('Test note 1')
+    const getDependencies = () => {
+        const model = new NotesModel()
+        const composer = new ViewComposer(
+            new WikiStructure(),
+            new WikiLayout(),
+            new WikiStyling()
+        )
+        return {model, composer}
+    }
 
-    menuOptions = wiki.menuOptions
-    const nav = new Navigation(menuOptions)
-    nav.load()
+    const {model, composer} = getDependencies()
+    switchView(new WikiPage(model, composer))
+}
+
+function handleNoteLinkClick(elem, routingFn){
+    if(elem.attr('href').substring(0, 2) === './'){
+        routingFn(elem.text())
+    } else {
+        window.open(elem.attr('href'), '_blank')
+    }
 
 }
 
+//logic / control
 
 
+function clearCurrentView(){
+    d3.select('body').html('')
+}
 
+function switchView(newView){
+    clearCurrentView()
+    newView.render()
+}
 
-class NotesWiki {
-
-    constructor(model){
+//views
+class View {
+    constructor(model, composer){
         this.model = model
+        this.layout = composer.layout
+        this.structure = composer.structure
+        this.styling = composer.styling
+    }
+}
+
+class WikiPage extends View {
+    
+    async render(){
+        await this.initaliseDataModel()
+        this.configureElements()
+        this.renderNote()
     }
 
-    get menuOptions(){
-        return [
-            new NavigationOption('randomNote', 'Random Note'),
-            new NavigationOption('notesList', 'Notes List')
-        ]
-    }
-
-    initalise(){
+    initaliseDataModel(){
         return this.model.loadData()
     }
 
-    renderNote(title){
-        const note = this.model.getNote(title)
-        this.renderLines(note.lines, new DocStructure(), new LineRenderer())
-    }
+    configureElements(){
 
-    renderLines(lines, docStructure, renderer){
-        lines.forEach(line => {
-            renderer.setStrategy(new RenderStrategy(line.constructor.name))
-            renderer.renderLine(docStructure, line, this)
-        })
-    }
-
-    handleLinkClick(elem){
-        if(elem.attr('href').substring(0, 2) === './'){
-            d3.select('body').html('')
-            this.renderNote(elem.text())
+        const renderArticle = () => {
+            this.structure.article
+                .style('background-color', this.styling.backgroundColour)
+                .style('padding', this.layout.padding + 'px')
+                .style('margin', this.layout.margin + 'px')
         }
+
+        renderArticle()
+    }
+
+    renderNote(title = null){
+        
+        const clearCurrentNote = () => {
+            this.structure.article.html('')
+        }
+
+        const renderNewNote = () => {
+            
+            const linesToRender = () => {
+                if(title === null){
+                    return this.model.randomNote.lines
+                } else {
+                    return this.model.getNote(title).lines
+                }
+            }
+
+            const renderLines = (lines, renderer) => {
+                lines.forEach(line => {
+                    renderer.setStrategy(new RenderStrategy(line.constructor.name))
+                    renderer.renderLine(this.structure, line, this)
+                })
+            }
+
+            renderLines(linesToRender(), new LineRenderer())
+        }
+
+        clearCurrentNote()
+        renderNewNote()
+    }
+
+    renderNavModal(){
+
+    }
+
+}
+
+class List extends View {
+    initialiseElements(){
+        const body = d3.select('body')
+        body.append('header')
+        const main = body.append('main')
+        main.append('div').append('svg')
+    }
+
+    populate(data){
+
     }
 }
 
-class PageStructure {
-    
+class ViewComposer {
+    constructor(structure, layout, styling){ 
+        this.structure = structure
+        this.layout = layout
+        this.styling = styling
+    }
+
+
 }
 
-class DocStructure {
+
+class Styling {
+    constructor(){
+        this.colours = new ColourPalette()
+    }
+
+    get borderRadius () {
+        return 6
+    }
+
+    get boxShadow () {
+        return this.boxShadowLayers.join(', ')
+    }
+
+    get boxShadowLayers(){
+        return [
+            '0px -0.4px 0.5px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -1.3px 1.5px -0.8px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -3.4px 3.8px -1.7px hsl(' + this.shadowColour + ' / 0.36)',
+            '0px -8.2px 9.2px -2.5px hsl(' + this.shadowColour + ' / 0.36)'
+        ]
+    }
+
+    get shadowColour () {
+        return '0deg 0% 60%'
+    }
+
+    get backgroundColour(){
+        return '#F5F5F5'
+    }
+}
+
+class WikiStyling extends Styling {
+
+
+}
+class ListStyling extends Styling {
+    
+    get backgroundColour(){
+        return '#E2E2E2'
+    }
+}
+
+
+class Structure {
+    #main = null
+
+    get main() {
+        if(this.#main === null){
+            this.createMain()
+        }
+        return this.#main
+    }
+
+    createMain(){
+        this.#main = d3.select('body').append('main')
+    }
+}
+class WikiStructure extends Structure {
     #article = null
     #list = null
     #section = null
@@ -86,10 +218,9 @@ class DocStructure {
 
         return this.#section
     }
- 
 
     createArticle(){
-        this.#article = d3.select('body').append('article').style('padding', '16px')
+        this.#article = this.main.append('article')
     }
 
     createSection(){
@@ -103,8 +234,54 @@ class DocStructure {
     endCurrentList(){
         this.#list = null
     }
+}
+class ListStructure extends Structure {}
+
+class Layout {
+    constructor(){
+        this.grid = new Grid()
+    }
+
+    get position(){
+        return 'relative'
+    }
+
+    get spacing(){
+        return this.grid.cellSize
+    }
+
+    get left(){
+        return this.grid.columnWidth
+    }
+
+    get top(){
+        return this.grid.rowHeight
+    }
+
+    get zIndex(){
+        return 0
+    }
+
+    get width(){
+        return this.grid.usableWidth
+    }
+
+    get height(){
+        return window.innerHeight - 8 * this.grid.cellSize
+    }
+
+    get margin (){
+        return this.grid.margin
+    }
+
+    get padding (){
+        return this.grid.padding
+    }
 
 }
+class WikiLayout extends Layout {}
+class ListLayout extends Layout {}
+
 
 class LineRenderer {
 
@@ -164,7 +341,7 @@ class RenderStrategy {
         elem.select('a')
             .on('click', function(event){
                 event.preventDefault()
-                wiki.handleLinkClick(d3.select(this))
+                handleNoteLinkClick(d3.select(this), wiki.renderNote)
             })
     }
 
@@ -201,75 +378,6 @@ class HeadingStrategy extends RenderStrategy {
 }
 
 
-
-
-
-
-//entities
-    //person
-    //role
-        //producer
-        //performer
-            //session musician
-    //song
-    //recording
-    //release
-        //almost at the ivory
-        //eastern shores ep
-        //emerson rush
-        //every weekend
-        //in the lights
-        //misguided romantic
-        //on my back
-        //young emotions
-
-//pages
-    //release personnel
-    //notes (all)
-
-
-//strategic problem space
-//events
-    //release selected
-    //note selected
-
-//core subdomains
-    //ingression
-    //preserve
-    //nursery
-
-
-//tactical solution space
-
-//bounded context
-//entities(has id)
-    //song
-    //person
-    //recording
-    //
-//value objects (no id, building block)
-    //property
-//domain events (async messaging between bounded contexts)
-    //async messaging
-//aggregates (cluster of entities, has a root entity, in a bounded context)
-    //person featured on release
-//domain and application services
-
-
-//controllers
-//services (no state)
-    //application services (auth, emailing)
-    //domain services (design logic)
-        //view release
-
-
-
-
-//model - data
-class DataHandler {
-
-}
-
 //model - notes
 class NotesModel {
 
@@ -292,6 +400,22 @@ class NotesModel {
         return Array.from(this.#notes.values())
     }
 
+    get activeNote(){
+        this.notes.find(note => (note.active))
+    }
+
+    get activeNoteTitle(){
+        try{return this.activeNote.title}
+        catch{return null}
+    }
+
+    get randomNote(){
+        const randomIndex = () => {
+            return Math.floor(Math.random() * this.titles.length)
+        }
+        return this.getNote(this.titles[randomIndex()])
+    }
+
     async loadData(){
         const noteLoader = new NoteLoader(new HtmlConvertor())
         for(let i = 0; i < this.titles.length; i++){
@@ -305,8 +429,20 @@ class NotesModel {
         return this.#notes.get(title)
     }
 
-    select(title){
-        this.getNote(title).selected = true
+    activate(title){
+        switch(this.activeNoteTitle){
+            case title:
+                return
+            default:
+                this.deactivate(this.activeNote)
+            case null:
+                this.getNote(title).active = true
+
+        }
+    }
+
+    deactivate(title){
+        this.getNote(title).active = false
     }
 
 }
@@ -571,6 +707,19 @@ class NotesList extends ListDisplay {
 
 }
 
+class ColourPalette {
+    get captionText(){
+        return '#6E7271'
+    }
+
+    get main(){
+        return '#384D48'
+    }
+
+    get backgroundRaised (){
+        return '#E2E2E2'
+    }
+}
 
 class Colours {
     static get palette (){
@@ -1451,6 +1600,7 @@ function loadNotesList(){
 
 class Displays {
     static #notesList
+    static #notesWiki
 
     static async notesList(){
         if(this.#notesList === undefined){
@@ -1458,15 +1608,138 @@ class Displays {
         }
         return Promise.resolve(this.#notesList)
     }
+
+    static async notesWiki(){
+        if(this.#notesWiki === undefined){
+            this.#notesWiki = new NotesWiki(new NotesModel())
+        }
+        await wiki.initalise()
+        return Promise.resolve(this.#notesWiki)
+    }
 }
 
 
 class Orchestrator {
     static async activateDisplay(displayName){
-        const display = await Displays[displayName]()
-        display.activate()
+
+        const renderer = new DisplayRenderer()
+        
+        if(displayName === 'Notes Wiki'){
+            renderer.setStrategy(new NotesWiki(new NotesModel()))
+            renderer.initialiseElements(new Accordion())
+        } else if (displayName === 'Notes List'){
+            renderer.setStrategy(new ListDisplayStrategy(new NotesModel()))
+            renderer.initialiseElements(new Accordion())
+        }
+
+        
     }
+
+}
+
+async function initialiseWiki(){
+    const wiki = new NotesWiki(new NotesModel())
+    await wiki.initalise()
+    return Promise.resolve(wiki)
+}
+
+class StucturingStrategy {
+    
+}
+
+function initialiseElements(display){
+    
+    const main = (container = d3.select('body')) => {
+        return container.append('main')
+    }
+
+    const div = (container = d3.select('main')) => {
+        return container.append('div')
+            .attr('class', this.display.constructor.name.toLowerCase())
+            .style('position', this.position)
+            .style('margin', this.margin + 'px')
+            .style('left', this.left + 'px')
+            .style('top', this.top + 'px')
+            .style('padding', this.padding + 'px')
+            .style('width', this.width + 'px')
+            .style('height', this.height + 'px')
+            .style('overflow', 'hidden')
+            .style('border-radius', this.borderRadius + 'px')
+            .style('box-shadow', this.boxShadow)
+            .style('background-color', this.backgroundColour)
+    }
+
+    const svg = (container = d3.select('main').select('div')) => {
+        return container.append('svg')
+            .attr('class', this.constructor.name.toLowerCase())
+            .attr('width', this.width)
+            .attr('height', this.height)
+            
+    }
+
+    return {
+        main: main(),
+        div: div()
+
+    }
+    
 }
 
 
 
+//entities
+    //person
+    //role
+        //producer
+        //performer
+            //session musician
+    //song
+    //recording
+    //release
+        //almost at the ivory
+        //eastern shores ep
+        //emerson rush
+        //every weekend
+        //in the lights
+        //misguided romantic
+        //on my back
+        //young emotions
+
+//pages
+    //release personnel
+    //notes (all)
+
+
+//strategic problem space
+//events
+    //release selected
+    //note selected
+
+//core subdomains
+    //ingression
+    //preserve
+    //nursery
+
+
+//tactical solution space
+
+//bounded context
+//entities(has id)
+    //song
+    //person
+    //recording
+    //
+//value objects (no id, building block)
+    //property
+//domain events (async messaging between bounded contexts)
+    //async messaging
+//aggregates (cluster of entities, has a root entity, in a bounded context)
+    //person featured on release
+//domain and application services
+
+
+//controllers
+//services (no state)
+    //application services (auth, emailing)
+    //domain services (design logic)
+        //view release

@@ -1,121 +1,172 @@
 //events
-window.onload = async () => {
+window.onload = () => {
+    const displayOrchestrator = new DisplayOrchestrator()
+    displayOrchestrator.requestView('WikiPage')
+}
 
-    const getDependencies = () => {
-        const model = new NotesModel()
+
+class DisplayOrchestrator {
+        viewController    
+
+        requestView(viewType, contentSelection = null){
+            switch(viewType){
+                case 'WikiPage':
+                    this.viewController = new WikiController()
+            }
+
+            this.viewController.processRequest(contentSelection)
+        }
+
+        
+}
+
+class WikiController {
+    constructor(){
+        this.notesModel = new NotesModel()
+    }
+
+    processRequest(requestedNoteTitle){
+        this.clearCurrentNote()
+        this.loadNewNote(requestedNoteTitle)
+        
+    }
+
+    clearCurrentNote(){
+        d3.select('article').html('')
+    }
+
+    async loadNewNote(requestedNoteTitle){
+        const title = requestedNoteTitle ?? this.notesModel.randomNoteTitle
+        const noteModel = await this.composeNoteModel(title)
+        const navModel = this.composeNavModel()
+        const view = this.composeView()
+        this.renderNote(noteModel, view)  
+        this.renderNav(navModel, view)
+    }
+
+    async composeNoteModel(title){
+
+        const notePath = () => {
+            return './docs/' + title + '.html'
+        }
+
+        const htmlDoc = () => {
+            const loader = new HtmlDocLoader()
+            return loader.getDoc(notePath())
+        }
+
+        const formattedNote = (htmlDoc) => {
+            const transformer = new DocTransformer()
+            return transformer.createNote(htmlDoc, title)
+        }
+
+        return formattedNote(await htmlDoc())
+    }
+
+    composeNavModel(){
+        const model = []
+        const options = ['Random Note','List']
+        for(let i = 0; i < options.length; i++){
+            model.push(new NavOption(options[i]))
+        }
+        return model
+    }
+
+    composeView(){
         const composer = new ViewComposer(
             new WikiStructure(),
             new WikiLayout(),
             new WikiStyling()
         )
-        return {model, composer}
+
+        const {structure, layout, styling} = {
+            structure: composer.structure, 
+            layout: composer.layout, 
+            styling: composer.styling
+        }
+
+        const setupArticle = () => {
+            structure.article
+                .style('background-color', styling.backgroundColour)
+                .style('padding', layout.padding + 'px')
+                .style('margin', layout.margin + 'px')
+        }
+
+        const setupNav = () => {
+            structure.nav
+                .style('background-color', styling.navStyling.backgroundColour)
+                .style('border-radius', styling.borderRadius + 'px')
+                .style('box-shadow', styling.boxShadow)
+                .style('position', layout.navLayout.position)
+                .style('padding', layout.navLayout.padding + 'px')
+                .style('width', layout.navLayout.width + 'px')
+                .style('height', layout.navLayout.height + 'px')
+                .style('top', layout.navLayout.top + 'px')
+                .style('left', layout.navLayout.left + 'px')
+        }
+
+        setupArticle()
+        setupNav()
+        return structure
     }
 
-    const {model, composer} = getDependencies()
-    switchView(new WikiPage(model, composer))
+    renderNote(model, structure){
+
+        const renderer = new LineRenderer()
+ 
+        model.lines.forEach(line => {
+            renderer.setStrategy(new RenderStrategy(line.constructor.name))
+            renderer.renderLine(structure, line, this)
+        })
+
+    }
+
+    renderNav(model, structure){
+
+        const renderer = new LineRenderer()
+        renderer.setStrategy(new NavOptionStrategy())
+
+        model.forEach(line => {
+            renderer.renderLine(structure, line, this)
+        })
+    }
+
 }
 
-function handleNoteLinkClick(elem, routingFn){
-    if(elem.attr('href').substring(0, 2) === './'){
-        routingFn(elem.text())
-    } else {
+class NavOption {
+    constructor(text, fnToCall = null){
+        this.text = text
+        this.fnToCall = fnToCall
+    }
+}
+
+//fetch data
+//format payload data into model
+//style elements
+//render elements
+
+
+function handleNoteLinkClick(elem, controller){
+
+    const isExternalLink = () => {
+        return elem.attr('href').substring(0, 4) === 'http'
+    }
+
+    const isValidInternalLink = () => {
+        return elem.attr('href').substring(0, 2) === './'
+    }
+
+    const getTitleFromHref = (link) => {
+        link = link.substring(2, link.length - 5)
+        return link.replaceAll('%20', ' ').replaceAll('%',' ')
+    }
+
+    if(isExternalLink()){
         window.open(elem.attr('href'), '_blank')
-    }
-
-}
-
-//logic / control
-
-
-function clearCurrentView(){
-    d3.select('body').html('')
-}
-
-function switchView(newView){
-    clearCurrentView()
-    newView.render()
-}
-
-//views
-class View {
-    constructor(model, composer){
-        this.model = model
-        this.layout = composer.layout
-        this.structure = composer.structure
-        this.styling = composer.styling
-    }
-}
-
-class WikiPage extends View {
-    
-    async render(){
-        await this.initaliseDataModel()
-        this.configureElements()
-        this.renderNote()
-    }
-
-    initaliseDataModel(){
-        return this.model.loadData()
-    }
-
-    configureElements(){
-
-        const renderArticle = () => {
-            this.structure.article
-                .style('background-color', this.styling.backgroundColour)
-                .style('padding', this.layout.padding + 'px')
-                .style('margin', this.layout.margin + 'px')
-        }
-
-        renderArticle()
-    }
-
-    renderNote(title = null){
-        
-        const clearCurrentNote = () => {
-            this.structure.article.html('')
-        }
-
-        const renderNewNote = () => {
-            
-            const linesToRender = () => {
-                if(title === null){
-                    return this.model.randomNote.lines
-                } else {
-                    return this.model.getNote(title).lines
-                }
-            }
-
-            const renderLines = (lines, renderer) => {
-                lines.forEach(line => {
-                    renderer.setStrategy(new RenderStrategy(line.constructor.name))
-                    renderer.renderLine(this.structure, line, this)
-                })
-            }
-
-            renderLines(linesToRender(), new LineRenderer())
-        }
-
-        clearCurrentNote()
-        renderNewNote()
-    }
-
-    renderNavModal(){
-
-    }
-
-}
-
-class List extends View {
-    initialiseElements(){
-        const body = d3.select('body')
-        body.append('header')
-        const main = body.append('main')
-        main.append('div').append('svg')
-    }
-
-    populate(data){
-
+    } else if(isValidInternalLink()){
+        controller.requestView('WikiPage', getTitleFromHref(elem.attr('href')))
+    } else {
+        console.error('invalid link: ' + elem.attr('href'))
     }
 }
 
@@ -125,10 +176,7 @@ class ViewComposer {
         this.layout = layout
         this.styling = styling
     }
-
-
 }
-
 
 class Styling {
     constructor(){
@@ -163,8 +211,18 @@ class Styling {
 
 class WikiStyling extends Styling {
 
+    get navStyling(){
+        return new NavStyling()
+    }
 
 }
+
+class NavStyling extends Styling {
+    get backgroundColour(){
+        return 'rgba(128, 128, 128, 0.38)'
+    }
+}
+
 class ListStyling extends Styling {
     
     get backgroundColour(){
@@ -172,70 +230,96 @@ class ListStyling extends Styling {
     }
 }
 
-
 class Structure {
+    #siteNav = null
     #main = null
+
+    get body(){
+        return d3.select('body')
+    }
 
     get main() {
         if(this.#main === null){
-            this.createMain()
+            this.#main = this.getSelection('main')
         }
         return this.#main
     }
 
-    createMain(){
-        this.#main = d3.select('body').append('main')
+    get siteNav() {
+        if(this.#siteNav === null){
+            this.#siteNav = this.getSelection('nav')
+        }
+        return this.#siteNav
+    }
+
+    getSelection(selector, parentSelection = this.body){
+        const selectFromDom = () => {
+            const selection = parentSelection.select(selector)
+            if(selection.empty()){
+                throw new Error('main element not found')
+            }
+            return selection
+        }
+
+        const createOnDom = () => {
+            return parentSelection.append(selector)
+        }
+
+        try{return selectFromDom()}
+        catch{return createOnDom()}
     }
 }
+
 class WikiStructure extends Structure {
     #article = null
     #list = null
+    #nav = null
     #section = null
 
     get article() {
-        if(this.#article === null){
-            this.createArticle()
+        if(!this.#article){
+            this.#article = this.getSelection('article', this.main)    
         }
         return this.#article
     }
 
     get list() {
         if(!this.#list){
-            this.createList()
+            this.#list = this.getSelection('ul', this.section)
         }
-
         return this.#list
     }
 
     get section() {
-        if(this.constructor.name !== 'BulletStrategy'){
-            this.endCurrentList()
-        }
-
         if(!this.#section){
-            this.createSection()
+            this.#section = this.getSelection('section', this.article)
         }
 
         return this.#section
     }
 
-    createArticle(){
-        this.#article = this.main.append('article')
+
+    get nav(){
+        if(!this.#nav){
+            this.#nav = this.getSelection('nav', this.main)
+        }
+        return this.#nav
     }
+
 
     createSection(){
+        this.endCurrentList()
         this.#section = this.article.append('section')
-    }
-
-    createList(){
-        this.#list = this.section.append('ul')
     }
 
     endCurrentList(){
         this.#list = null
     }
 }
-class ListStructure extends Structure {}
+
+class ListStructure extends Structure {
+
+}
 
 class Layout {
     constructor(){
@@ -263,7 +347,7 @@ class Layout {
     }
 
     get width(){
-        return this.grid.usableWidth
+        return 'min(100% - 3rem, 75ch)'
     }
 
     get height(){
@@ -279,9 +363,46 @@ class Layout {
     }
 
 }
-class WikiLayout extends Layout {}
-class ListLayout extends Layout {}
 
+class WikiLayout extends Layout {
+    get navLayout(){
+        return new NavLayout()
+    }
+
+    get width(){
+        const ch = (fontSize, ratio = 0.618) => {
+            return Math.floor(fontSize * ratio)
+        }
+
+        return Math.floor(ch * 75)
+    }
+}
+
+class NavLayout extends Layout {
+    get position(){
+        return 'fixed'
+    }
+
+    get width(){
+        return this.grid.columnWidth
+    }
+
+    get height(){
+        return this.grid.rowHeight
+    }
+
+    get top(){
+        return 0
+    }
+
+    get left(){
+        return this.grid.margin
+    }
+}
+
+class ListLayout extends Layout {
+
+}
 
 class LineRenderer {
 
@@ -341,7 +462,7 @@ class RenderStrategy {
         elem.select('a')
             .on('click', function(event){
                 event.preventDefault()
-                handleNoteLinkClick(d3.select(this), wiki.renderNote)
+                handleNoteLinkClick(d3.select(this), wiki)
             })
     }
 
@@ -377,6 +498,11 @@ class HeadingStrategy extends RenderStrategy {
     
 }
 
+class NavOptionStrategy extends RenderStrategy {
+    render(doc, line){
+        doc.nav.append('span').text(line.text)
+    }
+}
 
 //model - notes
 class NotesModel {
@@ -409,11 +535,15 @@ class NotesModel {
         catch{return null}
     }
 
-    get randomNote(){
+    get randomNoteTitle(){
         const randomIndex = () => {
             return Math.floor(Math.random() * this.titles.length)
         }
-        return this.getNote(this.titles[randomIndex()])
+        return this.titles[randomIndex()]
+    }
+
+    get randomNote(){
+        return this.getNote(this.randomNoteTitle)
     }
 
     async loadData(){
@@ -457,6 +587,72 @@ class Note {
     }
 }
 
+class HtmlDocLoader {
+
+    async getDoc(path){
+        const parser = new DOMParser()
+        const htmlString = await this.getHtmlString(path)
+        return Promise.resolve(parser.parseFromString(htmlString, 'text/html'))
+    }
+
+    async getHtmlString(path){
+        const response = await fetch(path)
+        return response.text()
+    }
+}
+
+class DocTransformer {
+    createNote(htmlDoc, title){
+        const note = new Note(title)
+        note.creationDate = this.getCreationDate(htmlDoc)
+        note.lines = this.getLines(htmlDoc)
+        return note
+    }
+
+    getCreationDate(htmlDoc){      
+        const htmlElement = d3.select(htmlDoc).selectAll('meta').filter(function(){
+            return d3.select(this).attr('name') === 'created'
+        })
+
+        return new Date(htmlElement.attr('content'))
+    }
+
+    getLines(htmlDoc){
+        const lines = []
+            
+        const getLine = (elem) => {
+            const tag = elem.node().tagName.toLowerCase()  
+        
+            switch(tag){
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    return new Heading(lines.length, elem)
+                case 'li':
+                    return new Bullet(lines.length, elem)
+                case 'p':
+                    return new P(lines.length, elem)
+                default:
+                    throw new Error('incompatible elem type')
+            }
+        }
+
+        const selection = d3.select(htmlDoc)
+            .select('body')
+            .selectAll('h1, h2, h3, h4, h5, h6, li, p')
+
+        selection.each(function(){
+            try{lines.push(getLine(d3.select(this)))}
+            catch{return}
+        })
+    
+        return lines
+    }
+}
+
 class HtmlConvertor {
 
     async getDoc(path){
@@ -473,8 +669,8 @@ class HtmlConvertor {
 }
 
 class NoteLoader {
-    constructor(htmlConverter){
-        this.htmlConverter = htmlConverter
+    constructor(){
+        this.htmlConverter = new HtmlConvertor()
     }
 
     async load(note){
@@ -483,6 +679,8 @@ class NoteLoader {
         this.setProperties(note, doc)
         return note
     }
+
+
 
     setProperties(note, doc){
 
@@ -535,7 +733,6 @@ class NoteLoader {
     
     }
 }
-
 
 class A {
     constructor(a){
@@ -748,14 +945,15 @@ class Colours {
 
 class Grid {
 
+    #cellSize = 16
+
     constructor() {
-        this.cellSize = 16
         this.minCellsPerColumn = 4
         this.breakpoints = { mobile: 500, tablet: 1000 }
         this.columnMap = { mobile: 4, tablet: 8, desktop: 12 }
-        this.gutterMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
-        this.marginMap = { mobile: this.cellSize, tablet: this.cellSize * 2, desktop: this.cellSize * 4}
-        this.paddingMap = { mobile: this.cellSize / 4, tablet: this.cellSize / 2, desktop: this.cellSize}
+        this.gutterMap = { mobile: this.#cellSize / 4, tablet: this.#cellSize / 2, desktop: this.#cellSize}
+        this.marginMap = { mobile: this.#cellSize, tablet: this.#cellSize * 2, desktop: this.#cellSize * 4}
+        this.paddingMap = { mobile: this.#cellSize / 4, tablet: this.#cellSize / 2, desktop: this.#cellSize}
     }
 
     get deviceType() {
@@ -767,7 +965,7 @@ class Grid {
 
 
     get availableWidth(){
-        return window.innerWidth - this.margin * 2 - this.padding * 2 - this.cellSize
+        return window.innerWidth - this.margin * 2 - this.padding * 2 - this.#cellSize
     }
 
     get columnCount() {
@@ -787,11 +985,11 @@ class Grid {
     }
 
     get maxCellsPerRow(){
-        return this.usableWidth / this.cellSize
+        return this.usableWidth / this.#cellSize
     }
 
     get overHang(){
-        return this.availableWidth % this.cellSize
+        return this.availableWidth % this.#cellSize
     }
 
     get totalColumnWidth(){
@@ -811,7 +1009,7 @@ class Grid {
     }
 
     get rowHeight(){
-        return this.cellSize
+        return this.#cellSize
     }
 
     spanWidth(columnCount){
@@ -957,8 +1155,6 @@ class Element {
     renderContent(){}
 
 }
-
-
 
 class Accordion extends Element {
     //margin: top right bottom left
@@ -1480,7 +1676,6 @@ class NavigationOption {
 
 }
 
-
 class AccordionItem {
 
     constructor(){
@@ -1591,12 +1786,10 @@ class ElementDynamics {
     move(){}
 }
 
-
 //controller
 function loadNotesList(){
 
 }
-
 
 class Displays {
     static #notesList
@@ -1617,7 +1810,6 @@ class Displays {
         return Promise.resolve(this.#notesWiki)
     }
 }
-
 
 class Orchestrator {
     static async activateDisplay(displayName){
@@ -1641,10 +1833,6 @@ async function initialiseWiki(){
     const wiki = new NotesWiki(new NotesModel())
     await wiki.initalise()
     return Promise.resolve(wiki)
-}
-
-class StucturingStrategy {
-    
 }
 
 function initialiseElements(display){
@@ -1684,8 +1872,6 @@ function initialiseElements(display){
     }
     
 }
-
-
 
 //entities
     //person

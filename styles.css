@@ -2,19 +2,24 @@ body {
     font-family: Helvetica, Tahoma, sans-serif;
     background-color: #F7F9FA;
     padding-bottom: 16px;
+    margin: 0px;
     overflow-y: auto;
 }
 
+article {
+    width: min(100% - 3rem, 75ch); /* Shrinks on mobile, caps at 75 characters on desktop */
+    margin-inline: auto;
+}
+
 nav {
-    border-radius: 16px;
-    background-color: 'black'
+    position: fixed;
+    width: 80%;
+    z-index: 1000;
 }
 
 div {
     overflow: auto;
     margin: 16px;
-
-
 }
 
 div::-webkit-scrollbar {
@@ -22,20 +27,39 @@ div::-webkit-scrollbar {
 }
 
 h1 {
-    font-size: 20px;
+    font-size: 26px;
     padding: 0;
     margin: 0;
 }
 
 h2 {
-    font-size: 18px;
+    font-size: 21px;
 }
 
 h3 {
+    font-size: 18px;
+}
+
+h4 {
     font-size: 16px;
 }
 
+h5 {
+    font-size: 15px;
+}
+
+h6 {
+    font-size: 14px;
+}
+
 p {
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10+ */
+    user-select: none; /* Standard */
+    font-size: 14px;
+}
+
+li {
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10+ */
     user-select: none; /* Standard */

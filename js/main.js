@@ -4,6 +4,30 @@ window.onload = () => {
     displayOrchestrator.requestView('WikiPage')
 }
 
+function handleNoteLinkClick(elem, controller){
+
+    const isExternalLink = () => {
+        return elem.attr('href').substring(0, 4) === 'http'
+    }
+
+    const isValidInternalLink = () => {
+        return elem.attr('href').substring(0, 2) === './'
+    }
+
+    const getTitleFromHref = (link) => {
+        link = link.substring(2, link.length - 5)
+        return link.replaceAll('%20', ' ').replaceAll('%',' ')
+    }
+
+    if(isExternalLink()){
+        window.open(elem.attr('href'), '_blank')
+    } else if(isValidInternalLink()){
+        controller.processRequest('WikiPage', getTitleFromHref(elem.attr('href')))
+    } else {
+        console.error('invalid link: ' + elem.attr('href'))
+    }
+}
+
 
 class DisplayOrchestrator {
         viewController    
@@ -27,7 +51,9 @@ class WikiController {
 
     processRequest(requestedNoteTitle){
         this.clearCurrentNote()
-        this.loadNewNote(requestedNoteTitle)
+        const composer = this.composeView()
+        this.loadNewNote(requestedNoteTitle, composer.structure)
+        this.loadNav(composer.structure, composer.layout.navLayout)
         
     }
 
@@ -35,13 +61,15 @@ class WikiController {
         d3.select('article').html('')
     }
 
-    async loadNewNote(requestedNoteTitle){
+    async loadNewNote(requestedNoteTitle, structure){
         const title = requestedNoteTitle ?? this.notesModel.randomNoteTitle
         const noteModel = await this.composeNoteModel(title)
+        this.renderNote(noteModel, structure)  
+    }
+
+    loadNav(structure, layout){
         const navModel = this.composeNavModel()
-        const view = this.composeView()
-        this.renderNote(noteModel, view)  
-        this.renderNav(navModel, view)
+        this.renderNav(navModel, structure.svg, layout)
     }
 
     async composeNoteModel(title){
@@ -90,6 +118,7 @@ class WikiController {
                 .style('background-color', styling.backgroundColour)
                 .style('padding', layout.padding + 'px')
                 .style('margin', layout.margin + 'px')
+                .style('font-size', layout.fontSize + 'px')
         }
 
         const setupNav = () => {
@@ -103,11 +132,15 @@ class WikiController {
                 .style('height', layout.navLayout.height + 'px')
                 .style('top', layout.navLayout.top + 'px')
                 .style('left', layout.navLayout.left + 'px')
+
+            structure.svg
+                .attr('width', layout.navLayout.width)
+                .attr('height', layout.navLayout.height)
         }
 
         setupArticle()
         setupNav()
-        return structure
+        return composer
     }
 
     renderNote(model, structure){
@@ -121,14 +154,67 @@ class WikiController {
 
     }
 
-    renderNav(model, structure){
+    renderNav(data, svg, layout){
 
-        const renderer = new LineRenderer()
+        const controller = this
+
+        const g = svg.selectAll('g')
+            .data(data)
+            .join('g')
+            .attr('transform', (d, i) => {
+                const {x, y} = {
+                    x: i * (layout.optionWidth + 4), 
+                    y: 0
+                }
+                return 'translate(' + x + ',' + y + ')'
+            })
+
+        g.append('rect')
+            .attr('class', 'option')
+            .attr('width', layout.optionWidth)
+            .attr('height', layout.height)
+            .attr('fill', '#E2E2E2')
+
+
+        g.append('text')
+            .text(d => d.text)
+            .attr('x', layout.optionWidth / 2)
+            .attr('y', layout.lineHeight / 2 + layout.padding / 2)
+            .attr('dy', '0.35em')
+            .attr('fill', '#384D48')
+            .style('font-size', layout.fontSize + 'px')
+            .style('user-select', 'none')
+            .style('text-anchor', 'middle')
+
+        const fn = this.processRequest
+
+        g.on('mouseover', function(){
+            const item = d3.select(this)
+            item.select('rect.option').attr('fill', '#6E7271')
+            item.select('text').attr('fill', '#F5F5F5')
+            //item.select('text.caption').attr('fill', '#D8D4D5')
+        })
+        .on('mouseout', function(){
+            const item = d3.select(this)
+            item.select('rect.option').attr('fill', '#E2E2E2')
+            item.select('text').attr('fill', '#384D48')
+            //item.select('text.caption').attr('fill', '#6E7271')
+        })
+        .on('click', function(event, d){
+            if(d.text === 'Random Note'){
+                controller.processRequest()
+            }
+            
+        })
+
+    
+
+/*         const renderer = new LineRenderer()
         renderer.setStrategy(new NavOptionStrategy())
 
         model.forEach(line => {
             renderer.renderLine(structure, line, this)
-        })
+        }) */
     }
 
 }
@@ -140,35 +226,7 @@ class NavOption {
     }
 }
 
-//fetch data
-//format payload data into model
-//style elements
-//render elements
 
-
-function handleNoteLinkClick(elem, controller){
-
-    const isExternalLink = () => {
-        return elem.attr('href').substring(0, 4) === 'http'
-    }
-
-    const isValidInternalLink = () => {
-        return elem.attr('href').substring(0, 2) === './'
-    }
-
-    const getTitleFromHref = (link) => {
-        link = link.substring(2, link.length - 5)
-        return link.replaceAll('%20', ' ').replaceAll('%',' ')
-    }
-
-    if(isExternalLink()){
-        window.open(elem.attr('href'), '_blank')
-    } else if(isValidInternalLink()){
-        controller.requestView('WikiPage', getTitleFromHref(elem.attr('href')))
-    } else {
-        console.error('invalid link: ' + elem.attr('href'))
-    }
-}
 
 class ViewComposer {
     constructor(structure, layout, styling){ 
@@ -215,12 +273,14 @@ class WikiStyling extends Styling {
         return new NavStyling()
     }
 
+    get fontSize(){
+        return 14
+    }
+
 }
 
 class NavStyling extends Styling {
-    get backgroundColour(){
-        return 'rgba(128, 128, 128, 0.38)'
-    }
+
 }
 
 class ListStyling extends Styling {
@@ -275,6 +335,7 @@ class WikiStructure extends Structure {
     #list = null
     #nav = null
     #section = null
+    #svg = null
 
     get article() {
         if(!this.#article){
@@ -304,6 +365,13 @@ class WikiStructure extends Structure {
             this.#nav = this.getSelection('nav', this.main)
         }
         return this.#nav
+    }
+
+    get svg(){
+        if(!this.#svg){
+            this.#svg = this.getSelection('svg', this.nav)
+        }
+        return this.#svg
     }
 
 
@@ -369,6 +437,10 @@ class WikiLayout extends Layout {
         return new NavLayout()
     }
 
+    get top(){
+        return this.grid.padding
+    }
+
     get width(){
         const ch = (fontSize, ratio = 0.618) => {
             return Math.floor(fontSize * ratio)
@@ -379,25 +451,46 @@ class WikiLayout extends Layout {
 }
 
 class NavLayout extends Layout {
+    get backgroundColour(){
+        return '#E2E2E2'
+    }
+
+    get fontSize(){
+        return 12
+    }
+
+    get lineHeight(){
+        return this.fontSize * 1.618
+    }
+
     get position(){
         return 'fixed'
     }
 
     get width(){
-        return this.grid.columnWidth
+        return this.grid.columnWidth * 4 + this.grid.gutterWidth * 3
     }
 
     get height(){
-        return this.grid.rowHeight
+        return this.lineHeight + this.padding
     }
 
-    get top(){
+    get margin(){
         return 0
+    }
+
+    get padding (){
+        return 0.382 * this.lineHeight
     }
 
     get left(){
         return this.grid.margin
     }
+
+    get optionWidth(){
+        return this.width / 2 - 2
+    }
+
 }
 
 class ListLayout extends Layout {
@@ -1013,7 +1106,7 @@ class Grid {
     }
 
     spanWidth(columnCount){
-        return columnCount * this.columnWidth
+        return columnCount * this.columnWidth + this.gutterWidth * (columnCount - 1)
     }
 
     offsetWidth(columnCount){
@@ -1328,7 +1421,7 @@ class Accordion extends Element {
                     .attr('x', AccordionItem.textMainPositionX) //column 2
                     .attr('dy', AccordionItem.textOffsetY)
                     .attr('fill', '#384D48')
-                    .style('font-size', AccordionItem.fontHeight + 'px')
+                    .style('font-size', AccordionItem.fontSize + 'px')
                     .style('user-select', 'none')
             }
 
@@ -1343,7 +1436,7 @@ class Accordion extends Element {
                     .attr('dx', 4)
                     .attr('dy', AccordionItem.textOffsetY)
                     .attr('fill', '#6E7271')
-                    .style('font-size', (AccordionItem.fontHeight - 2) + 'px')
+                    .style('font-size', (AccordionItem.fontSize - 2) + 'px')
                     .style('user-select', 'none')
             }
 
@@ -1455,7 +1548,7 @@ class AccordionItemRendering {
 
             
             renderedLines.each(function(d, i){
-                const availableWidth = AccordionItem.dividerWidth - AccordionItem.textMainPositionX - AccordionItem.fontHeight * 2
+                const availableWidth = AccordionItem.dividerWidth - AccordionItem.textMainPositionX - AccordionItem.fontSize * 2
 
                 if(renderedWidth(d3.select(this)) > availableWidth){
                     console.log(renderedLines.data())
@@ -1489,15 +1582,15 @@ class AccordionItemRendering {
 
     renderLinesTransparent(selection){
 
-        const fontHeight = (d) => {
-            let height = AccordionItem.fontHeight - 1
+        const fontSize = (d) => {
+            let height = AccordionItem.fontSize - 1
             if(d.constructor.name === 'Heading'){
                 height = height + (6 - d.level)
             }
             return height 
         }
 
-        const lineSpacing = AccordionItem.fontHeight * 1.38
+        const lineSpacing = AccordionItem.fontSize * 1.38
         const yOffset = AccordionItem.heightCollapsed * 1.38
         
         return selection
@@ -1506,13 +1599,13 @@ class AccordionItemRendering {
             .attr('id', d => d.id)
             .text(d => d.text)
             .attr('x', (d) => {
-                const inset = d.constructor.name === 'Bullet' ? fontHeight(d) * 0.618 : 0
+                const inset = d.constructor.name === 'Bullet' ? fontSize(d) * 0.618 : 0
                 return AccordionItem.textMainPositionX + inset
             })
             .attr('y', (d, i) => i * lineSpacing + yOffset)
             .attr('fill', 'transparent')
             .attr('font-weight', d => d.constructor.name === 'Heading' ? 700 : 400)
-            .style('font-size', d => fontHeight(d) + 'px')
+            .style('font-size', d => fontSize(d) + 'px')
     }
 
     expandedHeight(renderedLines){     
@@ -1643,7 +1736,7 @@ class Navigation extends Element {
     renderContent(){
 
         const optionWidth = this.width / this.data.length
-        const fontHeight = 16
+        const fontSize = 16
         const svg = this.nav.append('svg')
 
         const g = svg.selectAll('g')
@@ -1657,9 +1750,9 @@ class Navigation extends Element {
         g.append('text')
             .text(d => d.text)
             .attr('dx', 4)
-            .attr('dy', fontHeight / 2)
+            .attr('dy', fontSize / 2)
             .attr('fill', 'black')
-            .style('font-size', fontHeight + 'px')
+            .style('font-size', fontSize + 'px')
             .style('user-select', 'none')
 
 
@@ -1704,7 +1797,7 @@ class AccordionItem {
         return 200 
     }
 
-    static get fontHeight(){
+    static get fontSize(){
         const gRatioConjugate = this.goldenRatio - 1
         const complimentaryRatio = 1 - gRatioConjugate
         return Math.floor(this.rectHeightCollapsed * complimentaryRatio)
@@ -1735,7 +1828,7 @@ class AccordionItem {
     }
 
     static get textOffsetY(){
-        return this.fontHeight / 2 + this.rectHeightCollapsed / 2 - this.dividerHeight 
+        return this.fontSize / 2 + this.rectHeightCollapsed / 2 - this.dividerHeight 
     }
 
     static typeWriterTween(finalText) {

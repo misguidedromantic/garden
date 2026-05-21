@@ -9,6 +9,8 @@ body {
 article {
     width: min(100% - 3rem, 75ch); /* Shrinks on mobile, caps at 75 characters on desktop */
     margin-inline: auto;
+    font-size: 14px;
+    font-weight: 300;
 }
 
 nav {
@@ -30,45 +32,42 @@ h1 {
     font-size: 26px;
     padding: 0;
     margin: 0;
+    font-weight: 500;
 }
 
 h2 {
     font-size: 21px;
+    font-weight: 500;
 }
 
 h3 {
     font-size: 18px;
+    font-weight: 400;
 }
 
 h4 {
     font-size: 16px;
+    font-weight: 400;
 }
 
 h5 {
     font-size: 15px;
+    font-weight: 400;
 }
 
 h6 {
     font-size: 14px;
+    font-weight: 400;
 }
-
-p {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none; /* IE 10+ */
-    user-select: none; /* Standard */
-    font-size: 14px;
-}
-
-li {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none; /* IE 10+ */
-    user-select: none; /* Standard */
-    font-size: 14px;
-}
-
 
 text {
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10+ */
     user-select: none; /* Standard */
+}
+
+a {
+    font-style: italic;
+    text-decoration: none;
+    font-weight: 500;
 }
